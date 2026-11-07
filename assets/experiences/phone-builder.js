@@ -289,6 +289,8 @@ export class PhoneBuilder {
     let arrived = 0;
     const net = powerNetwork(svg, o, ends, {
       r0: Math.max(lr.width, lr.height) / k / 2 + 2, rate,
+      lay: 800, flow: 1500, stagger: 55,
+      fine: isSmall() ? 26 : 40, fineBox: { W, H, inset: 8 },
       onArrive: () => { arrived++; if (arrived === 1) { try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(8); } catch {} } }
     });
     await net.done;

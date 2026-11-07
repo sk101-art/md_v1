@@ -91,14 +91,18 @@ export class Crew {
     window.addEventListener("resize", onResize);
 
     this.pause = true;
-    await sleep(fast ? 160 : 320);
-    const step = fast ? 55 : 110;
+    await sleep(fast ? 120 : 220);
+    // one node every ~150ms, each lighting over ~460ms: overlapping, so it reads as a smooth
+    // clockwise sweep — slow enough to follow, never waiting on itself
+    const step = fast ? 80 : 150;
     for (let i = 0; i < CREW_SIZE; i++) {
       const a = this.agents[i];
       seated = i + 1;
       seat();
       a.el.style.opacity = "1";
-      a.el.animate([{ opacity: 0, filter: "blur(4px)" }, { opacity: 1, filter: "none" }], { duration: 300 });
+      a.el.animate([{ opacity: 0, filter: "blur(3px)" }, { opacity: 1, filter: "none" }], { duration: 460, easing: "ease-out" });
+      const dot = a.el.querySelector(".sw-dotc");
+      if (dot) dot.animate([{ transform: "scale(0)" }, { transform: "scale(1.35)", offset: 0.6 }, { transform: "scale(1)" }], { duration: 520, easing: "cubic-bezier(.34,1.4,.64,1)" });
       nodes[i].classList.add("lit");
       stage.querySelector(".ci-n").textContent = `${String(i + 1).padStart(2, "0")} / ${CREW_SIZE}`;
       stage.querySelector(".ci-role").textContent = a.role.name;
@@ -120,7 +124,7 @@ export class Crew {
     // a glow flows from the logo along a circuit into each node; each node powers on as it arrives
     const ends = nodes.map((_, i) => { const p = off(i); return { x: C + p.x, y: C + p.y, ang: p.ang }; });
     await powerNetwork(svg, { x: C, y: C }, ends, {
-      r0: 30, lay: fast ? 260 : 420, flow: fast ? 480 : 760, stagger: fast ? 10 : 24,
+      r0: 30, lay: fast ? 300 : 520, flow: fast ? 620 : 1050, stagger: fast ? 14 : 30, branches: false,
       onArrive: i => { nodes[i].classList.add("powered"); this.agents[i].el.animate([{ transform: this.agents[i].el.style.transform + " scale(1)" }, { transform: this.agents[i].el.style.transform + " scale(1.9)" }, { transform: this.agents[i].el.style.transform + " scale(1)" }], { duration: 360 }); }
     }).done;
     stage.querySelector("b").textContent = "Builders powered";
@@ -203,7 +207,7 @@ export class Crew {
       const Rt = this.anchorR || (this.mouse ? 30 : 16);
       this.rCur += (Rt - this.rCur) * Math.min(1, dt * 3);
       const R = this.rCur;
-      const breathe = Math.sin(now / 700) * 1.5;            // the whole ring breathes together
+      const breathe = Math.sin(now / 700) * 1.5;            // the whole ring breathes together...
       ring.forEach((a, j) => {
         // each builder follows its own slightly-lagged copy of the centre (comet trail while
         // moving), but sits on one exact circle around it, so at rest the ring is perfectly round
@@ -212,8 +216,12 @@ export class Crew {
         a.oc.x += (c.x - a.oc.x) * k;
         a.oc.y += (c.y - a.oc.y) * k;
         const slot = ring.length === CREW_SIZE ? a.index : j;
-        const ang = this.spin + (slot / ring.length) * Math.PI * 2;
-        const tx = a.oc.x + Math.cos(ang) * (R + breathe), ty = a.oc.y + Math.sin(ang) * (R + breathe);
+        // ...and each builder has a little life of its own: it drifts ahead/behind its slot and
+        // bobs in and out on its own rhythm, so the ring feels alive rather than mechanical
+        const life = a.index * 1.7;
+        const ang = this.spin + (slot / ring.length) * Math.PI * 2 + Math.sin(now / 1100 + life) * 0.09;
+        const rr = R + breathe + Math.sin(now / 640 + life * 1.3) * 2.6;
+        const tx = a.oc.x + Math.cos(ang) * rr, ty = a.oc.y + Math.sin(ang) * rr;
         // returning from a job: glide in rather than jump onto the ring
         if (a.returning) {
           a.place(a.x + (tx - a.x) * 0.18, a.y + (ty - a.y) * 0.18);

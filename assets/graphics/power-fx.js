@@ -143,69 +143,112 @@ export function evenEndpoints(o, W, H, n = 22, inset = 16) {
 }
 
 /**
- * Lay the traces (dim), then send a glow from the logo along each one. When a glow reaches the
- * end of its trace the endpoint blooms. `onArrive(i, point)` fires per endpoint.
+ * A powered circuit board grown from the logo:
+ *  - main traces leave the logo's edge evenly in all directions (octilinear PCB routing)
+ *  - each main trace forks at its end into fine tapering branches (no round end pads)
+ *  - a second layer of thinner, fainter traces also grows out of the logo
+ *  - a glow travels from the logo along every trace and on into its branches, slowly,
+ *    lighting the copper behind it; `onArrive(i)` fires when a main trace's glow reaches its fork.
  */
-export function powerNetwork(svg, o, ends, { r0 = 24, lay = 420, flow = 760, stagger = 22, rate = 1, color = "#6F95F2", onArrive } = {}) {
-  const g = el("g");
-  const glowG = el("g", { filter: "url(#pfx-glow)" });
-  svg.append(g, glowG);
-  const paths = ends.map((e, i) => {
+export function powerNetwork(svg, o, ends, {
+  r0 = 24, lay = 700, flow = 1300, stagger = 40, rate = 1, color = "#6F95F2",
+  fine = 0, fineBox = null, branches = true, onArrive
+} = {}) {
+  const base = el("g"), glowG = el("g", { filter: "url(#pfx-glow)" });
+  svg.append(base, glowG);
+  const traces = [];
+  const addTrace = (pts, w, op, kind) => {
+    const d = toD(pts);
+    const p = el("path", { d, fill: "none", stroke: color, "stroke-width": w, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: op });
+    base.append(p);
+    const t = { p, d, len: p.getTotalLength(), w, op, kind, pts };
+    traces.push(t);
+    return t;
+  };
+  const radial = (ang, r) => ({ x: o.x + Math.cos(ang) * r, y: o.y + Math.sin(ang) * r });
+
+  // main traces
+  const mains = ends.map((e, i) => {
     const ang = e.ang ?? Math.atan2(e.y - o.y, e.x - o.x);
-    // leave the logo from its edge, radially, then route like a PCB track
-    const start = { x: o.x + Math.cos(ang) * r0, y: o.y + Math.sin(ang) * r0 };
-    const stub = { x: o.x + Math.cos(ang) * (r0 + 10), y: o.y + Math.sin(ang) * (r0 + 10) };
-    const pts = [start, ...route(stub, e, i % 2 === 1)];
-    return toD(pts);
+    const pts = [radial(ang, r0), ...route(radial(ang, r0 + 10), e, i % 2 === 1)];
+    const t = addTrace(pts, 1.15, 0.3, "main");
+    t.i = i;
+    // tapering forks at the end: continue straight + split at ±45°, each fading thinner
+    t.kids = [];
+    if (branches) {
+      const last = pts[pts.length - 2], end = pts[pts.length - 1];
+      const dir = Math.atan2(end.y - last.y, end.x - last.x);
+      const spread = [0, Math.PI / 4, -Math.PI / 4];
+      spread.forEach((da, k) => {
+        if (k === 0 && i % 3 === 0) return; // some forks only split, never continue
+        const L = 10 + ((i * 7 + k * 5) % 14);
+        const a1 = dir + da;
+        const mid = { x: end.x + Math.cos(a1) * L * 0.55, y: end.y + Math.sin(a1) * L * 0.55 };
+        // the tip bends back toward the parent's direction, like a PCB stub
+        const tip = { x: mid.x + Math.cos(dir) * L * 0.45, y: mid.y + Math.sin(dir) * L * 0.45 };
+        t.kids.push([
+          addTrace([end, mid], 0.75, 0.24, "fork"),
+          addTrace([mid, tip], 0.42, 0.16, "tip")
+        ]);
+      });
+    }
+    return t;
   });
-  // 1) traces are laid out from the logo, dim
-  const laid = paths.map((d, i) => {
-    const p = el("path", { d, fill: "none", stroke: color, "stroke-width": 1.1, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: 0.32 });
-    g.append(p);
-    const len = p.getTotalLength();
-    p.style.strokeDasharray = `${len}`;
-    const a = p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: lay, delay: i * 8, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
+
+  // fine secondary layer: thinner, fainter traces, also born at the logo's edge
+  const fines = [];
+  if (fine && fineBox) {
+    const { W, H, inset = 10 } = fineBox;
+    for (let j = 0; j < fine; j++) {
+      const ang = (j / fine) * Math.PI * 2 + 0.31;
+      const cx = Math.cos(ang), cy = Math.sin(ang);
+      const tx = cx > 0 ? (W - inset - o.x) / cx : cx < 0 ? (inset - o.x) / cx : Infinity;
+      const ty = cy > 0 ? (H - inset - o.y) / cy : cy < 0 ? (inset - o.y) / cy : Infinity;
+      const reach = Math.min(tx, ty) * [0.9, 0.7, 0.55, 0.8, 0.4][j % 5];
+      const e = { x: o.x + cx * reach, y: o.y + cy * reach };
+      const pts = [radial(ang, r0 - 2), ...route(radial(ang, r0 + 4), e, j % 3 === 0)];
+      const t = addTrace(pts, 0.5, 0.14, "fine");
+      t.j = j;
+      fines.push(t);
+    }
+  }
+
+  // 1) copper is laid from the logo outward
+  traces.forEach((t, k) => {
+    t.p.style.strokeDasharray = `${t.len}`;
+    const delay = t.kind === "main" ? t.i * 10 : t.kind === "fine" ? 120 + t.j * 6 : lay * 0.8;
+    const a = t.p.animate([{ strokeDashoffset: t.len }, { strokeDashoffset: 0 }], { duration: t.kind === "main" || t.kind === "fine" ? lay : lay * 0.4, delay, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
     a.playbackRate = rate;
-    return { p, len, a };
   });
-  // vias at the elbows
-  ends.forEach((e, i) => {
-    const pad = el("circle", { cx: e.x, cy: e.y, r: 1.8, fill: color, opacity: 0.45 });
-    g.append(pad);
-    laid[i].pad = pad;
-  });
-  // 2) glow flows from the logo along every trace
-  const flows = laid.map(({ p, len, pad }, i) => new Promise(res => {
-    const seg = Math.min(46, len * 0.4);
-    const mk = (w, op, col) => {
-      const f = p.cloneNode();
-      f.setAttribute("stroke", col);
-      f.setAttribute("stroke-width", w);
-      f.setAttribute("opacity", op);
-      f.style.strokeDasharray = `${seg} ${len + seg}`;
-      f.style.strokeDashoffset = `${seg}`;
+
+  // 2) a glow runs along a trace; resolves when it reaches the end
+  const glow = (t, { delay = 0, dur = flow, w = 3, core = 1.2, seg = 46, haloOp = 0.55 } = {}) => new Promise(res => {
+    const L = t.len, sg = Math.min(seg, L * 0.6);
+    const mk = (width, op, col) => {
+      const f = t.p.cloneNode();
+      f.setAttribute("stroke", col); f.setAttribute("stroke-width", width); f.setAttribute("opacity", op);
+      f.style.strokeDasharray = `${sg} ${L + sg}`; f.style.strokeDashoffset = `${sg}`;
       glowG.append(f);
       return f;
     };
-    const halo = mk(3.2, 0.55, "#8FB0FF"), core = mk(1.3, 1, "#EAF1FF");
-    const frames = [{ strokeDashoffset: seg }, { strokeDashoffset: -len }];
-    const opts = { duration: flow, delay: lay * 0.55 + (i % 6) * stagger, easing: "cubic-bezier(.45,0,.25,1)", fill: "forwards" };
-    const a1 = halo.animate(frames, opts), a2 = core.animate(frames, opts);
+    const halo = mk(w, haloOp, "#8FB0FF"), c = mk(core, 1, "#EAF1FF");
+    const fr = [{ strokeDashoffset: sg }, { strokeDashoffset: -L }];
+    const op = { duration: dur, delay, easing: "cubic-bezier(.45,0,.3,1)", fill: "forwards" };
+    const a1 = halo.animate(fr, op), a2 = c.animate(fr, op);
     a1.playbackRate = a2.playbackRate = rate;
-    // the trace stays lit behind the glow
-    const lit = p.animate([{ opacity: 0.32, stroke: color }, { opacity: 0.85, stroke: "#9DB8FF" }], { ...opts, duration: flow * 0.9 });
+    // copper behind the glow stays energised
+    const lit = t.p.animate([{ opacity: t.op, stroke: color }, { opacity: Math.min(0.95, t.op * 2.8), stroke: "#A9C1FF" }], { ...op, duration: dur });
     lit.playbackRate = rate;
-    a2.finished.then(() => {
-      halo.remove(); core.remove();
-      pad.setAttribute("fill", "#EAF1FF");
-      pad.setAttribute("filter", "url(#pfx-glow)");
-      pad.style.transformBox = "fill-box";
-      pad.style.transformOrigin = "center";
-      const bloom = pad.animate([{ transform: "scale(1)", opacity: 1 }, { transform: "scale(3.8)", opacity: 0.9 }, { transform: "scale(1.7)", opacity: 1 }], { duration: 420, easing: "ease-out", fill: "forwards" });
-      bloom.playbackRate = rate;
-      onArrive && onArrive(i, ends[i]);
-      res();
-    }).catch(res);
+    a2.finished.then(() => { halo.remove(); c.remove(); res(); }).catch(res);
+  });
+
+  const mainFlows = mains.map((t, i) => glow(t, { delay: lay * 0.6 + (i % 8) * stagger }).then(async () => {
+    onArrive && onArrive(i, ends[i]);
+    // the glow carries on into the forks, then out to the tapering tips
+    await Promise.all(t.kids.map(([f, tip]) =>
+      glow(f, { dur: flow * 0.32, w: 2, core: 0.8, seg: 14, haloOp: 0.45 })
+        .then(() => glow(tip, { dur: flow * 0.28, w: 1.2, core: 0.5, seg: 10, haloOp: 0.35 }))));
   }));
-  return { done: Promise.all(flows), g, glowG };
+  const fineFlows = fines.map((t, j) => glow(t, { delay: lay * 0.75 + (j % 10) * stagger * 0.8, dur: flow * 1.25, w: 1.6, core: 0.6, seg: 30, haloOp: 0.35 }));
+  return { done: Promise.all([...mainFlows, ...fineFlows]), g: base, glowG };
 }

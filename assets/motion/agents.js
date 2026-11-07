@@ -23,6 +23,7 @@ export class Agent {
     this.el = document.createElement("div");
     this.el.className = "sw-agent";
     this.el.style.setProperty("--c", role.color);
+    this.el.style.setProperty("--i", String(index));
     // only the first instance of each role carries a visible name tag
     this.el.innerHTML = `<i class="sw-dotc"></i>${icons.cursor}${index < ROLES.length ? `<span class="sw-name">${role.name}</span>` : ""}`;
     layer.append(this.el);
