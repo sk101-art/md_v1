@@ -4,7 +4,7 @@
 import { ParticleField } from "../graphics/particle-field.js";
 import { perimeter, fill, rectOfEl, radiusPx } from "../graphics/geometry-sampling.js";
 import { $, $$, motion, isSmall, clamp, wait } from "../core/util.js";
-import { makeSvg, circuit, lightning } from "../graphics/power-fx.js";
+import { makeSvg, evenEndpoints, powerNetwork } from "../graphics/power-fx.js";
 
 const COPY = {
   READY: ["Stage is empty", "Press Build to assemble the phone"],
@@ -280,27 +280,30 @@ export class PhoneBuilder {
     if (!screen || !logoEl) return;
     const W = screen.offsetWidth, H = screen.offsetHeight;
     const sr = screen.getBoundingClientRect(), k = sr.width / W || 1;
-    const local = el => { const r = el.getBoundingClientRect(); return { x: (r.left - sr.left + r.width / 2) / k, y: (r.top - sr.top + r.height / 2) / k }; };
-    const o = local(logoEl);
-    // everything the logo is about to power: widget, every icon, the dock, the status bar ends
-    const targets = [...$$(".os-widget, .os-grid .ic-tile, .os-dock .ic-tile", screen)].map(local);
-    targets.push({ x: 34, y: 22 }, { x: W - 34, y: 22 }, { x: W / 2, y: H - 14 });
+    const lr = logoEl.getBoundingClientRect();
+    const o = { x: (lr.left - sr.left + lr.width / 2) / k, y: (lr.top - sr.top + lr.height / 2) / k };
     const svg = makeSvg(screen, W, H, "phone-pfx");
-    const flash = document.createElement("div");
-    flash.className = "phone-flash";
-    screen.append(flash);
     const rate = this.director ? this.director.rate : 1;
-    await circuit(svg, o, targets, { dur: 560, stagger: 30, rate }).done;
-    if (!alive()) { svg.remove(); flash.remove(); return; }
-    await lightning(svg, o, targets, {
-      flashes: 5, rate,
-      onStrike: n => {
-        flash.animate([{ opacity: n % 2 ? 0.5 : 0.95 }, { opacity: 0 }], { duration: 160 });
-        try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(n === 0 ? 14 : 5); } catch {}
-      }
+    // circuits fan out evenly in every direction from the logo's edge
+    const ends = evenEndpoints(o, W, H, isSmall() ? 18 : 24, 14);
+    let arrived = 0;
+    const net = powerNetwork(svg, o, ends, {
+      r0: Math.max(lr.width, lr.height) / k / 2 + 2, rate,
+      onArrive: () => { arrived++; if (arrived === 1) { try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(8); } catch {} } }
     });
-    svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" }).finished.then(() => svg.remove()).catch(() => svg.remove());
-    flash.remove();
+    await net.done;
+    if (!alive()) { svg.remove(); return; }
+    // the glow that reached every endpoint washes inward and the interface forms out of it
+    const wash = document.createElement("div");
+    wash.className = "phone-wash";
+    wash.style.setProperty("--ox", `${(o.x / W) * 100}%`);
+    wash.style.setProperty("--oy", `${(o.y / H) * 100}%`);
+    screen.append(wash);
+    const w = wash.animate([{ opacity: 0 }, { opacity: 1, offset: 0.45 }, { opacity: 0 }], { duration: 900, easing: "ease-in-out", fill: "forwards" });
+    w.playbackRate = rate;
+    svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, delay: 250, fill: "forwards" }).finished.then(() => svg.remove()).catch(() => svg.remove());
+    setTimeout(() => wash.remove(), 1000 / rate);
+    await new Promise(r => setTimeout(r, 380 / rate));
   }
 
   // A builder from the crew flies over and taps the MAD app (the logo that powered the phone)

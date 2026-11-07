@@ -292,7 +292,8 @@ html.booting #nav, html.booting #main, html.booting footer.foot, html.booting .t
 
 /* ---------- loading: glass nodes, the club logo powering them ---------- */
 .crew-stage { position: fixed; inset: 0; z-index: 64; pointer-events: none; }
-.crew-stage.flash { background: radial-gradient(600px circle at 50% calc(50% - 16px), rgba(127, 166, 255, 0.16), transparent 60%); }
+/* the drawing is a box pinned to the live centre of the viewport (survives resizes) */
+.crew-box { position: absolute; left: 50%; top: calc(50% - 16px); transform: translate(-50%, -50%); }
 .crew-svg { position: absolute; inset: 0; overflow: visible; }
 .crew-node {
   position: absolute; width: 26px; height: 26px; border-radius: 50%;
@@ -312,7 +313,7 @@ html.booting #nav, html.booting #main, html.booting footer.foot, html.booting .t
 .crew-label b { font: 600 0.95rem/1 var(--font-display); color: var(--text); }
 .crew-label .ci-n { font: 500 0.75rem/1 var(--font-mono); letter-spacing: 0.12em; color: var(--text-2); }
 .crew-label .ci-role { font: italic 400 1rem/1 var(--font-serif); color: var(--accent-ink); min-height: 1em; }
-.crew-logo { position: fixed; height: 70px; width: auto; transform: translate(-50%, -50%); opacity: 0; }
+.crew-logo { position: absolute; left: 50%; top: 50%; height: 70px; width: auto; transform: translate(-50%, -50%); opacity: 0; }
 .crew-logo.charging, .emblem-flight.charging img { animation: charge 900ms ease-in-out infinite; }
 @keyframes charge {
   0%, 100% { filter: drop-shadow(0 0 6px rgba(127, 166, 255, 0.6)) drop-shadow(0 0 18px rgba(88, 120, 216, 0.45)); }
@@ -321,4 +322,6 @@ html.booting #nav, html.booting #main, html.booting footer.foot, html.booting .t
 
 /* ---------- phone power-up: circuits + lightning on the dark screen ---------- */
 .phone-pfx { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: visible; }
-.phone-flash { position: absolute; inset: 0; z-index: 7; pointer-events: none; border-radius: inherit; background: radial-gradient(circle at 50% 42%, rgba(160, 190, 255, 0.55), rgba(88, 120, 216, 0.12) 45%, transparent 70%); opacity: 0; }
+/* the glow that reached the ends of the circuits washes over the screen as the interface forms */
+.phone-wash { position: absolute; inset: 0; z-index: 7; pointer-events: none; border-radius: inherit; opacity: 0;
+  background: radial-gradient(140% 90% at var(--ox, 50%) var(--oy, 42%), rgba(234, 241, 255, 0.95), rgba(143, 176, 255, 0.55) 35%, rgba(88, 120, 216, 0.18) 65%, transparent 85%); }

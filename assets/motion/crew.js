@@ -3,7 +3,7 @@
 // orbit the visitor's pointer as small particles until the swarm needs them again.
 import { Agent, ROLES, visitor } from "./agents.js";
 import { isSmall } from "../core/util.js";
-import { makeSvg, circuit, lightning } from "../graphics/power-fx.js";
+import { makeSvg, powerNetwork } from "../graphics/power-fx.js";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 export const CREW_SIZE = 11;
@@ -49,41 +49,54 @@ export class Crew {
   }
 
   /** Intro: 11 empty glass nodes on a blank screen light up clockwise as each builder arrives;
-   *  then the club logo appears in the centre and powers them with circuits and blue lightning. */
+   *  then the club logo appears in the centre and a glow flows from it along circuit traces
+   *  into every node, which powers the builders on. Everything is laid out relative to the
+   *  live centre of the screen, so a window or panel resizing mid-intro keeps it centred. */
   async intro({ fast = false } = {}) {
     this.ensure();
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const cx = vw / 2, cy = vh / 2 - 16;                 // viewport coordinates
     const R = isSmall() ? 70 : 92;
-    const sp = { x: window.scrollX, y: window.scrollY };  // agents live in page coordinates
+    const BOX = R * 2 + 120;                                // local square the drawing lives in
+    const C = BOX / 2;
+    const off = i => {                                      // clockwise from 12 o'clock
+      const ang = -Math.PI / 2 + (i / CREW_SIZE) * Math.PI * 2;
+      return { x: Math.cos(ang) * R, y: Math.sin(ang) * R, ang };
+    };
+    const centre = () => ({ x: window.scrollX + window.innerWidth / 2, y: window.scrollY + window.innerHeight / 2 - 16 });
+    this.introCentre = centre;
+
     const stage = document.createElement("div");
     stage.className = "crew-stage";
     stage.setAttribute("role", "status");
-    stage.innerHTML = `<div class="crew-label"><b>Assigning builders</b><span class="ci-n">00 / ${CREW_SIZE}</span><span class="ci-role">&nbsp;</span></div>`;
+    stage.innerHTML = `<div class="crew-box" style="width:${BOX}px;height:${BOX}px"></div>
+      <div class="crew-label"><b>Assigning builders</b><span class="ci-n">00 / ${CREW_SIZE}</span><span class="ci-role">&nbsp;</span></div>`;
     document.body.append(stage);
     this.stage = stage;
-    const svg = makeSvg(stage, vw, vh, "crew-svg");
-    const pos = i => {
-      const ang = -Math.PI / 2 + (i / CREW_SIZE) * Math.PI * 2;  // clockwise from 12 o'clock
-      return { x: cx + Math.cos(ang) * R, y: cy + Math.sin(ang) * R };
-    };
-    // empty glass placeholders first
+    const box = stage.querySelector(".crew-box");
+    const svg = makeSvg(box, BOX, BOX, "crew-svg");
     const nodes = Array.from({ length: CREW_SIZE }, (_, i) => {
       const n = document.createElement("i");
       n.className = "crew-node";
-      const p = pos(i);
-      n.style.left = `${p.x}px`; n.style.top = `${p.y}px`;
+      const p = off(i);
+      n.style.left = `${C + p.x}px`; n.style.top = `${C + p.y}px`;
       n.style.setProperty("--c", this.agents[i].role.color);
-      stage.append(n);
+      box.append(n);
       return n;
     });
     nodes.forEach((n, i) => n.animate([{ opacity: 0, transform: "translate(-50%,-50%) scale(.6)" }, { opacity: 1, transform: "translate(-50%,-50%) scale(1)" }], { duration: 360, delay: i * 18, easing: "cubic-bezier(.34,1.4,.64,1)", fill: "backwards" }));
+
+    // builders sit in their nodes; keep them there if the viewport changes size
+    let seated = 0;
+    const seat = () => { const c = centre(); for (let i = 0; i < seated; i++) { const p = off(i); this.agents[i].place(c.x + p.x, c.y + p.y); } };
+    const onResize = () => { if (this.pause) seat(); if (this.anchor) this.anchor = centre(); };
+    window.addEventListener("resize", onResize);
+
     this.pause = true;
     await sleep(fast ? 160 : 320);
     const step = fast ? 55 : 110;
     for (let i = 0; i < CREW_SIZE; i++) {
-      const a = this.agents[i], p = pos(i);
-      a.place(sp.x + p.x, sp.y + p.y);
+      const a = this.agents[i];
+      seated = i + 1;
+      seat();
       a.el.style.opacity = "1";
       a.el.animate([{ opacity: 0, filter: "blur(4px)" }, { opacity: 1, filter: "none" }], { duration: 300 });
       nodes[i].classList.add("lit");
@@ -92,35 +105,33 @@ export class Crew {
       await sleep(step);
     }
 
-    // the club logo arrives in the centre and powers the ring
+    // the club logo arrives in the centre, glowing
     stage.querySelector("b").textContent = "Powering up";
     stage.querySelector(".ci-role").textContent = "MAD Club";
     const logo = document.createElement("img");
     logo.className = "crew-logo";
     logo.src = "assets/brand/mad-logo.svg";
     logo.alt = "";
-    logo.style.left = `${cx}px`; logo.style.top = `${cy}px`;
-    stage.append(logo);
+    box.append(logo);
     this.logo = logo;
     await logo.animate([{ opacity: 0, transform: "translate(-50%,-50%) scale(.5)" }, { opacity: 1, transform: "translate(-50%,-50%) scale(1)" }], { duration: 420, easing: "cubic-bezier(.34,1.5,.64,1)", fill: "forwards" }).finished.catch(() => {});
     logo.classList.add("charging");
-    const targets = nodes.map((_, i) => pos(i));
-    await circuit(svg, { x: cx, y: cy }, targets, { dur: fast ? 360 : 620, stagger: fast ? 12 : 26 }).done;
-    await lightning(svg, { x: cx, y: cy }, targets, {
-      flashes: fast ? 3 : 5,
-      onStrike: k => { stage.classList.toggle("flash", k % 2 === 0); nodes.forEach(n => n.classList.add("zap")); try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(6); } catch {} }
-    });
-    stage.classList.remove("flash");
-    nodes.forEach(n => n.classList.add("powered"));
+
+    // a glow flows from the logo along a circuit into each node; each node powers on as it arrives
+    const ends = nodes.map((_, i) => { const p = off(i); return { x: C + p.x, y: C + p.y, ang: p.ang }; });
+    await powerNetwork(svg, { x: C, y: C }, ends, {
+      r0: 30, lay: fast ? 260 : 420, flow: fast ? 480 : 760, stagger: fast ? 10 : 24,
+      onArrive: i => { nodes[i].classList.add("powered"); this.agents[i].el.animate([{ transform: this.agents[i].el.style.transform + " scale(1)" }, { transform: this.agents[i].el.style.transform + " scale(1.9)" }, { transform: this.agents[i].el.style.transform + " scale(1)" }], { duration: 360 }); }
+    }).done;
     stage.querySelector("b").textContent = "Builders powered";
     stage.querySelector(".ci-role").textContent = "Design · Build · Motion · Review · Ship";
-    svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
+    svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, delay: 120, fill: "forwards" });
 
-    // ALIVE: the power sets the ring in motion around the logo. The orbit starts exactly where
-    // each dot sits (no jump), spins up fast, then settles — and that same orbit is what later
-    // follows the visitor's cursor, so the motion never stops.
-    this.agents.forEach(a => { a.oc = { x: sp.x + cx, y: sp.y + cy }; });
-    this.anchor = { x: sp.x + cx, y: sp.y + cy };
+    // ALIVE: the power sets the ring in motion around the logo, starting exactly where each dot
+    // sits, spinning up and settling; that same orbit later follows the visitor's cursor.
+    const c = centre();
+    this.agents.forEach(a => { a.oc = { x: c.x, y: c.y }; });
+    this.anchor = c;
     this.rCur = R;
     this.anchorR = R;
     this.spin = -Math.PI / 2;
@@ -129,6 +140,7 @@ export class Crew {
     this.pause = false;
     this.kick();
     await sleep(fast ? 420 : 760);
+    this._introCleanup = () => window.removeEventListener("resize", onResize);
   }
 
   /** The logo leaves the centre and settles into its place in the nav; it stays there (as a
@@ -141,6 +153,7 @@ export class Crew {
     // the ring lets go of the logo and drifts to the visitor's pointer, still turning
     this.anchor = null;
     this.anchorR = null;
+    this._introCleanup && this._introCleanup();
     if (!logo || !target) { setTimeout(() => stage.remove(), 400); return; }
     const a = logo.getBoundingClientRect(), z = target.getBoundingClientRect();
     logo.classList.remove("charging");
