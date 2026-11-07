@@ -1,9 +1,21 @@
 {
   "stats": [
-    { "value": "150+", "label": "attendees at every flagship event over 4 semesters" },
-    { "value": "4", "label": "flagship events conceptualized and run end to end" },
-    { "value": "4", "label": "partner technology clubs collaborated for TechSync'24" },
-    { "value": "500+", "label": "hours of hands-on mobile coding logged across workshops" }
+    {
+      "value": "150+",
+      "label": "attendees at every flagship event over 4 semesters"
+    },
+    {
+      "value": "5",
+      "label": "flagship events conceptualized and run end to end"
+    },
+    {
+      "value": "4",
+      "label": "partner technology clubs collaborated for TechSync'24"
+    },
+    {
+      "value": "500+",
+      "label": "hours of hands-on mobile coding logged across workshops"
+    }
   ],
   "apps": [
     {
@@ -12,7 +24,12 @@
       "category": "Campus Utility",
       "status": "Production Beta",
       "text": "A comprehensive mobile companion for New Horizon students featuring real-time event schedules, interactive maps, seat availability counters, and push notification reminders.",
-      "tech": ["Flutter", "Firebase Cloud Messaging", "Riverpod", "FastAPI"],
+      "tech": [
+        "Flutter",
+        "Firebase Cloud Messaging",
+        "Riverpod",
+        "FastAPI"
+      ],
       "features": [
         "Live QR ticket verification at auditorium gates",
         "Personalized timetable integration with Google Calendar",
@@ -29,7 +46,12 @@
       "category": "Interactive AR",
       "status": "Deployed at Connect'24",
       "text": "An immersive physical-digital hybrid puzzle platform. Participants navigate campus coordinates using real-time GPS telemetry, AR marker reveals, and cipher decryption challenges.",
-      "tech": ["Flutter", "ARCore / ARKit", "Supabase", "Mapbox GL"],
+      "tech": [
+        "Flutter",
+        "ARCore / ARKit",
+        "Supabase",
+        "Mapbox GL"
+      ],
       "features": [
         "Geofenced checkpoint unlocks within 5-meter radius accuracy",
         "Interactive 3D camera overlays for digital token collection",
