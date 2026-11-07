@@ -9,6 +9,7 @@ export const NAV = [
   ["about.html", "About"],
   ["achievements.html", "Achievements"],
   ["team.html", "Team"],
+  ["gallery.html", "Gallery"],
   ["contact.html", "Contact"]
 ];
 
@@ -17,7 +18,7 @@ const TI = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 const TABS = [
   ["index.html", "Home", TI('<path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1Z"/>')],
   ["events.html", "Events", TI('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/>')],
-  ["achievements.html", "Work", TI('<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M17 6h3a3 3 0 0 1-3 4M7 6H4a3 3 0 0 0 3 4"/>')],
+  ["gallery.html", "Gallery", TI('<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="m3.8 16 4.7-4.6 3.7 3.6 2.4-2.3 5.6 5.2"/><circle cx="15.5" cy="9" r="1.6"/>')],
   ["team.html", "Team", TI('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.4.2 4 1.8 4.5 4.3"/>')],
   ["contact.html", "Join", TI('<path d="M12 5v14M5 12h14"/>')]
 ];

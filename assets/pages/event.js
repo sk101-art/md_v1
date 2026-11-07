@@ -12,14 +12,16 @@ export function render(site, events) {
   document.title = `${ev.name} | MAD Club NHCE`;
   const photos = ev.photos || [];
   const cover = coverOf(ev);
-  const sorted = [...events].sort((a, b) => semKey(b.semester) - semKey(a.semester));
+  const sorted = [...events].sort((a, b) => semKey(b.semester) - semKey(a.semester) || String(b.start_at).localeCompare(String(a.start_at)));
   const i = sorted.findIndex(x => x.slug === ev.slug);
   const older = sorted[i + 1], newer = sorted[i - 1];
   const reg = ev.status === "open" || ev.status === "upcoming" ? ev.registration_url : "";
   const fact = (k, v) => (v ? `<div><small>${k}</small><span>${esc(v)}</span></div>` : "");
   const when = ev.start_at ? new Date(ev.start_at) : null;
   // a completed event never shows a date that is still in the future
-  const whenTxt = when && !isNaN(when) && when <= new Date() ? when.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "";
+  const whenTxt = ev.date_confirmed !== false && when && !isNaN(when) && when <= new Date() ? when.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "";
+  const faculty = (ev.faculty || []).map(f => f.name).join(", ");
+  const chips = (label, list) => (list || []).length ? `<div class="ev-chips" data-sw="block"><small>${label}</small>${list.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : "";
 
   return `
   <section class="wrap ev-hero">
@@ -29,11 +31,13 @@ export function render(site, events) {
       <p data-sw="block"><span class="tag ${esc(ev.status)}">${esc(statusLabel(ev.status))}</span></p>
       <p class="lead" data-sw="text">${esc(ev.description)}</p>
       <div class="facts" data-sw="box">
-        ${fact("Date", whenTxt)}${fact("Venue", ev.venue)}${fact("Team size", ev.team_size)}${fact("Eligibility", ev.eligibility)}
+        ${fact("Date", whenTxt)}${fact("Time", ev.time)}${fact("Venue", ev.venue)}${fact("Participants", ev.participants ? String(ev.participants) : "")}${fact("Open to", ev.audience)}${fact("Faculty coordinator", faculty)}
       </div>
       <div class="ev-actions" data-sw="block">
         ${reg ? `<a class="btn primary" href="${esc(reg)}">Register for ${esc(ev.name)} ${icons.arrow}</a>` : ""}
         <a class="btn" href="events.html">All events</a>
+        ${photos.length ? `<a class="btn" href="gallery.html?e=${encodeURIComponent(ev.slug)}">Photos</a>` : ""}
+        ${ev.instagram_post ? `<a class="btn ghost" href="${esc(ev.instagram_post)}" target="_blank" rel="noopener">Instagram post</a>` : ""}
         <button type="button" class="btn ghost" id="share">Copy link</button>
         <span class="sr" id="share-status" aria-live="polite"></span>
       </div>
@@ -54,7 +58,8 @@ export function render(site, events) {
     <div class="section-head"><div><p class="eyebrow" data-sw="text">Format</p><h2 data-sw="text">Rounds</h2></div></div>
     <div class="rounds">${ev.rounds.map(r => `
       <div class="round card" data-sw="box"><div class="when">Round ${esc(r.round)}${r.time ? `<br>${esc(r.time)}` : ""}</div>
-      <div><h4>${esc(r.title)}</h4><p>${esc(r.summary)}</p></div></div>`).join("")}</div>
+      <div><h4>${esc(r.title)}</h4>${r.summary ? `<p>${esc(r.summary)}</p>` : ""}</div></div>`).join("")}</div>
+    ${chips("Genres drawn", ev.genres)}${chips("Judged on", ev.judging)}
   </section>` : ""}
 
   ${(ev.prizes || []).length ? `

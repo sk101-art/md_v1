@@ -345,8 +345,8 @@ export class MadOS {
     if (id === "join") {
       return this.shell("Join MAD", `
         <div class="ap-hero"><img src="assets/brand/mad-logo.svg" alt=""><p>${esc(s.cta_text || "")}</p></div>
-        <a class="ap-cta" href="contact.html">Apply on the website</a>
-        <a class="ap-cta ghost" href="${esc(s.instagram)}" target="_blank" rel="noopener">Follow ${esc(s.instagram_handle)}</a>
+        <a class="ap-cta" href="${esc(s.instagram)}" target="_blank" rel="noopener">DM ${esc(s.instagram_handle)}</a>
+        <a class="ap-cta ghost" href="gallery.html">See the gallery</a>
         ${s.contact?.email ? `<a class="ap-cta ghost" href="mailto:${esc(s.contact.email)}">${esc(s.contact.email)}</a>` : ""}`, {});
     }
     if (id === "settings") {
@@ -379,7 +379,7 @@ export class MadOS {
       <h2 class="ap-title">${esc(e.name)}</h2>
       <p class="ap-sub">${esc(e.semester)} · ${esc(e.category || "Event")} · Completed</p>
       <p class="ap-text">${esc(e.description)}</p>
-      ${(e.rounds || []).length ? `<h3 class="ap-h">Rounds</h3><div class="ap-list">${e.rounds.map(r => `<div class="ap-row"><span class="ap-av n">${esc(r.round)}</span><span><b>${esc(r.title)}</b><small>${esc(r.summary)}</small></span></div>`).join("")}</div>` : ""}
+      ${(e.rounds || []).length ? `<h3 class="ap-h">Rounds</h3><div class="ap-list">${e.rounds.map(r => `<div class="ap-row"><span class="ap-av n">${esc(r.round)}</span><span><b>${esc(r.title)}</b>${r.summary ? `<small>${esc(r.summary)}</small>` : ""}</span></div>`).join("")}</div>` : ""}
       ${(e.photos || []).length > 1 ? `<h3 class="ap-h">Photos</h3><div class="ap-strip">${e.photos.slice(0, 8).map(ph => `<img src="${esc(photoSrc(ph))}" alt="" loading="lazy">`).join("")}</div>` : ""}
       <a class="ap-cta" href="event.html?e=${encodeURIComponent(e.slug)}">Open the full event page</a>`, { back: true, large: false });
     return p;

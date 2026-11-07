@@ -10,60 +10,21 @@
       "start_at": "2023-10-18T09:30:00+05:30",
       "end_at": "2023-10-18T16:30:00+05:30",
       "timezone": "Asia/Kolkata",
-      "venue": "Falcon Auditorium & CS Labs",
-      "address_hint": "NHCE Campus, Outer Ring Road, Bengaluru",
-      "description": "Our inaugural flagship event: WikiWhiz, UI Clash and CodeMaze over 3 intense rounds with 150+ enthusiastic participants.",
+      "description": "The club's first flagship: three rounds, WikiWhiz, UI Clash and CodeMaze.",
       "poster": "photos/mindspark23/1.jpeg",
       "registration_url": "",
-      "team_size": "Teams of 2 to 3",
-      "eligibility": "Open to all NHCE engineering and MCA students",
       "rounds": [
         {
           "round": "01",
-          "title": "WikiWhiz",
-          "time": "09:30 AM - 11:00 AM",
-          "summary": "Rapid-fire technical speed run and digital scavenger hunt testing computer science fundamentals and quick problem-solving."
+          "title": "WikiWhiz"
         },
         {
           "round": "02",
-          "title": "UI Clash",
-          "time": "11:30 AM - 01:30 PM",
-          "summary": "Figma-based high-fidelity mobile UI prototyping challenge under restrictive design constraints."
+          "title": "UI Clash"
         },
         {
           "round": "03",
-          "title": "CodeMaze",
-          "time": "02:30 PM - 04:30 PM",
-          "summary": "Algorithmic debugging and live app feature implementation against the clock."
-        }
-      ],
-      "highlights": [
-        "Over 150 participants from 6 academic departments",
-        "3 progressively challenging rounds",
-        "Cash prizes and official MAD Club certificates"
-      ],
-      "prizes": [
-        {
-          "position": "1st Place",
-          "reward": "Cash Prize + Trophy + Certificate of Merit"
-        },
-        {
-          "position": "2nd Place",
-          "reward": "Cash Prize + Certificate of Merit"
-        },
-        {
-          "position": "Best UI/UX",
-          "reward": "Special Jury Mention + Merch"
-        }
-      ],
-      "faq": [
-        {
-          "q": "Who was eligible?",
-          "a": "All enrolled students at New Horizon College of Engineering."
-        },
-        {
-          "q": "Were laptops required?",
-          "a": "Yes, at least one laptop per team with Figma and Android Studio/VS Code installed."
+          "title": "CodeMaze"
         }
       ],
       "photos": [
@@ -83,7 +44,8 @@
         "photos/mindspark23/14.jpg",
         "photos/mindspark23/15.png",
         "photos/mindspark23/16.png"
-      ]
+      ],
+      "date_confirmed": false
     },
     {
       "slug": "innowave24",
@@ -95,53 +57,25 @@
       "start_at": "2024-01-19T10:00:00+05:30",
       "end_at": "2024-01-19T17:00:00+05:30",
       "timezone": "Asia/Kolkata",
-      "venue": "MBA Seminar Hall & IoT Labs",
-      "address_hint": "NHCE Campus, Bengaluru",
-      "description": "Trivia Battle and PitchPoint over 2 rounds with 150+ participants. Innovate, architect and pitch breakthrough mobile solutions.",
+      "description": "Two rounds, Trivia Battle and PitchPoint, built around mobile ideas and pitching them.",
       "poster": "photos/innowave24/1.jpeg",
       "registration_url": "",
-      "team_size": "Teams of 2 to 4",
-      "eligibility": "All branches and semesters",
       "rounds": [
         {
           "round": "01",
-          "title": "Trivia Battle",
-          "time": "10:00 AM - 11:30 AM",
-          "summary": "Deep dive technical trivia into modern mobile architectures, Flutter, React Native, Kotlin and iOS ecosystems."
+          "title": "Trivia Battle"
         },
         {
           "round": "02",
-          "title": "PitchPoint",
-          "time": "01:00 PM - 04:30 PM",
-          "summary": "Live prototype demonstration and elevator pitch in front of industry mentors and faculty judges."
-        }
-      ],
-      "highlights": [
-        "150+ student builders engaged",
-        "Live mobile prototypes showcased to startup founders",
-        "Hands-on mentorship sessions during the pitching round"
-      ],
-      "prizes": [
-        {
-          "position": "Winner",
-          "reward": "Prize Pool + Incubation Guidance"
-        },
-        {
-          "position": "Runner Up",
-          "reward": "Prize Pool + Certificate"
-        }
-      ],
-      "faq": [
-        {
-          "q": "What tech stack was supported?",
-          "a": "Any mobile tech: Flutter, Kotlin/Java, Swift/SwiftUI, React Native or PWA."
+          "title": "PitchPoint"
         }
       ],
       "photos": [
         "photos/innowave24/1.jpeg",
         "photos/innowave24/2.jpeg",
         "photos/innowave24/3.jpeg"
-      ]
+      ],
+      "date_confirmed": false
     },
     {
       "slug": "techsync24",
@@ -153,52 +87,21 @@
       "start_at": "2024-05-10T09:00:00+05:30",
       "end_at": "2024-05-10T17:00:00+05:30",
       "timezone": "Asia/Kolkata",
-      "venue": "Campus Grounds & Tech Quad",
-      "address_hint": "NHCE Campus, Bengaluru",
-      "description": "A cross-club flagship event uniting 4 clubs: Visual Recall, Car Racing and Construction challenges over 3 rounds.",
+      "description": "A cross-club event with Visual Recall, Car Racing and Construction rounds.",
       "poster": "photos/techsync24/1.jpg",
       "registration_url": "",
-      "team_size": "Teams of 3",
-      "eligibility": "Open campus registration",
       "rounds": [
         {
           "round": "01",
-          "title": "Visual Recall",
-          "time": "09:30 AM - 11:00 AM",
-          "summary": "High-speed visual memory and pattern recognition challenge using real-time app telemetry."
+          "title": "Visual Recall"
         },
         {
           "round": "02",
-          "title": "Car Racing Tech Arena",
-          "time": "11:30 AM - 01:30 PM",
-          "summary": "Mobile-controlled telemetry and obstacle navigation course."
+          "title": "Car Racing"
         },
         {
           "round": "03",
-          "title": "Tower & Code Construction",
-          "time": "02:30 PM - 04:30 PM",
-          "summary": "Integrated physical building and logical constraint problem-solving."
-        }
-      ],
-      "highlights": [
-        "Co-hosted with 3 partner tech clubs at NHCE",
-        "Over 200 participants across outdoor and lab tracks",
-        "Dynamic real-time scoreboard app developed by MAD Club"
-      ],
-      "prizes": [
-        {
-          "position": "Overall Champions",
-          "reward": "Grand Trophy + Cash Awards"
-        },
-        {
-          "position": "Track Winners",
-          "reward": "Category Medals + Certificates"
-        }
-      ],
-      "faq": [
-        {
-          "q": "Which clubs participated?",
-          "a": "MAD Club, Robotics Club, IEEE Student Branch, and Developers Guild."
+          "title": "Construction"
         }
       ],
       "photos": [
@@ -212,7 +115,8 @@
         "photos/techsync24/8.png",
         "photos/techsync24/9.jpg",
         "photos/techsync24/10.jpg"
-      ]
+      ],
+      "date_confirmed": false
     },
     {
       "slug": "connect24",
@@ -224,50 +128,17 @@
       "start_at": "2024-06-07T10:00:00+05:30",
       "end_at": "2024-06-07T16:00:00+05:30",
       "timezone": "Asia/Kolkata",
-      "venue": "Auditorium Main Stage",
-      "address_hint": "NHCE Campus, Bengaluru",
-      "description": "Flagship networking, product showcase and mobile development collaboration summit uniting developers and designers.",
+      "description": "A showcase and networking day for the club's developers and designers.",
       "poster": "photos/connect24/1.jpg",
       "registration_url": "",
-      "team_size": "Individual or Teams",
-      "eligibility": "Students, Alumni & Guest Creators",
-      "rounds": [
-        {
-          "round": "01",
-          "title": "Keynote & Tech Showcase",
-          "time": "10:00 AM - 12:00 PM",
-          "summary": "Next-generation mobile ecosystems, on-device AI and Flutter 3 architecture breakdown."
-        },
-        {
-          "round": "02",
-          "title": "Project Showcase & Networking",
-          "time": "01:30 PM - 04:00 PM",
-          "summary": "Interactive showcase stations where club members demoed live iOS and Android builds."
-        }
-      ],
-      "highlights": [
-        "Showcase of student-built apps including Evently and Treasure Hunt",
-        "Interactive Q&A with senior mobile architects",
-        "Club achievement retrospectives and honors"
-      ],
-      "prizes": [
-        {
-          "position": "Best Student App of the Year",
-          "reward": "MAD Club Excellence Award"
-        }
-      ],
-      "faq": [
-        {
-          "q": "Were external participants allowed?",
-          "a": "Yes, invitees and guest mentors joined the demo sessions."
-        }
-      ],
+      "rounds": [],
       "photos": [
         "photos/connect24/1.jpg",
         "photos/connect24/2.jpg",
         "photos/connect24/3.jpg",
         "photos/connect24/4.jpg"
-      ]
+      ],
+      "date_confirmed": false
     },
     {
       "slug": "pixel-pursuit24",
@@ -279,46 +150,14 @@
       "start_at": "2024-11-15T11:00:00+05:30",
       "end_at": "2024-11-15T16:00:00+05:30",
       "timezone": "Asia/Kolkata",
-      "venue": "Computer Science Lab 3",
-      "address_hint": "NHCE Campus, Bengaluru",
-      "description": "A high-octane pixel-themed UI design sprint and micro-interaction challenge for frontend and mobile enthusiasts.",
+      "description": "A pixel-themed UI design sprint.",
       "poster": "photos/pixel-pursuit24/1.jpg",
       "registration_url": "",
-      "team_size": "Solo or Duos",
-      "eligibility": "All students with a passion for UX/UI",
-      "rounds": [
-        {
-          "round": "01",
-          "title": "Speed Pixel Sprint",
-          "time": "11:00 AM - 01:00 PM",
-          "summary": "Rapid wireframing of an interactive game dashboard."
-        },
-        {
-          "round": "02",
-          "title": "Micro-Motion Showdown",
-          "time": "02:00 PM - 04:00 PM",
-          "summary": "Prototyping dynamic state transitions, haptics and particle micro-interactions."
-        }
-      ],
-      "highlights": [
-        "Hands-on workshop on design systems and tokenized components",
-        "Peer critique circles and live Figma design battles"
-      ],
-      "prizes": [
-        {
-          "position": "Top Designer",
-          "reward": "Design Kit + Certificate"
-        }
-      ],
-      "faq": [
-        {
-          "q": "Did participants need prior design experience?",
-          "a": "No, a 30-minute primer was conducted before round 1."
-        }
-      ],
+      "rounds": [],
       "photos": [
         "photos/pixel-pursuit24/1.jpg"
-      ]
+      ],
+      "date_confirmed": false
     },
     {
       "slug": "codathon",
@@ -330,57 +169,14 @@
       "start_at": "2025-03-21T09:30:00+05:30",
       "end_at": "2025-03-21T17:30:00+05:30",
       "timezone": "Asia/Kolkata",
-      "venue": "Central Computing Lab",
-      "address_hint": "NHCE Campus, Bengaluru",
-      "description": "An 8-hour continuous mobile coding marathon challenging students to build full-stack native mobile features from scratch.",
+      "description": "A coding marathon for building mobile features from scratch.",
       "poster": "photos/codathon/1.png",
       "registration_url": "",
-      "team_size": "Teams of 2 to 3",
-      "eligibility": "All engineering departments",
-      "rounds": [
-        {
-          "round": "01",
-          "title": "Problem Statement Release & Architecture",
-          "time": "09:30 AM - 11:30 AM",
-          "summary": "Selecting track (Health, Campus Life, FinTech) and writing clean entity architectures."
-        },
-        {
-          "round": "02",
-          "title": "Continuous Sprint & API Integrations",
-          "time": "11:30 AM - 04:00 PM",
-          "summary": "Building functional screens, local persistence and REST/GraphQL backends."
-        },
-        {
-          "round": "03",
-          "title": "Live Device Emulation & Judging",
-          "time": "04:30 PM - 05:30 PM",
-          "summary": "Deploying APKs to physical test devices and live evaluation."
-        }
-      ],
-      "highlights": [
-        "Real-time API endpoints provided by the club",
-        "Over 25 complete mobile apps submitted and reviewed",
-        "Mentors on call for debugging Flutter and native issues"
-      ],
-      "prizes": [
-        {
-          "position": "Codathon Champion",
-          "reward": "Prize Pool + Project Funding"
-        },
-        {
-          "position": "Best Architecture",
-          "reward": "Developer Swag + Certificate"
-        }
-      ],
-      "faq": [
-        {
-          "q": "Were pre-built templates permitted?",
-          "a": "Only boilerplate starter templates with zero business logic were allowed."
-        }
-      ],
+      "rounds": [],
       "photos": [
         "photos/codathon/1.png"
-      ]
+      ],
+      "date_confirmed": false
     },
     {
       "slug": "appsylum25",
@@ -388,170 +184,147 @@
       "semester": "25-26 Odd Sem",
       "flagship": true,
       "status": "completed",
-      "category": "Flagship Hackathon",
-      "start_at": "2026-11-28T09:00:00+05:30",
-      "end_at": "2026-11-29T18:00:00+05:30",
+      "category": "Useless App Competition",
+      "start_at": "2025-12-09T11:00:00+05:30",
+      "end_at": "2025-12-09T13:00:00+05:30",
       "timezone": "Asia/Kolkata",
-      "venue": "NHCE Innovation & Incubation Center",
-      "address_hint": "Outer Ring Road, Marathahalli, Bengaluru",
-      "description": "Our biggest mobile app showdown yet: 36 hours of relentless ideation, mobile craftsmanship, and breakthrough product launches.",
-      "poster": "",
+      "venue": "NHCE AICTE Idea Lab",
+      "description": "The Useless App Competition. Teams pitched gloriously impractical app ideas: ideation over code, humour over polish, in three fast phases.",
+      "poster": "photos/appsylum25/1.jpg",
       "registration_url": "",
-      "team_size": "Teams of 2 to 4",
-      "eligibility": "Open to all college students across India",
       "rounds": [
         {
           "round": "01",
-          "title": "System Design & Prototype Checkpoint",
-          "time": "Day 1 - 02:00 PM",
-          "summary": "Figma flows and foundational data schema defense."
+          "title": "Chaos Kickoff",
+          "summary": "An icebreaker, then every team drew a Useless Superpower Card: a quirky constraint like pitching in a funny accent or adding a random object to the presentation."
         },
         {
           "round": "02",
-          "title": "Alpha Deployment Checkpoint",
-          "time": "Day 2 - 08:00 AM",
-          "summary": "Working builds running on iOS simulator or Android physical device."
+          "title": "Hyperdrive Creation Brawl",
+          "summary": "Teams built the full concept: app name and tagline, an app icon, one meme, and a random twist such as Time Increment or Time Decrement."
         },
         {
           "round": "03",
-          "title": "Grand Jury Demo & Pitch",
-          "time": "Day 2 - 03:00 PM",
-          "summary": "Live stage demonstrations with investor and engineering leads."
+          "title": "Sharkocalypse Pitch Showdown",
+          "summary": "Two minutes per team to show the meme, the name and icon, the idea and the twist. Judged on creativity, humour, clarity and use of constraints."
         }
       ],
-      "highlights": [
-        "INR 50,000+ total prize pool",
-        "Direct fast-track interview opportunities for top builders",
-        "Cloud credits, free domain names, and developer swag kits"
+      "photos": [
+        "photos/appsylum25/1.jpg",
+        "photos/appsylum25/2.jpg",
+        "photos/appsylum25/3.jpg",
+        "photos/appsylum25/4.jpg",
+        "photos/appsylum25/5.jpg"
       ],
-      "prizes": [
+      "date_confirmed": true,
+      "time": "11:00 AM to 1:00 PM",
+      "participants": 70,
+      "audience": "Applied Sciences, ECE, EEE, CSE and ME students",
+      "judging": [
+        "Creativity",
+        "Humour",
+        "Presentation clarity",
+        "Use of constraints"
+      ],
+      "faculty": [
         {
-          "position": "1st Prize",
-          "reward": "₹25,000 + Trophy + Incubation Grant"
-        },
-        {
-          "position": "2nd Prize",
-          "reward": "₹15,000 + Trophy + Swag"
-        },
-        {
-          "position": "Best Flutter App",
-          "reward": "₹10,000 Special Prize"
+          "name": "Lavanya",
+          "role": "Assistant Professor, CSE"
         }
       ],
-      "faq": [
-        {
-          "q": "Is food and accommodation provided?",
-          "a": "Yes, meals, caffeine, and designated rest zones are fully provided for the duration."
-        },
-        {
-          "q": "Can beginners participate?",
-          "a": "Absolutely! We run beginner tracks with dedicated mentors to assist with setup."
-        }
-      ],
-      "photos": []
+      "instagram_post": "https://www.instagram.com/techforge_nhce/reel/DSAp7M5kjgo/"
     },
     {
       "slug": "game-design26",
       "name": "Game Design'26",
       "semester": "25-26 Even Sem",
-      "flagship": false,
+      "flagship": true,
       "status": "completed",
-      "category": "Interactive & Gaming",
-      "start_at": "2027-02-14T10:00:00+05:30",
-      "end_at": "2027-02-14T17:00:00+05:30",
+      "category": "Talk + Game Dev Challenge",
+      "start_at": "2026-03-26T10:00:00+05:30",
+      "end_at": "2026-03-26T18:00:00+05:30",
       "timezone": "Asia/Kolkata",
-      "venue": "Multimedia & Graphics Studio",
-      "address_hint": "NHCE Campus, Bengaluru",
-      "description": "Mobile game design, physics engines, and real-time multiplayer mobile gameplay challenge using Flutter Flame and Unity.",
+      "venue": "NHCE MCA Classrooms",
+      "description": "An expert talk on how games are really made, then a build challenge: every participant drew a genre from a bowl and built a game of their own in it.",
       "poster": "",
       "registration_url": "",
-      "team_size": "Teams of 1 to 3",
-      "eligibility": "All enrolled college students",
       "rounds": [
         {
           "round": "01",
-          "title": "Game Mechanics & Art Asset Sprint",
-          "time": "10:00 AM - 01:00 PM",
-          "summary": "Concept art, tilemaps and core game loop architecture."
+          "title": "Expert Lecture",
+          "summary": "An industry mentor on game design fundamentals, industry workflows and modern tools, with an open Q&A."
         },
         {
           "round": "02",
-          "title": "Playable Build & Battle Test",
-          "time": "02:00 PM - 05:00 PM",
-          "summary": "Multiplayer latency testing and peer gameplay voting."
+          "title": "Game Development Challenge",
+          "summary": "Each participant picked a chit naming a genre (Arcade, Puzzle or Racing) and built a game in it. One rule: no pre-built or imported games. AI tools like ChatGPT, Gemini and Antigravity, and engines like Unity, were all fair game."
         }
       ],
-      "highlights": [
-        "Hands-on workshop on sprite sheets, collision detection, and audio loops",
-        "Peer play-testing tournament on giant projection screens"
+      "photos": [
+        "photos/game-design26/1.jpg",
+        "photos/game-design26/2.jpg",
+        "photos/game-design26/3.jpg",
+        "photos/game-design26/4.jpg"
       ],
-      "prizes": [
+      "date_confirmed": true,
+      "time": "10:00 AM to 6:00 PM",
+      "participants": 82,
+      "audience": "Students from colleges across Bengaluru",
+      "genres": [
+        "Arcade",
+        "Puzzle",
+        "Racing"
+      ],
+      "faculty": [
         {
-          "position": "Best Gameplay",
-          "reward": "Gaming Headsets + Trophies"
-        },
-        {
-          "position": "Best Visual Design",
-          "reward": "Graphic Tablets + Certificates"
+          "name": "Dr Lavanya C",
+          "role": "Senior Assistant Professor, CSE"
         }
       ],
-      "faq": [
-        {
-          "q": "Do we have to use Unity?",
-          "a": "No, you may use Godot, Flutter Flame, or custom Canvas/WebGL engines."
-        }
-      ],
-      "photos": []
+      "instagram_post": "https://www.instagram.com/p/DVqrUYlEaab/"
     },
     {
       "slug": "gitout26",
-      "name": "Gitout'26",
+      "name": "Git Out'26",
       "semester": "25-26 Even Sem",
-      "flagship": false,
+      "flagship": true,
       "status": "completed",
-      "category": "Workshop & Hack",
-      "start_at": "2027-04-10T10:30:00+05:30",
-      "end_at": "2027-04-10T16:30:00+05:30",
+      "category": "Escape Room + Hackathon",
+      "start_at": "2026-05-26T11:00:00+05:30",
+      "end_at": "2026-05-26T17:00:00+05:30",
       "timezone": "Asia/Kolkata",
-      "venue": "Open Source Innovation Lab",
-      "address_hint": "NHCE Campus, Bengaluru",
-      "description": "Hands-on collaborative Git workflows, open-source contribution sprint, merge conflict survival games, and automated CI/CD for mobile apps.",
+      "venue": "Nirvana and the NHCE Idea Lab",
+      "description": "A Git-themed escape room that unlocks a hackathon. Teams escaped with Git, cloned the problem statement they had unlocked, built a full-stack app from scratch, and pitched it.",
       "poster": "",
       "registration_url": "",
-      "team_size": "Individual",
-      "eligibility": "Open to all students",
       "rounds": [
         {
           "round": "01",
-          "title": "Merge Hell & Rebase Escapes",
-          "time": "10:30 AM - 12:30 PM",
-          "summary": "Resolving complex Git octopus merges, interactive rebases and cherry-picks."
+          "title": "Commit Chaos",
+          "summary": "Venue: Nirvana. A Git escape room: resolve merge conflicts, untangle messy commit histories and use advanced Git to unlock clues. Escaping revealed a team-specific problem statement hidden in a repository."
         },
         {
           "round": "02",
-          "title": "Live Open Source Mobile PR Sprint",
-          "time": "01:30 PM - 04:30 PM",
-          "summary": "Submitting genuine Pull Requests to verified mobile open-source projects on GitHub."
+          "title": "CodeForge",
+          "summary": "Venue: Idea Lab. Teams cloned their repository, built an end-to-end app from scratch on Git branches, then pitched the architecture, codebase and scalability to the judges."
         }
       ],
-      "highlights": [
-        "Real Pull Requests to production repositories",
-        "Exclusive Git Master stickers and GitHub swag",
-        "Mastering mobile CI/CD pipelines with GitHub Actions"
+      "photos": [
+        "photos/gitout26/1.jpg",
+        "photos/gitout26/2.jpg",
+        "photos/gitout26/3.jpg",
+        "photos/gitout26/4.jpg",
+        "photos/gitout26/5.jpg"
       ],
-      "prizes": [
+      "date_confirmed": true,
+      "participants": 28,
+      "audience": "Applied Sciences, ECE, EEE, CSE and ME students",
+      "faculty": [
         {
-          "position": "Top Contributor",
-          "reward": "Mechanical Keyboard + Merch"
+          "name": "Dr Lavanya C",
+          "role": "Senior Assistant Professor, CSE"
         }
-      ],
-      "faq": [
-        {
-          "q": "Do I need a GitHub account beforehand?",
-          "a": "Yes, please have an active GitHub account and Git CLI installed."
-        }
-      ],
-      "photos": []
+      ]
     }
   ]
 }

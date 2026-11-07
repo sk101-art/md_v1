@@ -11,6 +11,7 @@ import * as about from "../pages/about.js";
 import * as achievements from "../pages/achievements.js";
 import * as team from "../pages/team.js";
 import * as contact from "../pages/contact.js";
+import * as gallery from "../pages/gallery.js";
 import * as notfound from "../pages/notfound.js";
 
 const PAGES = {
@@ -20,6 +21,7 @@ const PAGES = {
   about: { m: about, title: "About | MAD Club" },
   achievements: { m: achievements, title: "Achievements | MAD Club" },
   team: { m: team, title: "Team | MAD Club" },
+  gallery: { m: gallery, title: "Gallery | MAD Club" },
   contact: { m: contact, title: "Contact | MAD Club" },
   notfound: { m: notfound, title: "Page not found | MAD Club" }
 };

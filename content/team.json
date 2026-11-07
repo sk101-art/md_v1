@@ -158,29 +158,45 @@
   ],
   "earlier": [
     {
-      "name": "Chiranjeevi",
-      "role": "President",
-      "year": "2024-25",
+      "name": "Likitha K",
+      "role": "President 2025-26 · Vice President 2024-25",
+      "year": "",
       "committee": "Alumni",
-      "bio": "Pioneered the expansion into cross-club hackathons and established MAD Club's core project incubation.",
-      "specialties": [
-        "Leadership",
-        "Community Building"
-      ],
+      "bio": "",
+      "specialties": [],
       "github": "",
       "linkedin": "",
       "portrait": ""
     },
     {
-      "name": "Likitha K",
+      "name": "Rahul Mahesh",
       "role": "Vice President",
+      "year": "2025-26",
+      "committee": "Alumni",
+      "bio": "",
+      "specialties": [],
+      "github": "",
+      "linkedin": "",
+      "portrait": ""
+    },
+    {
+      "name": "Darshan Infanto R",
+      "role": "Treasurer",
+      "year": "2025-26",
+      "committee": "Alumni",
+      "bio": "",
+      "specialties": [],
+      "github": "",
+      "linkedin": "",
+      "portrait": ""
+    },
+    {
+      "name": "Chiranjeevi",
+      "role": "President",
       "year": "2024-25",
       "committee": "Alumni",
-      "bio": "Spearheaded operational excellence across InnoWave and TechSync while expanding female builder participation.",
-      "specialties": [
-        "Event Direction",
-        "Creative Strategy"
-      ],
+      "bio": "",
+      "specialties": [],
       "github": "",
       "linkedin": "",
       "portrait": ""

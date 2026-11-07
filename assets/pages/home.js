@@ -5,7 +5,7 @@ import { MadOS, osMarkup } from "../experiences/mad-os.js";
 import { FullscreenPhone } from "../experiences/fullscreen-phone.js";
 
 export function render(site, events) {
-  const flags = [...events].filter(e => e.flagship).sort((a, b) => semKey(b.semester) - semKey(a.semester));
+  const flags = [...events].filter(e => e.flagship).sort((a, b) => semKey(b.semester) - semKey(a.semester) || String(b.start_at).localeCompare(String(a.start_at)));
   const pipe = site.learning_pipeline || [];
 
   return `

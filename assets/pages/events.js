@@ -33,7 +33,7 @@ export function render(site, events) {
 export function wire({ events, scope, director }) {
   const state = { q: "", kind: "all", year: new URLSearchParams(location.search).get("y") || "all" };
   const grid = $("#grid"), count = $("#count");
-  const sorted = [...events].sort((a, b) => semKey(b.semester) - semKey(a.semester));
+  const sorted = [...events].sort((a, b) => semKey(b.semester) - semKey(a.semester) || String(b.start_at).localeCompare(String(a.start_at)));
 
   const draw = () => {
     const first = new Map($$(".poster", grid).map(c => [c.dataset.slug, c.getBoundingClientRect()]));
