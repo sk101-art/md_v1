@@ -277,3 +277,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) { .lk-unlock { animation: none; } }
+
+/* only the screen that is showing takes taps: a screen fading out never swallows the next tap */
+.os > section { pointer-events: none; }
+.os[data-screen="boot"] .os-boot, .os[data-screen="lock"] .os-lock,
+.os[data-screen="home"] .os-home, .os[data-screen="app"] .os-app { pointer-events: auto; }
+/* comfortable touch targets inside apps */
+.ap-back { min-height: 40px; min-width: 64px; }
+/* vertical scrolling stays native; horizontal drags belong to the edge-swipe-back gesture */
+.os .app-stack, .os .ap-scroll { touch-action: pan-y; }
+.os .os-lock { touch-action: none; }
+/* rows that scroll sideways keep their own horizontal panning */
+.os .ap-strip, .os .ap-chips { touch-action: pan-x pan-y; }
+.ap-strip button { flex: none; padding: 0; border: 0; background: none; border-radius: 10px; overflow: hidden; }
+/* the home bar only takes touches on the bar itself, never on content beside it */
+.os-ind { left: 50%; right: auto; width: 168px; transform: translateX(-50%); border-radius: 13px; }

@@ -171,9 +171,12 @@ export class MadOS {
   }
   insetFor(r, rad = 14) { return `inset(${r.y}px ${r.W - r.x - r.w}px ${r.H - r.y - r.h}px ${r.x}px round ${rad}px)`; }
 
-  _drain() { const q = this._q; this._q = null; if (q) this.launch(q[0], q[1]); }
+  _drain() {
+    if (this._wantHome) { this._wantHome = false; this._q = null; this.home(); return; }
+    const q = this._q; this._q = null; if (q) this.launch(q[0], q[1]);
+  }
   async launch(id, fromEl) {
-    if (this.busy) { this._q = [id, fromEl]; return; } // taps during an animation are queued, not dropped
+    if (this.busy) { this._q = [id, fromEl]; this._wantHome = false; return; } // taps during an animation are queued, not dropped
     if (this.current) await this.home(true);
     this.busy = true;
     const from = fromEl || $(`.ic[data-app="${id}"]`, this.os);
@@ -204,14 +207,18 @@ export class MadOS {
     this._drain();
   }
   async home(quick = false) {
-    if (!this.current || (this.busy && !quick)) return;
+    if (this.busy && !quick) { this._wantHome = true; return; } // finish opening, then go home
+    if (!this.current) return;
     this.busy = true;
     const tile = this.launchedFrom;
+    this.set("home");
     if (!motion.reduced && tile) {
       const r = this.rectIn(tile);
       await this.app.animate([{ clipPath: "inset(0px 0px 0px 0px round 40px)", opacity: 1 }, { clipPath: this.insetFor(r, 14), opacity: 0.2 }], { duration: quick ? 220 : 380, easing: "cubic-bezier(.4,0,.2,1)" }).finished.catch(() => {});
     }
     this.current = null;
+    this._navQ = [];
+    this.navBusy = false;
     this.os.dataset.app = "";
     this.set("home");
     this.stack.innerHTML = "";
@@ -233,16 +240,22 @@ export class MadOS {
   }
 
   // ---------- navigation inside an app ----------
+  // page changes inside an app run one after another, in the order they were tapped
+  _navNext() { const n = (this._navQ || []).shift(); if (n) n(); }
   push(pageEl) {
+    if (this.navBusy) { (this._navQ ||= []).push(() => this.push(pageEl)); return; }
     const prev = this.stack.lastElementChild;
     this.stack.append(pageEl);
     if (motion.reduced) { prev && (prev.hidden = true); return; }
-    pageEl.animate([{ transform: "translateX(100%)" }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(.2,.9,.2,1)" });
+    this.navBusy = true;
+    pageEl.animate([{ transform: "translateX(100%)" }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(.2,.9,.2,1)" }).finished.catch(() => {}).then(() => { this.navBusy = false; this._navNext(); });
     prev && prev.animate([{ transform: "none" }, { transform: "translateX(-28%)", opacity: 0.6 }], { duration: 420, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" });
   }
   async pop() {
+    if (this.navBusy) { (this._navQ ||= []).push(() => this.pop()); return; }
     const top = this.stack.lastElementChild, prev = top && top.previousElementSibling;
     if (!prev) return this.home();
+    this.navBusy = true;
     if (!motion.reduced) {
       prev.getAnimations().forEach(a => a.cancel());
       prev.animate([{ transform: "translateX(-28%)", opacity: 0.6 }, { transform: "none", opacity: 1 }], { duration: 360, easing: "cubic-bezier(.2,.9,.2,1)" });
@@ -250,6 +263,8 @@ export class MadOS {
     }
     prev.hidden = false;
     top.remove();
+    this.navBusy = false;
+    this._navNext();
   }
 
   // ---------- gestures: swipe up to go home, edge swipe to go back ----------
@@ -282,25 +297,31 @@ export class MadOS {
     lock.addEventListener("pointerup", e => { if (ly - e.clientY > 30) this.unlock(); });
 
     // edge swipe back inside apps
-    let ex = 0, edge = false;
+    let ex = 0, edge = false, swiping = false;
     this.stack.addEventListener("pointerdown", e => {
       const r = this.stack.getBoundingClientRect();
-      edge = e.clientX - r.left < 24 && this.stack.children.length > 1;
+      edge = e.clientX - r.left < 22 && this.stack.children.length > 1 && !this.navBusy && !e.target.closest("button, a, input, label");
+      swiping = false;
       ex = e.clientX;
     });
     this.stack.addEventListener("pointermove", e => {
       if (!edge) return;
       const dx = Math.max(0, e.clientX - ex);
+      if (!swiping && dx < 10) return;
+      swiping = true;
       const top = this.stack.lastElementChild;
       if (top) top.style.transform = `translateX(${dx}px)`;
     });
-    this.stack.addEventListener("pointerup", e => {
+    const endSwipe = e => {
       if (!edge) return;
       edge = false;
       const top = this.stack.lastElementChild;
-      if (e.clientX - ex > 70) this.pop();
+      if (swiping && e.type === "pointerup" && e.clientX - ex > 70) this.pop();
       else if (top) top.style.transform = "";
-    });
+      swiping = false;
+    };
+    this.stack.addEventListener("pointerup", endSwipe);
+    this.stack.addEventListener("pointercancel", endSwipe);
   }
 
   // ---------- app pages ----------
@@ -380,7 +401,7 @@ export class MadOS {
       <p class="ap-sub">${esc(e.semester)} · ${esc(e.category || "Event")} · Completed</p>
       <p class="ap-text">${esc(e.description)}</p>
       ${(e.rounds || []).length ? `<h3 class="ap-h">Rounds</h3><div class="ap-list">${e.rounds.map(r => `<div class="ap-row"><span class="ap-av n">${esc(r.round)}</span><span><b>${esc(r.title)}</b>${r.summary ? `<small>${esc(r.summary)}</small>` : ""}</span></div>`).join("")}</div>` : ""}
-      ${(e.photos || []).length > 1 ? `<h3 class="ap-h">Photos</h3><div class="ap-strip">${e.photos.slice(0, 8).map(ph => `<img src="${esc(photoSrc(ph))}" alt="" loading="lazy">`).join("")}</div>` : ""}
+      ${(e.photos || []).length > 1 ? `<h3 class="ap-h">Photos</h3><div class="ap-strip">${e.photos.slice(0, 8).map((ph, k) => `<button type="button" data-photo="${k}" aria-label="${esc(e.name)} photo ${k + 1}"><img src="${esc(photoSrc(ph))}" alt="${esc(e.name)}" loading="lazy"></button>`).join("")}</div>` : ""}
       <a class="ap-cta" href="event.html?e=${encodeURIComponent(e.slug)}">Open the full event page</a>`, { back: true, large: false });
     return p;
   }

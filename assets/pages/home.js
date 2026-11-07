@@ -138,6 +138,7 @@ export function wire(ctx) {
     onFullscreen: () => full.open()
   });
   builder = new PhoneBuilder({ scope, director, os, onLive: () => liveHover(scope) });
+  if (window.__mad) window.__mad.os = os; // inspectable from the console, like the director
   const fb = $("#build-full");
   fb && scope.on(fb, "click", () => full.open());
 

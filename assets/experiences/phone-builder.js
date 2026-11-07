@@ -5,6 +5,7 @@ import { ParticleField } from "../graphics/particle-field.js";
 import { perimeter, fill, rectOfEl, radiusPx } from "../graphics/geometry-sampling.js";
 import { $, $$, motion, isSmall, clamp, wait } from "../core/util.js";
 import { makeSvg, evenEndpoints, powerNetwork, logoBody } from "../graphics/power-fx.js";
+import { pageRect } from "../motion/selection-geometry.js";
 
 const COPY = {
   READY: ["Stage is empty", "Press Build to assemble the phone"],
@@ -204,6 +205,8 @@ export class PhoneBuilder {
     await until(() => arrived(containers) > 0.4);
     if (!alive()) return;
     this.set("CONTAINERS");
+    // the particles have drawn the outline: now the builders come back and work on it
+    this.crewStart("trace");
     const screen = $(".phone-screen", this.phone);
     if (screen) { const s = rectOfEl(screen); this.field.outlines.push({ ...s, r: 40 * scale, color: "#5878D8", alpha: 0.4, t0: performance.now() }); }
     await until(() => arrived(containers) > 0.99 && arrived(detail) > 0.97);
@@ -214,6 +217,7 @@ export class PhoneBuilder {
     // MATERIALIZING: the DOM phone is revealed exactly where the particles stand
     this.field.onFrame = null;
     this.set("MATERIALIZING", 72);
+    await this.crewMode("scan");
     this.stage.dataset.state = "materializing";
     this.phone.classList.add("mat");
     const scan = { p: 0 };
@@ -224,6 +228,7 @@ export class PhoneBuilder {
           const top = 100 - scan.p * 100;
           this.phone.style.setProperty("--clip-top", `${top}%`);
           this.field.scan = { x: R.x, w: R.w, y: R.y + R.h * (top / 100) };
+          this.crewScan(top / 100);
           const bar = $(".build-progress i"); if (bar) bar.style.width = `${72 + scan.p * 12}%`;
         },
         onComplete: res
@@ -239,6 +244,8 @@ export class PhoneBuilder {
 
     // LOGO_APPROACH: the club logo (a motion duplicate; the nav logo stays put) flies into
     // the dark screen. Its arrival is what powers the phone on.
+    // the body is solid: builders fine-tune the details while the logo is on its way
+    this.crewMode("polish");
     this.set("LOGO_APPROACH", 84);
     this.stage.dataset.state = "logo";
     const bootImg = $(".os-boot img", this.phone);
@@ -252,6 +259,7 @@ export class PhoneBuilder {
     // POWERING_UP: the logo's outline is traced, then circuits leave its edges for every part of
     // the interface it is about to power, and the phone boots
     this.set("POWERING_UP", 90);
+    this.crewMode("watch");
     this.stage.dataset.state = "powering";
     if (!seat && landed) landed.classList.add("charging");
     await this.powerUp(seat || bootImg, alive);
@@ -275,6 +283,7 @@ export class PhoneBuilder {
     }
     this.field.stop();
     this.field.clear();
+    this.crewStop();
     this.complete();
     // ...and a builder comes over and taps it, opening the Events app
     this.scope.timeout(() => this.tapApp(), 450);
@@ -344,6 +353,104 @@ export class PhoneBuilder {
   }
 
   /** Fly a duplicate of the logo from an element (or rect) to an element; optional logo->icon morph. */
+  /* ---------- the crew at work on the phone ----------
+   * trace:  each builder visits the interface regions the particles are outlining and clicks them in
+   * scan:   builders line up across the phone and ride the materialising scanline down the body
+   * polish: they go to the details (island, buttons, corners, dock) and tighten them
+   * watch:  they step back to the phone's edges while the logo powers it, then go home */
+  crewStart(mode) {
+    const d = this.director;
+    if (!d || !d.enabled || this.crewJob) return;
+    const n = Math.min(6, Math.max(4, d.crew.available));
+    const pr = pageRect(this.phone);
+    const ag = d._claim(n, { x: pr.x + pr.w / 2, y: pr.y + pr.h / 2 });
+    if (!ag.length) return;
+    const job = { ag, mode, on: true, tw: new Set() };
+    this.crewJob = job;
+    ag.forEach((a, i) => this.crewWork(job, a, i));
+  }
+  async crewMode(mode) {
+    const job = this.crewJob;
+    if (!job) return;
+    job.mode = mode;
+    job.tw.forEach(t => t.kill()); job.tw.clear();
+    if (mode === "scan") {
+      // line up across the top of the phone, ready to ride the scanline down
+      const pr = pageRect(this.phone);
+      await Promise.all(job.ag.map((a, i) => this.crewGo(job, a, pr.x + pr.w * ((i + 0.5) / job.ag.length), pr.y + 6, 0.32)));
+    }
+  }
+  crewScan(p) {
+    const job = this.crewJob;
+    if (!job || job.mode !== "scan") return;
+    const pr = pageRect(this.phone), t = performance.now() / 1000;
+    const y = pr.y + pr.h * (1 - p);
+    job.ag.forEach((a, i) => a.place(pr.x + pr.w * ((i + 0.5) / job.ag.length) + Math.sin(t * 3 + i) * 8, y - 4 + Math.cos(t * 4 + i * 2) * 3));
+  }
+  crewGo(job, a, x, y, dur) {
+    return new Promise(res => {
+      const p = { x: a.x, y: a.y };
+      const tw = gsap.to(p, { x, y, duration: dur, ease: "power2.inOut", onUpdate: () => job.on && a.place(p.x, p.y), onComplete: () => { job.tw.delete(tw); res(); }, onInterrupt: () => { job.tw.delete(tw); res(); } });
+      job.tw.add(tw);
+    });
+  }
+  crewSpot(job, i) {
+    const ph = this.phone, pick = list => list[(Math.random() * list.length) | 0];
+    const onEdge = r => { // a point on a region's outline, where the particles are drawing
+      const s = Math.random() * 2 * (r.w + r.h);
+      return s < r.w ? { x: r.x + s, y: r.y } : s < r.w + r.h ? { x: r.x + r.w, y: r.y + s - r.w } : s < 2 * r.w + r.h ? { x: r.x + 2 * r.w + r.h - s, y: r.y + r.h } : { x: r.x, y: r.y + 2 * (r.w + r.h) - s };
+    };
+    if (job.mode === "trace") {
+      const els = $$(".phone-screen, .os-widget, .os-dock, .os-grid .ic-tile, .os-dock .ic-tile", ph).filter(e => e.getBoundingClientRect().width);
+      return els.length ? onEdge(pageRect(pick(els))) : null;
+    }
+    if (job.mode === "polish") {
+      // the hardware that is actually visible now: island, side buttons and the frame's corners
+      const pr = pageRect(ph), c = 0.11;
+      const spots = [...$$(".phone-island, .phone-btn", ph).filter(e => e.getBoundingClientRect().width).map(e => pageRect(e)),
+        { x: pr.x + pr.w * 0.06, y: pr.y + pr.h * 0.03, w: pr.w * c, h: pr.h * 0.04 }, { x: pr.x + pr.w * 0.83, y: pr.y + pr.h * 0.03, w: pr.w * c, h: pr.h * 0.04 },
+        { x: pr.x + pr.w * 0.06, y: pr.y + pr.h * 0.93, w: pr.w * c, h: pr.h * 0.04 }, { x: pr.x + pr.w * 0.83, y: pr.y + pr.h * 0.93, w: pr.w * c, h: pr.h * 0.04 }];
+      const r = spots[(i * 2 + Math.floor(Math.random() * 3)) % spots.length];
+      return { x: r.x + r.w * (0.2 + Math.random() * 0.6), y: r.y + r.h * (0.3 + Math.random() * 0.4) };
+    }
+    if (job.mode === "watch") {
+      // stand back around the phone, evenly spaced, facing the screen
+      const pr = pageRect(ph), n = job.ag.length;
+      const side = i % 2 ? 1 : -1, k = Math.floor(i / 2) / Math.max(1, Math.ceil(n / 2) - 1);
+      const out = isSmall() ? -8 : 18; // on a phone there is no room beside it: they sit on the frame
+      return { x: pr.x + pr.w / 2 + side * (pr.w / 2 + out), y: pr.y + pr.h * (0.22 + k * 0.56) };
+    }
+    return null;
+  }
+  async crewWork(job, a, i) {
+    const d = this.director;
+    await wait(i * 90);
+    while (job.on) {
+      if (job.mode === "scan") {
+        if (Math.random() < 0.35) d._click(a);   // welding the body together as the scan passes
+        await wait(200 + Math.random() * 160);
+        continue;
+      }
+      const s = this.crewSpot(job, i);
+      if (!s) { await wait(200); continue; }
+      const mode = job.mode;
+      await this.crewGo(job, a, s.x, s.y, mode === "watch" ? 0.7 : 0.42 + Math.random() * 0.25);
+      if (!job.on) break;
+      if (mode !== job.mode) continue;
+      if (mode === "watch") { await wait(300); continue; }
+      d._click(a);
+      await wait(mode === "polish" ? 320 + Math.random() * 260 : 180 + Math.random() * 220);
+    }
+  }
+  crewStop() {
+    const job = this.crewJob;
+    if (!job) return;
+    this.crewJob = null;
+    job.on = false;
+    job.tw.forEach(t => t.kill());
+    if (this.director) this.director.crew.release(job.ag);
+  }
+
   // An exact copy of the boot logo, positioned in the screen's centre (same size as the boot logo)
   logoSeat(bootImg) {
     const screen = $(".phone-screen", this.phone);
@@ -416,6 +523,7 @@ export class PhoneBuilder {
 
   finishInstant() {
     this.token++;
+    this.crewStop();
     if (this.field) { this.field.stop(); this.field.clear(); }
     if (this.clone) { this.clone.remove(); this.clone = null; }
     $$(".donor-glow").forEach(d => d.classList.remove("donor-glow"));
@@ -428,6 +536,7 @@ export class PhoneBuilder {
 
   async reset() {
     this.token++;
+    this.crewStop();
     this.set("RESETTING", 0);
     if (this.os) this.os.reset();
     if (this.field) { this.field.stop(); this.field.clear(); }
@@ -440,6 +549,7 @@ export class PhoneBuilder {
 
   destroy() {
     this.token++;
+    this.crewStop();
     if (this.field) { this.field.destroy(); this.field = null; }
     if (this.clone) { this.clone.remove(); this.clone = null; }
     $$(".donor-glow").forEach(d => d.classList.remove("donor-glow"));
