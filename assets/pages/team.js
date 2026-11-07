@@ -2,21 +2,29 @@ import { esc, $, $$, isRealProfile, photoSrc } from "../core/util.js";
 import { pageHead } from "./common.js";
 import { loadData } from "../core/content.js";
 import { wireSeg } from "../core/seg.js";
+import { HoloProjector } from "../experiences/holo-projector.js";
 
 const initials = n => n.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
 
-function person(p, extra = "") {
+function person(p, extra = "", { holo = false } = {}) {
   const links = [
     isRealProfile(p.github) ? `<a href="${esc(p.github)}" target="_blank" rel="noopener">GitHub</a>` : "",
     isRealProfile(p.linkedin) ? `<a href="${esc(p.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ""
   ].filter(Boolean).join("");
+  // a member with a portrait gets the large feature card; the current team is projected
+  const feature = holo && p.portrait;
+  const attrs = holo ? `class="person card holo-wait${feature ? " feature" : ""}" data-holo` : `class="person card" data-sw="box"`;
   return `
-    <article class="person card" data-comm="${esc((p.committee || "").toLowerCase())}" data-sw="box">
-      <div class="avatar">${p.portrait ? `<img src="${esc(photoSrc(p.portrait))}" alt="">` : esc(initials(p.name))}</div>
+    <article ${attrs} data-comm="${esc((p.committee || "").toLowerCase())}">
+      ${feature
+        ? `<div class="portrait"><img src="${esc(photoSrc(p.portrait))}" alt="${esc(p.name)}, ${esc(p.role)}"></div><div class="feature-body">`
+        : `<div class="avatar">${p.portrait ? `<img src="${esc(photoSrc(p.portrait))}" alt="">` : esc(initials(p.name))}</div>`}
       <h4>${esc(p.name)}</h4>
       <span class="role">${esc(p.role)}${extra}</span>
       ${p.bio ? `<p>${esc(p.bio)}</p>` : ""}
+      ${feature && (p.specialties || []).length ? `<div class="chips">${p.specialties.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
       ${links ? `<div class="links">${links}</div>` : ""}
+      ${feature ? "</div>" : ""}
     </article>`;
 }
 
@@ -32,7 +40,7 @@ export async function render() {
         ${comms.map(c => `<button type="button" data-v="${esc(c.toLowerCase())}" aria-pressed="false">${esc(c)}</button>`).join("")}
       </div>
     </div>
-    <div class="people" id="people">${(t.current || []).map(p => person(p)).join("")}</div>
+    <div class="people" id="people">${(t.current || []).map(p => person(p, "", { holo: true })).join("")}</div>
   </section>
   ${(t.earlier || []).length ? `
   <section class="section wrap" aria-labelledby="alum-h">
@@ -43,6 +51,8 @@ export async function render() {
 
 export function wire({ scope, director }) {
   const grid = $("#people");
+  // the 11 builders project the 11 members: one builder, four projector nodes, per card
+  new HoloProjector({ scope, director }).watch($$(".person[data-holo]", grid));
   wireSeg($("#f-comm"), {
     scope,
     onSelect: b => director.morph(grid, () => {
