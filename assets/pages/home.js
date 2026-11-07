@@ -11,7 +11,6 @@ export function render(site, events) {
   return `
   <section class="hero wrap" aria-labelledby="hero-title">
     <div class="hero-copy">
-      <img class="hero-logo" src="assets/brand/mad-logo.svg" alt="MAD Club logo" width="58" height="88" data-sw="media">
       <p class="eyebrow" data-sw="text">${esc(site.hero_badge || `${site.full_name} · ${site.college_short}`)}</p>
       <h1 class="hero-title" id="hero-title" data-sw="text" tabindex="-1">${splitTitle(site.hero_title || "Don't just use the future. Build it.")}</h1>
       <p class="lead" data-sw="text">${esc(site.hero_lead)}</p>
