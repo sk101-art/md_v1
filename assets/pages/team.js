@@ -11,20 +11,19 @@ function person(p, extra = "", { holo = false } = {}) {
     isRealProfile(p.github) ? `<a href="${esc(p.github)}" target="_blank" rel="noopener">GitHub</a>` : "",
     isRealProfile(p.linkedin) ? `<a href="${esc(p.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ""
   ].filter(Boolean).join("");
-  // a member with a portrait gets the large feature card; the current team is projected
-  const feature = holo && p.portrait;
-  const attrs = holo ? `class="person card holo-wait${feature ? " feature" : ""}" data-holo` : `class="person card" data-sw="box"`;
+  // the current team: every card the same size, portrait on top, projected by the builders
+  const attrs = holo ? `class="person card holo-wait" data-holo` : `class="person card" data-sw="box"`;
   return `
     <article ${attrs} data-comm="${esc((p.committee || "").toLowerCase())}">
-      ${feature
-        ? `<div class="portrait"><img src="${esc(photoSrc(p.portrait))}" alt="${esc(p.name)}, ${esc(p.role)}"></div><div class="feature-body">`
+      ${holo
+        ? `<div class="portrait${p.portrait ? "" : " ph"}">${p.portrait
+            ? `<img src="${esc(photoSrc(p.portrait))}" alt="${esc(p.name)}, ${esc(p.role)}" loading="lazy" decoding="async">`
+            : `<img class="ph-rays" src="assets/brand/mad-rays.svg" alt=""><span>${esc(initials(p.name))}</span>`}</div>`
         : `<div class="avatar">${p.portrait ? `<img src="${esc(photoSrc(p.portrait))}" alt="">` : esc(initials(p.name))}</div>`}
       <h4>${esc(p.name)}</h4>
       <span class="role">${esc(p.role)}${extra}</span>
       ${p.bio ? `<p>${esc(p.bio)}</p>` : ""}
-      ${feature && (p.specialties || []).length ? `<div class="chips">${p.specialties.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
       ${links ? `<div class="links">${links}</div>` : ""}
-      ${feature ? "</div>" : ""}
     </article>`;
 }
 

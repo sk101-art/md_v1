@@ -143,8 +143,8 @@ class Job {
 
   async run() {
     const { card } = this;
-    const photo = card.querySelector(".portrait img, .avatar img");
-    const big = !!card.classList.contains("feature");
+    const photo = card.querySelector(".portrait img:not(.ph-rays), .avatar img");
+    const big = !!photo; // portraits get the dense trace
     if (photo && !photo.complete) await new Promise(r => { photo.onload = photo.onerror = r; });
     const R = pageRect(card);
     this.R = R;
@@ -195,11 +195,11 @@ class Job {
     if (photo) {
       const box = local(photo.closest(".portrait") || photo);
       perimeterPts(box.w, box.h, 14, 5).forEach(p => add(box.x + p.x, box.y + p.y, "edge"));
-      const e = edgesOf(photo, box.w, box.h, big ? (isSmall() ? 2400 : 4200) : 500);
+      const e = edgesOf(photo, box.w, box.h, isSmall() ? 1100 : 1800);
       e.pts.forEach(p => add(box.x + p.x, box.y + p.y, "img"));
       this.edgeLayer = e.layer; this.edgeBox = box;
     } else {
-      const av = card.querySelector(".avatar");
+      const av = card.querySelector(".portrait, .avatar");
       if (av) { const b = local(av); perimeterPts(b.w, b.h, 16, 3).forEach(p => add(b.x + p.x, b.y + p.y, "edge")); for (let i = 0; i < 70; i++) add(b.x + b.w * (0.28 + Math.random() * 0.44), b.y + b.h * (0.32 + Math.random() * 0.36), "img"); }
     }
     $$("h3, h4, .role, p, .links a, .chips span", card).forEach(t => {
@@ -209,7 +209,7 @@ class Job {
       });
     });
     const now = performance.now();
-    const traceMs = big ? 2600 : 1500;
+    const traceMs = big ? 2100 : 1500;
     this.traceMs = traceMs;
     this.p = targets.map((t, i) => {
       // nearest pair of corners shares the work; launch follows the scanline from top to bottom
