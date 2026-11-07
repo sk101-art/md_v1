@@ -13,6 +13,14 @@ export const NAV = [
 ];
 
 const root = document.documentElement;
+const TI = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const TABS = [
+  ["index.html", "Home", TI('<path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1Z"/>')],
+  ["events.html", "Events", TI('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/>')],
+  ["achievements.html", "Work", TI('<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M17 6h3a3 3 0 0 1-3 4M7 6H4a3 3 0 0 0 3 4"/>')],
+  ["team.html", "Team", TI('<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.4.2 4 1.8 4.5 4.3"/>')],
+  ["contact.html", "Join", TI('<path d="M12 5v14M5 12h14"/>')]
+];
 
 export function setTheme(t, persist = true) {
   root.dataset.theme = t === "dark" ? "dark" : "light";
@@ -33,7 +41,7 @@ export function buildShell(site, events, { navigate, director }) {
     <header class="nav" id="nav">
       <div class="nav-pill glass" data-sw="box" data-sw-g="0">
         <a class="brand" href="index.html" aria-label="${esc(site.name)} home" data-sw="block">
-          <img class="brand-mark" src="assets/brand/mad-emblem.svg" alt="" width="34" height="34">
+          <img class="brand-mark" src="assets/brand/mad-logo.svg" alt="" width="23" height="36">
           <span class="brand-name">${esc(site.name)}</span><span class="brand-tag">${esc(site.college_short)}</span>
         </a>
         <nav class="nav-links" aria-label="Primary" data-sw="block"><span class="nav-indicator" aria-hidden="true"></span><ul>${navLinks}</ul></nav>
@@ -44,7 +52,8 @@ export function buildShell(site, events, { navigate, director }) {
         </div>
       </div>
     </header>
-    <nav class="menu-sheet glass" id="menu-sheet" aria-label="Menu">${NAV.map(([h, t]) => `<a href="${h}">${t}</a>`).join("")}</nav>`);
+    <nav class="menu-sheet glass" id="menu-sheet" aria-label="Menu">${NAV.map(([h, t]) => `<a href="${h}">${t}</a>`).join("")}</nav>
+    <nav class="tabbar glass" aria-label="Quick navigation"><span class="tab-ind" aria-hidden="true"></span>${TABS.map(([h, t, ic]) => `<a href="${h}">${ic}<span>${t}</span></a>`).join("")}</nav>`);
 
   const years = [...new Set(events.map(e => semYear(e.semester)).filter(Boolean))].sort().reverse();
   document.body.insertAdjacentHTML("beforeend", `
@@ -52,7 +61,7 @@ export function buildShell(site, events, { navigate, director }) {
       <div class="wrap">
         <div class="foot-grid">
           <div>
-            <div class="foot-mark"><img src="assets/brand/mad-emblem.svg" alt="" width="40" height="40"><b>${esc(site.name)}</b></div>
+            <div class="foot-mark" data-sw="media"><img src="assets/brand/mad-logo.svg" alt="" width="30" height="46"><b>${esc(site.name)}</b></div>
             <p>${esc(site.full_name)}, ${esc(site.college)}. Est. ${esc(site.established)}.</p>
             <p><a href="${esc(site.instagram)}" target="_blank" rel="noopener">${esc(site.instagram_handle)}</a>${site.contact?.email ? ` · <a href="mailto:${esc(site.contact.email)}">${esc(site.contact.email)}</a>` : ""}</p>
           </div>
@@ -88,7 +97,7 @@ export function buildShell(site, events, { navigate, director }) {
 }
 
 export function markActive(route) {
-  $$(".nav-links a, .menu-sheet a").forEach(a => {
+  $$(".nav-links a, .menu-sheet a, .tabbar a").forEach(a => {
     const on = normalizeRoute(a.getAttribute("href")) === route || (route === "event" && a.getAttribute("href") === "events.html");
     if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
@@ -96,6 +105,16 @@ export function markActive(route) {
 }
 
 export function placeIndicator() {
+  const ti = $(".tab-ind"), tb = $(".tabbar");
+  if (ti && tb) {
+    const cur = $("a[aria-current]", tb);
+    if (cur) {
+      const c = tb.getBoundingClientRect(), r = cur.getBoundingClientRect();
+      ti.style.width = `${r.width}px`;
+      ti.style.transform = `translateX(${r.left - c.left}px)`;
+      ti.style.opacity = "1";
+    } else ti.style.opacity = "0";
+  }
   const ind = $(".nav-indicator"), links = $(".nav-links");
   if (!ind || !links) return;
   const a = $("a[aria-current]", links);

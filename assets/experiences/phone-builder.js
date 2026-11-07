@@ -13,15 +13,16 @@ const COPY = {
   CHASSIS: ["Chassis formed", "Rails, corners, buttons, camera"],
   CONTAINERS: ["Tracing the interface", "Screen, header, tabs, cards"],
   MATERIALIZING: ["Materializing", "Satin body and glass screen"],
-  LOGO_APPROACH: ["Installing the core", "MAD emblem in transit"],
   POWERING_UP: ["Powering up", "Booting MAD OS"],
-  COMPLETE: ["Live", "Try the tabs on the phone"],
+  LOGO_APPROACH: ["Installing MAD", "The club logo becomes an app"],
+  COMPLETE: ["Live", "Tap apps, swipe up to go home"],
   RESETTING: ["Clearing the stage", ""]
 };
 
 export class PhoneBuilder {
-  constructor({ scope, director, onLive }) {
+  constructor({ scope, director, os, onLive }) {
     this.scope = scope;
+    this.os = os;
     this.director = director;
     this.onLive = onLive;
     this.stage = $(".stage");
@@ -90,14 +91,14 @@ export class PhoneBuilder {
     // CONTAINERS: screen and every real interface region on it
     const screen = $(".phone-screen", ph);
     if (screen) push(T.containers, perimeter(rectOfEl(screen), 5.5 * k, 40 * scale), "#5878D8", 1.25);
-    const regions = [".os-top", ".os-tabs", ".os-list button", ".os-detail"];
+    const regions = [".os-widget", ".os-grid .ic-tile", ".os-dock", ".os-dock .ic-tile", ".os-ind i"];
     regions.forEach(sel => $$(sel, ph).forEach(el => {
       const r = rectOfEl(el);
       if (r.w < 2) return;
       push(T.containers, perimeter(r, 5 * k, radiusPx(el, scale)), "#5878D8", 1.05);
     }));
     // DETAIL: sparse fill marks inside regions (text rows, tab labels)
-    $$(".os-list button b, .os-list button span, .os-tabs button, .os-detail p, .os-brand", ph).forEach(el => {
+    $$(".os-time, .os-sys, .w-k, .w-big, .w-row, .w-latest, .os-grid .ic-label", ph).forEach(el => {
       const r = rectOfEl(el);
       if (r.w < 2) return;
       push(T.detail, fill({ x: r.x, y: r.y + r.h * 0.3, w: r.w * 0.9, h: r.h * 0.4 }, Math.round(clamp(r.w / (small ? 14 : 8), 3, 22))), "#4FA59D", 0.95);
@@ -232,74 +233,73 @@ export class PhoneBuilder {
     this.field.p.forEach(p => (p.fade = Math.max(p.fade || 0, 0.01)));
     setTimeout(() => { if (this.field) { this.field.p = []; } }, 500);
 
-    // LOGO_APPROACH: a motion duplicate travels; the nav emblem stays put
-    this.set("LOGO_APPROACH", 86);
+    // POWERING_UP: power pulse, MAD OS boots to lock screen, unlocks to the home screen
+    this.set("POWERING_UP", 86);
+    this.stage.dataset.state = "powering";
+    this.pulse($(".phone-screen", this.phone));
+    if (this.os) await this.os.boot();
+    if (!alive()) return;
+
+    // LOGO_APPROACH: a duplicate of the nav logo flies in and becomes the MAD app icon
+    this.set("LOGO_APPROACH", 94);
     this.stage.dataset.state = "logo";
     await this.flyEmblem(alive);
     if (!alive()) return;
-
-    // POWERING_UP
-    this.set("POWERING_UP", 95);
-    this.stage.dataset.state = "powering";
-    const ring = $(".power-ring", this.phone);
-    if (ring) { ring.classList.remove("go"); void ring.offsetWidth; ring.classList.add("go"); }
-    const os = $(".os", this.phone);
-    if (os) {
-      os.style.opacity = "1";
-      const parts = [...os.children];
-      parts.forEach((el, i) => el.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 420, delay: 120 + i * 90, easing: "cubic-bezier(.16,1,.3,1)", fill: "backwards" }));
-    }
-    await wait(650);
-    if (!alive()) return;
-    if (os) os.style.opacity = "";
     this.field.stop();
     this.field.clear();
     this.complete();
+    // ...and the app opens itself
+    this.scope.timeout(() => this.os && this.state === "COMPLETE" && this.os.launch("mad"), 650);
+  }
+
+  pulse(el) {
+    const ring = $(".power-ring", this.phone);
+    if (!ring) return;
+    if (el && el !== this.phone) {
+      const p = this.phone.getBoundingClientRect(), r = el.getBoundingClientRect();
+      const k = p.width / this.phone.offsetWidth || 1;
+      ring.style.left = `${(r.left - p.left + r.width / 2) / k}px`;
+      ring.style.top = `${(r.top - p.top + r.height / 2) / k}px`;
+    }
+    ring.classList.remove("go"); void ring.offsetWidth; ring.classList.add("go");
   }
 
   async flyEmblem(alive) {
     const src = $(".nav .brand-mark");
-    const target = $(".os-brand img", this.phone) || $(".phone-screen", this.phone);
-    if (!src || !target) return;
+    const slot = this.os ? this.os.madSlot() : null;
+    if (!src || !slot) return;
     const a = src.getBoundingClientRect();
-    const screen = $(".phone-screen", this.phone).getBoundingClientRect();
     const clone = document.createElement("div");
     clone.className = "emblem-flight";
-    clone.innerHTML = `<img src="assets/brand/mad-emblem.svg" alt="">`;
+    clone.innerHTML = `<img class="ef-logo" src="assets/brand/mad-logo.svg" alt=""><img class="ef-icon" src="assets/brand/mad-app-icon.svg" alt="">`;
     document.body.append(clone);
     this.clone = clone;
-    const big = 64;
-    const cx = screen.left + screen.width / 2 - big / 2, cy = screen.top + screen.height * 0.42 - big / 2;
+    const logo = $(".ef-logo", clone), icon = $(".ef-icon", clone);
     const s = { t: 0 };
-    const sx = a.left, sy = a.top, sw = a.width;
     await new Promise(res => gsap.to(s, {
-      t: 1, duration: 1.0, ease: "power2.inOut",
+      t: 1, duration: 1.25, ease: "power2.inOut",
       onUpdate: () => {
+        const z = slot.getBoundingClientRect(); // live target (handles scroll / tilt)
         const t = s.t;
-        const x = sx + (cx - sx) * t;
-        const y = sy + (cy - sy) * t - Math.sin(t * Math.PI) * 90; // shallow arc
-        const size = sw + (big - sw) * t;
-        const rot = Math.sin(t * Math.PI) * -14;
-        clone.style.width = clone.style.height = `${size}px`;
-        clone.style.transform = `translate(${x}px, ${y}px) perspective(600px) rotateY(${rot}deg) rotateX(${rot * 0.5}deg)`;
+        const w = a.width + (z.width - a.width) * t;
+        const h = a.height + (z.height - a.height) * t;
+        const x = a.left + (z.left - a.left) * t;
+        const y = a.top + (z.top - a.top) * t - Math.sin(t * Math.PI) * 120;
+        const grow = 1 + Math.sin(t * Math.PI) * 0.9;
+        const rot = Math.sin(t * Math.PI) * -18;
+        clone.style.width = `${w}px`;
+        clone.style.height = `${h}px`;
+        clone.style.transform = `translate(${x}px, ${y}px) perspective(700px) rotateY(${rot}deg) scale(${grow})`;
+        const m = Math.min(1, Math.max(0, (t - 0.3) / 0.4)); // logo morphs into the app icon mid-flight
+        logo.style.opacity = String(1 - m);
+        icon.style.opacity = String(m);
       },
       onComplete: res
     }));
     if (!alive()) { clone.remove(); return; }
-    // settle into the status-bar brand position
-    const tr = target.getBoundingClientRect();
-    await new Promise(res => gsap.to(s, {
-      t: 0, duration: 0.55, delay: 0.25, ease: "power3.inOut",
-      onUpdate: () => {
-        const k = 1 - s.t;
-        const x = cx + (tr.left - cx) * k, y = cy + (tr.top - cy) * k;
-        const size = big + (tr.width - big) * k;
-        clone.style.width = clone.style.height = `${size}px`;
-        clone.style.transform = `translate(${x}px, ${y}px)`;
-      },
-      onComplete: res
-    }));
-    gsap.to(clone, { opacity: 0, duration: 0.25, onComplete: () => clone.remove() });
+    this.os.installMad();
+    this.pulse(slot);
+    clone.remove();
     this.clone = null;
   }
 
@@ -316,7 +316,7 @@ export class PhoneBuilder {
     $$(".donor-glow").forEach(d => d.classList.remove("donor-glow"));
     this.phone.classList.remove("mat");
     this.phone.style.removeProperty("--clip-top");
-    const os = $(".os", this.phone); if (os) os.style.opacity = "";
+    if (this.os) { this.os.set("home"); this.os.installMad(); }
     this.complete();
   }
   skip() { this.finishInstant(); }
@@ -324,6 +324,7 @@ export class PhoneBuilder {
   async reset() {
     this.token++;
     this.set("RESETTING", 0);
+    if (this.os) this.os.reset();
     if (this.field) { this.field.stop(); this.field.clear(); }
     if (!motion.reduced && this.stage.dataset.state === "live") {
       await this.phone.animate([{ opacity: 1, transform: getComputedStyle(this.phone).transform }, { opacity: 0, transform: "scale(0.96)" }], { duration: 320, easing: "ease-in" }).finished.catch(() => {});

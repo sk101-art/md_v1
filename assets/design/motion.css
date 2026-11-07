@@ -163,7 +163,8 @@
   pointer-events: none;
   will-change: transform;
 }
-.emblem-flight img { width: 100%; height: 100%; border-radius: 11px; box-shadow: 0 12px 26px -10px rgba(24, 33, 47, 0.55); }
+.emblem-flight img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 12px 16px rgba(24, 33, 47, 0.35)); }
+.emblem-flight .ef-icon { opacity: 0; border-radius: 22%; }
 
 /* Route transitions fallback when the swarm is disabled */
 main.fade-out { opacity: 0; transition: opacity 160ms; }

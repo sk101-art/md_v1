@@ -34,7 +34,8 @@ Open `http://localhost:8000/admin/cms/`. `local_backend: true` skips login and e
 
 - **Swarm Rebuild** (`assets/motion/swarm-director.js`): colored collaborator cursors select real page regions, lay down skeletons, then fill in the content. It runs on arrival, on page changes (old page torn down, new page built), on filters and tabs (small selection-frame morphs) and as sections scroll in. Mark any element with `data-sw="text|block|box|media"` to include it. Press **Skip** or Esc to jump to the finished page.
 - **Container tracing** (`assets/motion/container-tracer.js`): glass containers draw their real rounded perimeter before the surface resolves.
-- **Phone build** (`assets/experiences/phone-builder.js`): the stage starts empty. Press **Build the phone** and particles leave the headline, buttons and nav, form the chassis and interface outlines, the body materializes, the MAD emblem flies in and the phone powers up with working tabs.
+- **Phone build** (`assets/experiences/phone-builder.js`): the stage starts empty. Press **Build the phone** and particles leave the headline, buttons and nav, form the chassis and the home-screen outlines, and the body materializes.
+- **MAD OS** (`assets/experiences/mad-os.js`): the built phone boots to a lock screen and home screen; the club logo flies in from the nav, becomes the MAD app icon and opens itself. Apps: MAD (events feed + detail), Gallery, Team, About, Join, Settings (switches the site's appearance). Swipe up on the home bar to go home, swipe from the left edge to go back. **Full screen** turns the visitor's own screen into the phone.
 - `prefers-reduced-motion` (or `?still` in the URL) turns all of it off and shows finished pages.
 - Ctrl+Shift+D opens a developer HUD (fps, build state, swarm timing).
 

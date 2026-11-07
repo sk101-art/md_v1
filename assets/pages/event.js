@@ -1,5 +1,5 @@
 import { esc, $, $$, photoSrc, semKey, icons } from "../core/util.js";
-import { coverOf, statusLabel } from "./common.js";
+import { coverOf, statusLabel, posterArt } from "./common.js";
 
 export function render(site, events) {
   const slug = new URLSearchParams(location.search).get("e");
@@ -18,7 +18,8 @@ export function render(site, events) {
   const reg = ev.status === "open" || ev.status === "upcoming" ? ev.registration_url : "";
   const fact = (k, v) => (v ? `<div><small>${k}</small><span>${esc(v)}</span></div>` : "");
   const when = ev.start_at ? new Date(ev.start_at) : null;
-  const whenTxt = when && !isNaN(when) ? when.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "";
+  // a completed event never shows a date that is still in the future
+  const whenTxt = when && !isNaN(when) && when <= new Date() ? when.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "";
 
   return `
   <section class="wrap ev-hero">
@@ -38,7 +39,7 @@ export function render(site, events) {
       </div>
     </div>
     <div class="ev-media" data-sw-skip>
-      ${cover ? `<img src="${esc(cover)}" alt="${esc(ev.name)}" id="ev-cover">` : `<div class="placeholder-art" id="ev-cover"><span>${esc(ev.name)}</span></div>`}
+      ${cover ? `<img src="${esc(cover)}" alt="${esc(ev.name)}" id="ev-cover">` : posterArt(ev, "ev-cover")}
     </div>
   </section>
 

@@ -1,18 +1,17 @@
-import { esc, icons, $, $$, semKey } from "../core/util.js";
-import { posterCard, splitTitle, statusLabel } from "./common.js";
+import { esc, icons, $, $$, semKey, finePointer, motion } from "../core/util.js";
+import { posterCard, splitTitle } from "./common.js";
 import { PhoneBuilder } from "../experiences/phone-builder.js";
-import { wireLivingPhone } from "../experiences/living-phone.js";
+import { MadOS, osMarkup } from "../experiences/mad-os.js";
+import { FullscreenPhone } from "../experiences/fullscreen-phone.js";
 
 export function render(site, events) {
-  const flags = events.filter(e => e.flagship && e.status === "completed");
-  const next = events.find(e => e.status === "open") || events.find(e => e.status === "upcoming");
-  const phoneEvents = [...events].sort((a, b) => semKey(b.semester) - semKey(a.semester)).slice(0, 4);
+  const flags = [...events].filter(e => e.flagship).sort((a, b) => semKey(b.semester) - semKey(a.semester));
   const pipe = site.learning_pipeline || [];
 
   return `
   <section class="hero wrap" aria-labelledby="hero-title">
     <div class="hero-copy">
-      <img class="hero-emblem" src="assets/brand/mad-emblem.svg" alt="" width="72" height="72" data-sw="media">
+      <img class="hero-logo" src="assets/brand/mad-logo.svg" alt="MAD Club logo" width="58" height="88" data-sw="media">
       <p class="eyebrow" data-sw="text">${esc(site.hero_badge || `${site.full_name} · ${site.college_short}`)}</p>
       <h1 class="hero-title" id="hero-title" data-sw="text" tabindex="-1">${splitTitle(site.hero_title || "Don't just use the future. Build it.")}</h1>
       <p class="lead" data-sw="text">${esc(site.hero_lead)}</p>
@@ -29,6 +28,7 @@ export function render(site, events) {
           <div class="build-progress" aria-hidden="true"><i></i></div>
         </div>
         <div class="build-extra">
+          <button type="button" class="btn sm" id="build-full">Full screen</button>
           <button type="button" class="btn sm ghost" id="build-reset">Reset</button>
         </div>
       </div>
@@ -43,43 +43,7 @@ export function render(site, events) {
         <div class="phone-screen">
           <span class="phone-island"></span>
           <span class="power-ring"></span>
-          <div class="os">
-            <div class="os-top">
-              <span class="os-brand"><img src="assets/brand/mad-emblem.svg" alt="">MAD OS</span>
-              <small>${esc(site.college_short)}</small>
-            </div>
-            <div class="os-tabs" role="tablist" aria-label="Phone app">
-              <button role="tab" aria-selected="true" aria-controls="os-v0" id="os-t0">Events</button>
-              <button role="tab" aria-selected="false" aria-controls="os-v1" id="os-t1">Club</button>
-              <button role="tab" aria-selected="false" aria-controls="os-v2" id="os-t2">Join</button>
-            </div>
-            <div class="os-view on" id="os-v0" role="tabpanel" aria-labelledby="os-t0">
-              <ul class="os-list">
-                ${phoneEvents.map((e, i) => `
-                  <li><button type="button" data-slug="${esc(e.slug)}" data-desc="${esc(e.description)}" data-name="${esc(e.name)}" aria-current="${i === 0}">
-                    <b>${esc(e.name)}</b><span>${esc(e.semester)}</span><i>${esc(statusLabel(e.status))}</i>
-                  </button></li>`).join("")}
-              </ul>
-              <div class="os-detail">
-                <p id="os-desc">${esc(phoneEvents[0]?.description || "")}</p>
-                <a id="os-open" href="event.html?e=${encodeURIComponent(phoneEvents[0]?.slug || "")}">Open ${esc(phoneEvents[0]?.name || "")} ${icons.arrow}</a>
-              </div>
-            </div>
-            <div class="os-view" id="os-v1" role="tabpanel" aria-labelledby="os-t1">
-              <div class="os-fact"><small>Founded</small><b>${esc(site.established)}</b></div>
-              <div class="os-fact"><small>Home</small><b>${esc(site.college)}</b></div>
-              <div class="os-fact"><small>Flagship events</small><b>${flags.map(e => esc(e.name)).join(", ")}</b></div>
-              <div class="os-fact"><small>Instagram</small><b>${esc(site.instagram_handle)}</b></div>
-            </div>
-            <div class="os-view" id="os-v2" role="tabpanel" aria-labelledby="os-t2">
-              <div class="os-fact"><small>Open to</small><b>${esc(site.college_short)} students who want to build apps</b></div>
-              ${next ? `<div class="os-fact"><small>${esc(statusLabel(next.status))}</small><b>${esc(next.name)}</b></div>` : ""}
-              <div class="os-join">
-                <a href="contact.html">Apply to join ${icons.arrow}</a>
-                <a class="alt" href="${esc(site.instagram)}" target="_blank" rel="noopener">Follow ${esc(site.instagram_handle)}</a>
-              </div>
-            </div>
-          </div>
+          ${osMarkup(site, events)}
         </div>
       </div>
     </div>
@@ -99,9 +63,10 @@ export function render(site, events) {
       </div>
       <a class="btn" href="events.html" data-sw="block">All ${events.length} events ${icons.arrow}</a>
     </div>
-    <div class="posters">
-      ${flags.map((e, i) => posterCard(e, { wide: i === 0, half: flags.length === 4 && i > 1 })).join("")}
+    <div class="posters rail" id="flag-rail">
+      ${flags.map((e, i) => posterCard(e, { wide: i === 0 })).join("")}
     </div>
+    <div class="rail-dots" aria-hidden="true">${flags.map((_, i) => `<i${i === 0 ? ' class="on"' : ""}></i>`).join("")}</div>
   </section>
 
   ${pipe.length ? `
@@ -150,29 +115,60 @@ export function render(site, events) {
   <section class="section wrap" aria-labelledby="cta-h">
     <div class="cta-band glass" data-sw="box">
       <div>
-        <img class="cta-mark" src="assets/brand/mad-emblem.svg" alt="" width="64" height="64">
-        ${next ? `<p class="eyebrow">${esc(statusLabel(next.status))} · ${esc(next.name)}</p>` : ""}
+        <img class="cta-mark" src="assets/brand/mad-logo.svg" alt="" width="42" height="64">
+        <p class="eyebrow">${events.length} events since ${esc(site.established)}</p>
         <h2 id="cta-h">${esc(site.cta_title)}</h2>
         <p class="lead">${esc(site.cta_text)}</p>
       </div>
       <div class="actions">
-        ${next ? `<a class="btn primary" href="event.html?e=${encodeURIComponent(next.slug)}">${next.status === "open" ? "Register for" : "See"} ${esc(next.name)} ${icons.arrow}</a>` : ""}
-        <a class="btn" href="contact.html">Join MAD Club</a>
+        <a class="btn primary" href="contact.html">Join MAD Club ${icons.arrow}</a>
+        <a class="btn" href="${esc(site.instagram)}" target="_blank" rel="noopener">Follow ${esc(site.instagram_handle)}</a>
       </div>
     </div>
   </section>`;
 }
 
 export function wire(ctx) {
-  const { scope, director } = ctx;
-  const live = wireLivingPhone(ctx);
-  new PhoneBuilder({ scope, director, onLive: () => live.activate() });
+  const { scope, director, site, events } = ctx;
+  const screen = $(".phone-screen");
+  let builder = null;
+  const full = new FullscreenPhone({ scope, screen });
+  const os = new MadOS({
+    root: screen, site, events, scope,
+    onRebuild: async () => { await full.close(); await builder.reset(); builder.build(); },
+    onFullscreen: () => full.open()
+  });
+  builder = new PhoneBuilder({ scope, director, os, onLive: () => liveHover(scope) });
+  const fb = $("#build-full");
+  fb && scope.on(fb, "click", () => full.open());
+
+  // Flagship rail: on small screens it becomes a snap carousel with live dots
+  const rail = $("#flag-rail"), dots = $$(".rail-dots i");
+  if (rail && dots.length) {
+    scope.on(rail, "scroll", () => {
+      const cards = $$(".poster", rail);
+      const mid = rail.scrollLeft + rail.clientWidth / 2;
+      let k = 0, best = Infinity;
+      cards.forEach((c, i) => { const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid); if (d < best) { best = d; k = i; } });
+      dots.forEach((d, i) => d.classList.toggle("on", i === k));
+    }, { passive: true });
+  }
 
   // Journey: tablist + Swarm Connect paths between stages
-  const pipe = ctx.site.learning_pipeline || [];
+  const pipe = site.learning_pipeline || [];
   const steps = $(".journey-steps");
   if (steps) {
     const btns = $$(".journey-step", steps);
+    const panel = $("#journey-panel");
+    const select = i => {
+      btns.forEach((b, j) => { b.setAttribute("aria-selected", String(i === j)); b.tabIndex = i === j ? 0 : -1; });
+      const p = pipe[i];
+      director.morph(panel, () => {
+        $("#jp-tag").textContent = p.tag;
+        $("#jp-name").textContent = `${p.step}. ${p.name}`;
+        $("#jp-desc").textContent = p.desc;
+      });
+    };
     btns.forEach((b, i) => {
       b.tabIndex = i === 0 ? 0 : -1;
       b.addEventListener("click", () => select(i));
@@ -185,22 +181,37 @@ export function wire(ctx) {
         select(j);
       });
     });
-    const panel = $("#journey-panel");
-    const select = i => {
-      btns.forEach((b, j) => { b.setAttribute("aria-selected", String(i === j)); b.tabIndex = i === j ? 0 : -1; });
-      const p = pipe[i];
-      director.morph(panel, () => {
-        $("#jp-tag").textContent = p.tag;
-        $("#jp-name").textContent = `${p.step}. ${p.name}`;
-        $("#jp-desc").textContent = p.desc;
-      });
-    };
     const io = scope.observe(new IntersectionObserver(es => {
-      if (es.some(e => e.isIntersecting)) {
-        io.disconnect();
-        scope.timeout(() => director.connect($(".journey-svg"), btns), 900);
-      }
+      if (es.some(e => e.isIntersecting)) { io.disconnect(); scope.timeout(() => director.connect($(".journey-svg"), btns), 900); }
     }, { threshold: 0.4 }));
     io.observe(steps);
+  }
+}
+
+// Inertial hover once the phone is live (pointer) or gentle device tilt (touch, where allowed)
+function liveHover(scope) {
+  const phone = $("#phone"), stage = $(".stage");
+  if (!phone || !stage || motion.reduced) return;
+  let tx = 0, ty = 0, cx = 0, cy = 0, raf = 0;
+  const loop = () => {
+    cx += (tx - cx) * 0.08; cy += (ty - cy) * 0.08;
+    phone.style.setProperty("--rx", `${(-cy * 7).toFixed(2)}deg`);
+    phone.style.setProperty("--ry", `${(cx * 9).toFixed(2)}deg`);
+    raf = Math.abs(tx - cx) > 0.001 || Math.abs(ty - cy) > 0.001 ? requestAnimationFrame(loop) : 0;
+  };
+  const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
+  scope.add(() => cancelAnimationFrame(raf));
+  if (finePointer) {
+    scope.on(stage, "pointermove", e => {
+      if (stage.dataset.state !== "live" || e.target.closest(".os")) { return; }
+      const r = stage.getBoundingClientRect();
+      tx = (e.clientX - r.left) / r.width - 0.5; ty = (e.clientY - r.top) / r.height - 0.5; kick();
+    }, { passive: true });
+    scope.on(stage, "pointerleave", () => { tx = 0; ty = 0; kick(); });
+  } else if ("DeviceOrientationEvent" in window && typeof DeviceOrientationEvent.requestPermission !== "function") {
+    scope.on(window, "deviceorientation", e => {
+      if (stage.dataset.state !== "live" || e.gamma == null) return;
+      tx = Math.max(-0.5, Math.min(0.5, e.gamma / 60)); ty = Math.max(-0.5, Math.min(0.5, (e.beta - 40) / 80)); kick();
+    }, { passive: true });
   }
 }

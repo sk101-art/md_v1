@@ -7,7 +7,7 @@ import { traceContainer, roundedRectPath } from "./container-tracer.js";
 import { motion, wait, clamp, isSmall } from "../core/util.js";
 
 const NS = "http://www.w3.org/2000/svg";
-const HOLD_SAFETY_MS = 9000;
+const HOLD_SAFETY_MS = 1200;
 
 class Run {
   constructor(kind) {
@@ -45,6 +45,7 @@ export class SwarmDirector {
     this.runs = new Set();
     this.observers = [];
     this.held = new Set();
+    this.inFlight = new Set();
     this.crosses = [];
     this.stats = { constructs: 0, layers: 0, lastMs: 0 };
     this._buildHud();
@@ -69,12 +70,20 @@ export class SwarmDirector {
     if (!this.enabled) return [];
     const els = this.layersIn(root);
     els.forEach(el => { el.classList.add("sw-hold"); this.held.add(el); });
-    const t = setTimeout(() => els.forEach(el => this._release(el)), HOLD_SAFETY_MS);
+    // Safety net: anything visible but not being built (e.g. an observer never fired) is revealed.
+    // Off-screen elements stay held so they are still constructed when scrolled to.
     this._safety = this._safety || new Set();
+    // Stragglers on screen are handed to the swarm too, so nothing appears without being built.
+    const t = setInterval(() => {
+      if (this.busy) return; // the main build is still running
+      const late = [...this.held].filter(el => !this.inFlight.has(el) && inViewport(el, -24));
+      if (late.length) { late.forEach(el => (el.dataset.swBy = "sweep")); this._sectionConstruct(late); }
+      if (!this.held.size) { clearInterval(t); this._safety.delete(t); }
+    }, HOLD_SAFETY_MS);
     this._safety.add(t);
     return els;
   }
-  _release(el) { el.classList.remove("sw-hold"); this.held.delete(el); }
+  _release(el) { el.classList.remove("sw-hold"); this.held.delete(el); this.inFlight.delete(el); }
   releaseAll() { for (const el of [...this.held]) this._release(el); }
 
   revealEl(el, kind, dur = 0.42) {
@@ -257,6 +266,8 @@ export class SwarmDirector {
     const run = new Run("main");
     this.runs.add(run);
     const layers = this._describe(visible);
+    layers.forEach(L => this.inFlight.add(L.el));
+    visible.filter(el => !layers.some(L => L.el === el)).forEach(el => this._release(el));
     const total = layers.length * passes;
     let done = 0;
     const tick = () => { done++; if (hud) this._hud(true, this.agents.length, done, total, "Building"); };
@@ -500,22 +511,22 @@ export class SwarmDirector {
   }
 
   // ---------- section-scoped constructs as content scrolls in ----------
+  // Every held element is observed on its own: whatever scrolls into view (vertically or
+  // inside a horizontal rail) is built by the swarm right there, batched per frame.
   _deferUntilVisible(els) {
-    const groups = new Map();
-    for (const el of els) {
-      const sec = el.closest("[data-sw-section], section, .section") || el.parentElement;
-      if (!groups.has(sec)) groups.set(sec, []);
-      groups.get(sec).push(el);
-    }
+    let batch = [], timer = 0;
+    const flush = () => { timer = 0; const list = batch; batch = []; if (list.length) this._sectionConstruct(list); };
     const io = new IntersectionObserver(entries => {
       for (const e of entries) {
         if (!e.isIntersecting) continue;
         io.unobserve(e.target);
-        const list = groups.get(e.target) || [];
-        this._sectionConstruct(list);
+        if (!this.held.has(e.target) || this.inFlight.has(e.target)) continue;
+        this.inFlight.add(e.target);
+        batch.push(e.target);
       }
-    }, { rootMargin: "0px 0px -12% 0px", threshold: 0.01 });
-    groups.forEach((_, sec) => io.observe(sec));
+      if (batch.length && !timer) timer = setTimeout(flush, 70);
+    }, { rootMargin: "0px 0px -48px 0px", threshold: 0 });
+    els.forEach(el => io.observe(el));
     this.observers.push(io);
   }
   async _sectionConstruct(els) {
@@ -523,7 +534,9 @@ export class SwarmDirector {
     const run = new Run("section");
     this.runs.add(run);
     const layers = this._describe(els);
-    const n = clamp(Math.ceil(layers.length / 4), 1, 3);
+    layers.forEach(L => this.inFlight.add(L.el));
+    els.filter(el => !layers.some(L => L.el === el)).forEach(el => this._release(el));
+    const n = clamp(Math.ceil(layers.length / 3), 1, 4);
     const agents = [];
     for (let i = 0; i < n; i++) {
       const a = new Agent(this.layer, ROLES[(i + this.stats.constructs) % ROLES.length], 50 + i);
@@ -576,7 +589,7 @@ export class SwarmDirector {
   reset({ keepAgents = false } = {}) {
     this.cancelRuns();
     this.observers.splice(0).forEach(o => o.disconnect());
-    (this._safety || new Set()).forEach(clearTimeout);
+    (this._safety || new Set()).forEach(clearInterval);
     this._safety = new Set();
     this.releaseAll();
     this.layer.querySelectorAll(".sw-box,.sw-frag,.sw-guide,.trace-svg,.trace-head").forEach(n => n.remove());

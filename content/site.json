@@ -10,14 +10,26 @@
   "github": "https://github.com/sk101-art/md_v1",
   "hero_badge": "MOBILE APP DEVELOPMENT CLUB · NHCE",
   "hero_title": "Don't just use the future. Build it.",
-  "hero_lead": "The elite mobile development guild at New Horizon College of Engineering. We forge native iOS, Android, Flutter and on-device AI apps through high-tempo hackathons, collaborative sprints and production deployments.",
+  "hero_lead": "The Mobile App Development Club at New Horizon College of Engineering. We design, build and ship apps together, through hackathons, workshops and team projects.",
   "hero_cta_primary": "Explore Events",
-  "hero_cta_secondary": "Join the Guild",
+  "hero_cta_secondary": "Join the club",
   "stats": [
-    { "value": "150+", "label": "builders at every flagship event" },
-    { "value": "4", "label": "major flagships shipped end-to-end" },
-    { "value": "11", "label": "core architectural committee leads" },
-    { "value": "2023", "label": "founded to redefine student engineering" }
+    {
+      "value": "150+",
+      "label": "participants at every flagship event"
+    },
+    {
+      "value": "5",
+      "label": "flagship events run end to end"
+    },
+    {
+      "value": "11",
+      "label": "core team roles"
+    },
+    {
+      "value": "2023",
+      "label": "the year the club started"
+    }
   ],
   "learning_pipeline": [
     {

@@ -19,7 +19,8 @@ export function radiusOf(el) {
 
 export function inViewport(el, margin = 0) {
   const r = el.getBoundingClientRect();
-  return r.bottom > -margin && r.top < window.innerHeight + margin && r.width > 0 && r.height > 0;
+  return r.bottom > -margin && r.top < window.innerHeight + margin &&
+    r.right > -margin && r.left < window.innerWidth + margin && r.width > 0 && r.height > 0;
 }
 
 // Per-line boxes for a text block, used as neutral skeleton pieces.

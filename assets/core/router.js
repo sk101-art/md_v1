@@ -111,6 +111,8 @@ export class Router {
     // hold layers before first paint of the new page
     if (this.first) d.hold(document.getElementById("nav"));
     d.hold(this.main);
+    const foot = document.querySelector("footer.foot");
+    if (foot) d.hold(foot);
     window.scrollTo(0, restore || 0);
 
     // focus management for keyboard and screen reader users (not on first load)
@@ -127,10 +129,11 @@ export class Router {
 
     if (arrival) {
       // Arrival: nav + page constructed together, full two-pass skeleton -> fill (shorter on revisit)
-      const wrap = { querySelectorAll: sel => [...document.getElementById("nav").querySelectorAll(sel), ...this.main.querySelectorAll(sel)] };
+      const wrap = { querySelectorAll: sel => [...document.getElementById("nav").querySelectorAll(sel), ...this.main.querySelectorAll(sel), ...(foot ? foot.querySelectorAll(sel) : [])] };
       await d.construct(wrap, { passes: seen ? 1 : 2 });
     } else {
-      await d.construct(this.main, { passes: 1 });
+      const wrap = { querySelectorAll: sel => [...this.main.querySelectorAll(sel), ...(foot ? foot.querySelectorAll(sel) : [])] };
+      await d.construct(wrap, { passes: 1 });
     }
   }
 }

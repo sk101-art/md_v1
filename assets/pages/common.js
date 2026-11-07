@@ -11,16 +11,24 @@ export function posterCard(e, { wide = false, half = false } = {}) {
       <div class="poster-media">
         ${cover
           ? `<img src="${esc(cover)}" alt="${esc(e.name)}" loading="lazy" decoding="async" data-shared="${esc(e.slug)}">`
-          : `<div class="placeholder-art" data-shared="${esc(e.slug)}"><span>${esc(e.name)}</span></div>`}
+          : posterArt(e)}
         <span class="tag ${esc(e.status)}">${esc(statusLabel(e.status))}</span>
       </div>
       <div class="poster-body">
         <div class="poster-meta"><span>${esc(e.semester)}</span><span>${esc(e.category || "Event")}</span></div>
         <h3>${esc(e.name)}</h3>
         <p>${esc(e.description)}</p>
-        <span class="poster-cta">${e.status === "open" ? "Details and registration" : "Details and photos"} ${icons.arrow}</span>
+        <span class="poster-cta">${(e.photos || []).length ? `Recap and ${e.photos.length} photo${e.photos.length > 1 ? "s" : ""}` : "Event recap"} ${icons.arrow}</span>
       </div>
     </a>`;
+}
+
+// Designed cover for events without photos: the logo's rays + typographic name
+export function posterArt(e, id = "") {
+  const hue = [...e.slug].reduce((a, c) => a + c.charCodeAt(0), 0) % 6;
+  return `<div class="poster-art pa-${hue}" data-shared="${esc(e.slug)}"${id ? ` id="${id}"` : ""} aria-hidden="true">
+    <img src="assets/brand/mad-rays.svg" alt="">
+    <span class="pa-k">${esc(e.semester)}</span><span class="pa-n">${esc(e.name)}</span><span class="pa-c">${esc(e.category || "Event")}</span></div>`;
 }
 
 export function pageHead(eyebrow, title, lead) {

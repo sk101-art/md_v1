@@ -7,7 +7,7 @@ export function render(site, events) {
   const q = new URLSearchParams(location.search);
   const y = years.includes(q.get("y")) ? q.get("y") : "all";
   return `
-  ${pageHead("Events", `Hackathons, design sprints <em class="serif">and arenas.</em>`, `Every MAD event since ${site.established}: what ran, who it was for, and what is open now.`)}
+  ${pageHead("Events", `Hackathons, design sprints <em class="serif">and arenas.</em>`, `All ${events.length} MAD events since ${site.established}: what ran, who it was for, and the photos.`)}
   <section class="wrap" aria-label="Filter events">
     <div class="tools" data-sw="block">
       <div class="tools-row">
@@ -15,11 +15,10 @@ export function render(site, events) {
         <span class="count" id="count" aria-live="polite"></span>
       </div>
       <div class="tools-row">
-        <div class="seg" id="f-status" role="group" aria-label="Status">
+        <div class="seg" id="f-kind" role="group" aria-label="Type">
           <button type="button" data-v="all" aria-pressed="true">All</button>
-          <button type="button" data-v="open" aria-pressed="false">Open</button>
-          <button type="button" data-v="upcoming" aria-pressed="false">Upcoming</button>
-          <button type="button" data-v="completed" aria-pressed="false">Completed</button>
+          <button type="button" data-v="flagship" aria-pressed="false">Flagships</button>
+          <button type="button" data-v="photos" aria-pressed="false">With photos</button>
         </div>
         <div class="seg" id="f-year" role="group" aria-label="Academic year">
           <button type="button" data-v="all" aria-pressed="${y === "all"}">All years</button>
@@ -32,7 +31,7 @@ export function render(site, events) {
 }
 
 export function wire({ events, scope, director }) {
-  const state = { q: "", status: "all", year: new URLSearchParams(location.search).get("y") || "all" };
+  const state = { q: "", kind: "all", year: new URLSearchParams(location.search).get("y") || "all" };
   const grid = $("#grid"), count = $("#count");
   const sorted = [...events].sort((a, b) => semKey(b.semester) - semKey(a.semester));
 
@@ -40,7 +39,7 @@ export function wire({ events, scope, director }) {
     const first = new Map($$(".poster", grid).map(c => [c.dataset.slug, c.getBoundingClientRect()]));
     const q = state.q.trim().toLowerCase();
     const list = sorted.filter(e =>
-      (state.status === "all" || e.status === state.status) &&
+      (state.kind === "all" || (state.kind === "flagship" ? e.flagship : (e.photos || []).length > 0)) &&
       (state.year === "all" || semYear(e.semester) === state.year) &&
       (!q || `${e.name} ${e.description} ${e.semester} ${e.category || ""}`.toLowerCase().includes(q)));
     count.textContent = `${list.length} of ${events.length} events`;
@@ -60,7 +59,7 @@ export function wire({ events, scope, director }) {
     });
   };
 
-  wireSeg($("#f-status"), { scope, onSelect: b => { state.status = b.dataset.v; director.morph(grid, draw); } });
+  wireSeg($("#f-kind"), { scope, onSelect: b => { state.kind = b.dataset.v; director.morph(grid, draw); } });
   wireSeg($("#f-year"), { scope, onSelect: b => { state.year = b.dataset.v; director.morph(grid, draw); } });
   scope.on($("#q"), "input", e => { state.q = e.target.value; draw(); });
   draw();

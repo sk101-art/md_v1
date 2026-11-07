@@ -5,7 +5,6 @@ import { ParticleField } from "../graphics/particle-field.js";
 
 const INTENTS = [
   ["join", "Join the club"],
-  ["register", "Register for an event"],
   ["collaborate", "Collaborate"],
   ["general", "Something else"]
 ];
@@ -14,10 +13,7 @@ export function render(site, events) {
   const c = site.contact || {};
   const q = new URLSearchParams(location.search);
   const intent = INTENTS.some(i => i[0] === q.get("intent")) ? q.get("intent") : "join";
-  const evSlug = q.get("event");
-  const ev = events.find(e => e.slug === evSlug);
   const endpoint = (c.form_endpoint || "").trim();
-  const openEvents = events.filter(e => e.status === "open" || e.status === "upcoming");
 
   return `
   ${pageHead("Contact", `Say hello, <em class="serif">or join in.</em>`, "Tell us who you are and what you would like to build. A coordinator replies by email.")}
@@ -30,9 +26,6 @@ export function render(site, events) {
           </div>
           <input type="hidden" name="intent" id="intent-input" value="${esc(intent)}">
         </div>
-        <label class="field" id="event-field" ${intent === "register" ? "" : "hidden"}><span>Event</span>
-          <select name="event">${openEvents.map(e => `<option value="${esc(e.slug)}" ${ev && ev.slug === e.slug ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</select>
-        </label>
         <label class="field"><span>Full name</span><input name="name" required autocomplete="name"></label>
         <label class="field"><span>Email</span><input name="email" type="email" required autocomplete="email" placeholder="you@example.com"></label>
         <label class="field"><span>Branch and semester</span><input name="department" required placeholder="e.g. CSE, 5th semester"></label>
@@ -53,10 +46,10 @@ export function render(site, events) {
 export function wire({ site, scope }) {
   const form = $("#contact-form");
   if (!form) return;
-  const status = $("#form-status"), submit = $("#submit"), hidden = $("#intent-input"), evField = $("#event-field");
+  const status = $("#form-status"), submit = $("#submit"), hidden = $("#intent-input");
   const endpoint = form.getAttribute("action") || "";
   const email = (site.contact && site.contact.email) || "";
-  wireSeg($("#intent"), { scope, onSelect: b => { hidden.value = b.dataset.v; evField.hidden = b.dataset.v !== "register"; } });
+  wireSeg($("#intent"), { scope, onSelect: b => { hidden.value = b.dataset.v; } });
 
   const say = (cls, html) => { status.className = `form-status show ${cls}`; status.innerHTML = html; };
   const label = submit.innerHTML;

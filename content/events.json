@@ -43,13 +43,28 @@
         "Cash prizes and official MAD Club certificates"
       ],
       "prizes": [
-        { "position": "1st Place", "reward": "Cash Prize + Trophy + Certificate of Merit" },
-        { "position": "2nd Place", "reward": "Cash Prize + Certificate of Merit" },
-        { "position": "Best UI/UX", "reward": "Special Jury Mention + Merch" }
+        {
+          "position": "1st Place",
+          "reward": "Cash Prize + Trophy + Certificate of Merit"
+        },
+        {
+          "position": "2nd Place",
+          "reward": "Cash Prize + Certificate of Merit"
+        },
+        {
+          "position": "Best UI/UX",
+          "reward": "Special Jury Mention + Merch"
+        }
       ],
       "faq": [
-        { "q": "Who was eligible?", "a": "All enrolled students at New Horizon College of Engineering." },
-        { "q": "Were laptops required?", "a": "Yes, at least one laptop per team with Figma and Android Studio/VS Code installed." }
+        {
+          "q": "Who was eligible?",
+          "a": "All enrolled students at New Horizon College of Engineering."
+        },
+        {
+          "q": "Were laptops required?",
+          "a": "Yes, at least one laptop per team with Figma and Android Studio/VS Code installed."
+        }
       ],
       "photos": [
         "photos/mindspark23/1.jpeg",
@@ -107,11 +122,20 @@
         "Hands-on mentorship sessions during the pitching round"
       ],
       "prizes": [
-        { "position": "Winner", "reward": "Prize Pool + Incubation Guidance" },
-        { "position": "Runner Up", "reward": "Prize Pool + Certificate" }
+        {
+          "position": "Winner",
+          "reward": "Prize Pool + Incubation Guidance"
+        },
+        {
+          "position": "Runner Up",
+          "reward": "Prize Pool + Certificate"
+        }
       ],
       "faq": [
-        { "q": "What tech stack was supported?", "a": "Any mobile tech: Flutter, Kotlin/Java, Swift/SwiftUI, React Native or PWA." }
+        {
+          "q": "What tech stack was supported?",
+          "a": "Any mobile tech: Flutter, Kotlin/Java, Swift/SwiftUI, React Native or PWA."
+        }
       ],
       "photos": [
         "photos/innowave24/1.jpeg",
@@ -162,11 +186,20 @@
         "Dynamic real-time scoreboard app developed by MAD Club"
       ],
       "prizes": [
-        { "position": "Overall Champions", "reward": "Grand Trophy + Cash Awards" },
-        { "position": "Track Winners", "reward": "Category Medals + Certificates" }
+        {
+          "position": "Overall Champions",
+          "reward": "Grand Trophy + Cash Awards"
+        },
+        {
+          "position": "Track Winners",
+          "reward": "Category Medals + Certificates"
+        }
       ],
       "faq": [
-        { "q": "Which clubs participated?", "a": "MAD Club, Robotics Club, IEEE Student Branch, and Developers Guild." }
+        {
+          "q": "Which clubs participated?",
+          "a": "MAD Club, Robotics Club, IEEE Student Branch, and Developers Guild."
+        }
       ],
       "photos": [
         "photos/techsync24/1.jpg",
@@ -218,10 +251,16 @@
         "Club achievement retrospectives and honors"
       ],
       "prizes": [
-        { "position": "Best Student App of the Year", "reward": "MAD Club Excellence Award" }
+        {
+          "position": "Best Student App of the Year",
+          "reward": "MAD Club Excellence Award"
+        }
       ],
       "faq": [
-        { "q": "Were external participants allowed?", "a": "Yes, invitees and guest mentors joined the demo sessions." }
+        {
+          "q": "Were external participants allowed?",
+          "a": "Yes, invitees and guest mentors joined the demo sessions."
+        }
       ],
       "photos": [
         "photos/connect24/1.jpg",
@@ -266,10 +305,16 @@
         "Peer critique circles and live Figma design battles"
       ],
       "prizes": [
-        { "position": "Top Designer", "reward": "Design Kit + Certificate" }
+        {
+          "position": "Top Designer",
+          "reward": "Design Kit + Certificate"
+        }
       ],
       "faq": [
-        { "q": "Did participants need prior design experience?", "a": "No, a 30-minute primer was conducted before round 1." }
+        {
+          "q": "Did participants need prior design experience?",
+          "a": "No, a 30-minute primer was conducted before round 1."
+        }
       ],
       "photos": [
         "photos/pixel-pursuit24/1.jpg"
@@ -318,11 +363,20 @@
         "Mentors on call for debugging Flutter and native issues"
       ],
       "prizes": [
-        { "position": "Codathon Champion", "reward": "Prize Pool + Project Funding" },
-        { "position": "Best Architecture", "reward": "Developer Swag + Certificate" }
+        {
+          "position": "Codathon Champion",
+          "reward": "Prize Pool + Project Funding"
+        },
+        {
+          "position": "Best Architecture",
+          "reward": "Developer Swag + Certificate"
+        }
       ],
       "faq": [
-        { "q": "Were pre-built templates permitted?", "a": "Only boilerplate starter templates with zero business logic were allowed." }
+        {
+          "q": "Were pre-built templates permitted?",
+          "a": "Only boilerplate starter templates with zero business logic were allowed."
+        }
       ],
       "photos": [
         "photos/codathon/1.png"
@@ -333,7 +387,7 @@
       "name": "Appsylum'25",
       "semester": "25-26 Odd Sem",
       "flagship": true,
-      "status": "open",
+      "status": "completed",
       "category": "Flagship Hackathon",
       "start_at": "2026-11-28T09:00:00+05:30",
       "end_at": "2026-11-29T18:00:00+05:30",
@@ -342,7 +396,7 @@
       "address_hint": "Outer Ring Road, Marathahalli, Bengaluru",
       "description": "Our biggest mobile app showdown yet: 36 hours of relentless ideation, mobile craftsmanship, and breakthrough product launches.",
       "poster": "",
-      "registration_url": "contact.html?intent=register&event=appsylum25",
+      "registration_url": "",
       "team_size": "Teams of 2 to 4",
       "eligibility": "Open to all college students across India",
       "rounds": [
@@ -371,13 +425,28 @@
         "Cloud credits, free domain names, and developer swag kits"
       ],
       "prizes": [
-        { "position": "1st Prize", "reward": "₹25,000 + Trophy + Incubation Grant" },
-        { "position": "2nd Prize", "reward": "₹15,000 + Trophy + Swag" },
-        { "position": "Best Flutter App", "reward": "₹10,000 Special Prize" }
+        {
+          "position": "1st Prize",
+          "reward": "₹25,000 + Trophy + Incubation Grant"
+        },
+        {
+          "position": "2nd Prize",
+          "reward": "₹15,000 + Trophy + Swag"
+        },
+        {
+          "position": "Best Flutter App",
+          "reward": "₹10,000 Special Prize"
+        }
       ],
       "faq": [
-        { "q": "Is food and accommodation provided?", "a": "Yes, meals, caffeine, and designated rest zones are fully provided for the duration." },
-        { "q": "Can beginners participate?", "a": "Absolutely! We run beginner tracks with dedicated mentors to assist with setup." }
+        {
+          "q": "Is food and accommodation provided?",
+          "a": "Yes, meals, caffeine, and designated rest zones are fully provided for the duration."
+        },
+        {
+          "q": "Can beginners participate?",
+          "a": "Absolutely! We run beginner tracks with dedicated mentors to assist with setup."
+        }
       ],
       "photos": []
     },
@@ -386,7 +455,7 @@
       "name": "Game Design'26",
       "semester": "25-26 Even Sem",
       "flagship": false,
-      "status": "upcoming",
+      "status": "completed",
       "category": "Interactive & Gaming",
       "start_at": "2027-02-14T10:00:00+05:30",
       "end_at": "2027-02-14T17:00:00+05:30",
@@ -395,7 +464,7 @@
       "address_hint": "NHCE Campus, Bengaluru",
       "description": "Mobile game design, physics engines, and real-time multiplayer mobile gameplay challenge using Flutter Flame and Unity.",
       "poster": "",
-      "registration_url": "contact.html?intent=register&event=game-design26",
+      "registration_url": "",
       "team_size": "Teams of 1 to 3",
       "eligibility": "All enrolled college students",
       "rounds": [
@@ -417,11 +486,20 @@
         "Peer play-testing tournament on giant projection screens"
       ],
       "prizes": [
-        { "position": "Best Gameplay", "reward": "Gaming Headsets + Trophies" },
-        { "position": "Best Visual Design", "reward": "Graphic Tablets + Certificates" }
+        {
+          "position": "Best Gameplay",
+          "reward": "Gaming Headsets + Trophies"
+        },
+        {
+          "position": "Best Visual Design",
+          "reward": "Graphic Tablets + Certificates"
+        }
       ],
       "faq": [
-        { "q": "Do we have to use Unity?", "a": "No, you may use Godot, Flutter Flame, or custom Canvas/WebGL engines." }
+        {
+          "q": "Do we have to use Unity?",
+          "a": "No, you may use Godot, Flutter Flame, or custom Canvas/WebGL engines."
+        }
       ],
       "photos": []
     },
@@ -430,7 +508,7 @@
       "name": "Gitout'26",
       "semester": "25-26 Even Sem",
       "flagship": false,
-      "status": "upcoming",
+      "status": "completed",
       "category": "Workshop & Hack",
       "start_at": "2027-04-10T10:30:00+05:30",
       "end_at": "2027-04-10T16:30:00+05:30",
@@ -439,7 +517,7 @@
       "address_hint": "NHCE Campus, Bengaluru",
       "description": "Hands-on collaborative Git workflows, open-source contribution sprint, merge conflict survival games, and automated CI/CD for mobile apps.",
       "poster": "",
-      "registration_url": "contact.html?intent=register&event=gitout26",
+      "registration_url": "",
       "team_size": "Individual",
       "eligibility": "Open to all students",
       "rounds": [
@@ -462,10 +540,16 @@
         "Mastering mobile CI/CD pipelines with GitHub Actions"
       ],
       "prizes": [
-        { "position": "Top Contributor", "reward": "Mechanical Keyboard + Merch" }
+        {
+          "position": "Top Contributor",
+          "reward": "Mechanical Keyboard + Merch"
+        }
       ],
       "faq": [
-        { "q": "Do I need a GitHub account beforehand?", "a": "Yes, please have an active GitHub account and Git CLI installed." }
+        {
+          "q": "Do I need a GitHub account beforehand?",
+          "a": "Yes, please have an active GitHub account and Git CLI installed."
+        }
       ],
       "photos": []
     }
