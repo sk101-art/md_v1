@@ -3,7 +3,7 @@
 // orbit the visitor's pointer as small particles until the swarm needs them again.
 import { Agent, ROLES, visitor } from "./agents.js";
 import { isSmall } from "../core/util.js";
-import { makeSvg, powerNetwork } from "../graphics/power-fx.js";
+import { makeSvg, powerNetwork, logoBody } from "../graphics/power-fx.js";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 export const CREW_SIZE = 11;
@@ -130,7 +130,7 @@ export class Crew {
     // a glow flows from the logo along a circuit into each node; each node powers on as it arrives
     const ends = nodes.map((_, i) => { const p = off(i); return { x: C + p.x, y: C + p.y, ang: p.ang }; });
     await powerNetwork(svg, { x: C, y: C }, ends, {
-      r0: 30, lay: fast ? 300 : 520, flow: fast ? 620 : 1050, stagger: fast ? 14 : 30, branches: false,
+      r0: 30, body: logoBody({ x: C, y: C }, (70 * 500) / 766, 70), lay: fast ? 300 : 520, flow: fast ? 620 : 1050, stagger: fast ? 14 : 30, branches: false,
       onArrive: i => { nodes[i].classList.add("powered"); this.agents[i].el.animate([{ transform: this.agents[i].el.style.transform + " scale(1)" }, { transform: this.agents[i].el.style.transform + " scale(1.9)" }, { transform: this.agents[i].el.style.transform + " scale(1)" }], { duration: 360 }); }
     }).done;
     stage.querySelector("b").textContent = "Builders powered";

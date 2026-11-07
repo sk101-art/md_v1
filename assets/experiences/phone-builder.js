@@ -4,7 +4,7 @@
 import { ParticleField } from "../graphics/particle-field.js";
 import { perimeter, fill, rectOfEl, radiusPx } from "../graphics/geometry-sampling.js";
 import { $, $$, motion, isSmall, clamp, wait } from "../core/util.js";
-import { makeSvg, evenEndpoints, powerNetwork } from "../graphics/power-fx.js";
+import { makeSvg, evenEndpoints, powerNetwork, logoBody } from "../graphics/power-fx.js";
 
 const COPY = {
   READY: ["Stage is empty", "Press Build to assemble the phone"],
@@ -242,18 +242,23 @@ export class PhoneBuilder {
     this.set("LOGO_APPROACH", 84);
     this.stage.dataset.state = "logo";
     const bootImg = $(".os-boot img", this.phone);
-    const landed = await this.fly($(".nav .brand-mark"), bootImg, { morph: false, alive, dur: 1.15 });
-    if (!alive()) return;
+    // the logo lands in a seat that lives inside the phone screen, dead centre, exactly where the
+    // boot logo will sit: it scrolls and scales with the phone, so it can never drift off-centre
+    const seat = this.logoSeat(bootImg);
+    const landed = await this.fly($(".nav .brand-mark"), seat, { morph: false, alive, dur: 1.15 });
+    if (!alive()) { seat && seat.remove(); return; }
+    if (seat) { seat.classList.add("on", "charging"); landed && landed.remove(); }
 
-    // POWERING_UP: the logo glows, circuits grow out of it across the dark screen to every part
-    // of the interface it is about to power, then blue lightning strikes and the phone boots
+    // POWERING_UP: the logo's outline is traced, then circuits leave its edges for every part of
+    // the interface it is about to power, and the phone boots
     this.set("POWERING_UP", 90);
     this.stage.dataset.state = "powering";
-    if (landed) landed.classList.add("charging");
-    await this.powerUp(bootImg, alive);
-    if (!alive()) { landed && landed.remove(); return; }
+    if (!seat && landed) landed.classList.add("charging");
+    await this.powerUp(seat || bootImg, alive);
+    if (!alive()) { landed && landed.remove(); seat && seat.remove(); return; }
     if (this.os) this.os.set("boot");
     if (landed) landed.remove();
+    if (seat) seat.remove();
     this.pulse(bootImg);
     if (this.os) await this.os.boot();
     if (!alive()) return;
@@ -262,7 +267,7 @@ export class PhoneBuilder {
     this.set("INSTALLING", 96);
     const slot = this.os ? this.os.madSlot() : null;
     if (slot) {
-      const ghost = await this.fly(this.bootRect, slot, { morph: true, alive, dur: 0.9, arc: 40 });
+      const ghost = await this.fly(bootImg && bootImg.offsetWidth ? bootImg : this.bootRect, slot, { morph: true, alive, dur: 0.9, arc: 40 });
       if (!alive()) return;
       this.os.installMad();
       this.pulse(slot);
@@ -281,14 +286,17 @@ export class PhoneBuilder {
     const W = screen.offsetWidth, H = screen.offsetHeight;
     const sr = screen.getBoundingClientRect(), k = sr.width / W || 1;
     const lr = logoEl.getBoundingClientRect();
-    const o = { x: (lr.left - sr.left + lr.width / 2) / k, y: (lr.top - sr.top + lr.height / 2) / k };
+    // the seat is centred in the screen by CSS, so its centre is the screen's centre
+    const seated = logoEl.classList.contains("pfx-logo");
+    const o = seated ? { x: W / 2, y: H / 2 } : { x: (lr.left - sr.left + lr.width / 2) / k, y: (lr.top - sr.top + lr.height / 2) / k };
+    const lw = seated ? logoEl.offsetWidth : lr.width / k, lh = seated ? logoEl.offsetHeight : lr.height / k;
     const svg = makeSvg(screen, W, H, "phone-pfx");
     const rate = this.director ? this.director.rate : 1;
     // circuits fan out evenly in every direction from the logo's edge
     const ends = evenEndpoints(o, W, H, isSmall() ? 18 : 24, 14);
     let arrived = 0;
     const net = powerNetwork(svg, o, ends, {
-      r0: Math.max(lr.width, lr.height) / k / 2 + 2, rate,
+      r0: Math.max(lw, lh) / 2 + 2, rate, body: logoBody(o, lw, lh),
       lay: 800, flow: 1500, stagger: 55,
       fine: isSmall() ? 26 : 40, fineBox: { W, H, inset: 8 },
       onArrive: () => { arrived++; if (arrived === 1) { try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(8); } catch {} } }
@@ -336,6 +344,21 @@ export class PhoneBuilder {
   }
 
   /** Fly a duplicate of the logo from an element (or rect) to an element; optional logo->icon morph. */
+  // An exact copy of the boot logo, positioned in the screen's centre (same size as the boot logo)
+  logoSeat(bootImg) {
+    const screen = $(".phone-screen", this.phone);
+    if (!screen) return null;
+    const seat = document.createElement("img");
+    seat.className = "pfx-logo";
+    seat.src = "assets/brand/mad-logo.svg";
+    seat.alt = "";
+    const w = (bootImg && parseFloat(getComputedStyle(bootImg).width)) || 64;
+    seat.style.width = `${w}px`;
+    seat.style.height = `${(w * 766) / 500}px`;
+    screen.append(seat);
+    return seat;
+  }
+
   async fly(from, toEl, { morph = false, alive, dur = 1, arc = 120 } = {}) {
     if (!from || !toEl) return null;
     const a = from.getBoundingClientRect ? from.getBoundingClientRect() : from;

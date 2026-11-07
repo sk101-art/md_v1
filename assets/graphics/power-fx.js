@@ -152,7 +152,7 @@ export function evenEndpoints(o, W, H, n = 22, inset = 16) {
  */
 export function powerNetwork(svg, o, ends, {
   r0 = 24, lay = 700, flow = 1300, stagger = 40, rate = 1, color = "#6F95F2",
-  fine = 0, fineBox = null, branches = true, onArrive
+  fine = 0, fineBox = null, branches = true, body = null, onArrive
 } = {}) {
   const base = el("g"), glowG = el("g", { filter: "url(#pfx-glow)" });
   svg.append(base, glowG);
@@ -168,11 +168,18 @@ export function powerNetwork(svg, o, ends, {
   const radial = (ang, r) => ({ x: o.x + Math.cos(ang) * r, y: o.y + Math.sin(ang) * r });
 
   // main traces
+  // with a body, the logo's own outline is traced first and every trace leaves from a pin on it
+  const outline = body ? traceBody(body, o) : null;
+  const mainPins = outline ? pairPins(outline, ends, o) : null;
   const mains = ends.map((e, i) => {
     const ang = e.ang ?? Math.atan2(e.y - o.y, e.x - o.x);
-    const pts = [radial(ang, r0), ...route(radial(ang, r0 + 10), e, i % 2 === 1)];
+    const pin = mainPins && mainPins[i];
+    const pts = pin
+      ? [pin.p, ...route({ x: pin.p.x + pin.n.x * 9, y: pin.p.y + pin.n.y * 9 }, e, i % 2 === 1)]
+      : [radial(ang, r0), ...route(radial(ang, r0 + 10), e, i % 2 === 1)];
     const t = addTrace(pts, 1.15, 0.3, "main");
     t.i = i;
+    t.f = pin ? pin.f : 0;
     // tapering forks at the end: continue straight + split at ±45°, each fading thinner
     t.kids = [];
     if (branches) {
@@ -199,6 +206,7 @@ export function powerNetwork(svg, o, ends, {
   const fines = [];
   if (fine && fineBox) {
     const { W, H, inset = 10 } = fineBox;
+    const finePins = outline ? pairPins(outline, Array.from({ length: fine }, (_, j) => ({ ang: (j / fine) * Math.PI * 2 + 0.31 })), o) : null;
     for (let j = 0; j < fine; j++) {
       const ang = (j / fine) * Math.PI * 2 + 0.31;
       const cx = Math.cos(ang), cy = Math.sin(ang);
@@ -206,17 +214,42 @@ export function powerNetwork(svg, o, ends, {
       const ty = cy > 0 ? (H - inset - o.y) / cy : cy < 0 ? (inset - o.y) / cy : Infinity;
       const reach = Math.min(tx, ty) * [0.9, 0.7, 0.55, 0.8, 0.4][j % 5];
       const e = { x: o.x + cx * reach, y: o.y + cy * reach };
-      const pts = [radial(ang, r0 - 2), ...route(radial(ang, r0 + 4), e, j % 3 === 0)];
+      const pin = outline ? finePins[j] : null;
+      const pts = pin
+        ? [pin.p, ...route({ x: pin.p.x + pin.n.x * 5, y: pin.p.y + pin.n.y * 5 }, e, j % 3 === 0)]
+        : [radial(ang, r0 - 2), ...route(radial(ang, r0 + 4), e, j % 3 === 0)];
       const t = addTrace(pts, 0.5, 0.14, "fine");
       t.j = j;
+      t.f = pin ? pin.f : 0;
       fines.push(t);
     }
+  }
+
+  // 0) the logo's outline is traced, two glows running from the top round both sides to the bottom
+  const T0 = outline ? lay * 1.1 : 0;
+  if (outline) {
+    outline.halves.forEach(d => {
+      const p = el("path", { d, fill: "none", stroke: "#A9C1FF", "stroke-width": 1.3, "stroke-linejoin": "round", "stroke-linecap": "round", opacity: 0.85 });
+      base.append(p);
+      const L = p.getTotalLength();
+      p.style.strokeDasharray = `${L}`;
+      const a = p.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: T0, easing: "cubic-bezier(.45,0,.3,1)", fill: "forwards" });
+      a.playbackRate = rate;
+      const h = p.cloneNode();
+      h.setAttribute("stroke", "#EAF1FF"); h.setAttribute("stroke-width", 2.2); h.setAttribute("opacity", 1);
+      h.style.strokeDasharray = `18 ${L + 18}`;
+      glowG.append(h);
+      const b = h.animate([{ strokeDashoffset: 18 }, { strokeDashoffset: -L }], { duration: T0, easing: "cubic-bezier(.45,0,.3,1)", fill: "forwards" });
+      b.playbackRate = rate;
+      b.finished.then(() => h.remove()).catch(() => {});
+    });
   }
 
   // 1) copper is laid from the logo outward
   traces.forEach((t, k) => {
     t.p.style.strokeDasharray = `${t.len}`;
-    const delay = t.kind === "main" ? t.i * 10 : t.kind === "fine" ? 120 + t.j * 6 : lay * 0.8;
+    const at = T0 * (t.f || 0);
+    const delay = t.kind === "main" ? (outline ? at : t.i * 10) : t.kind === "fine" ? (outline ? at + 60 : 120 + t.j * 6) : T0 + lay * 0.8;
     const a = t.p.animate([{ strokeDashoffset: t.len }, { strokeDashoffset: 0 }], { duration: t.kind === "main" || t.kind === "fine" ? lay : lay * 0.4, delay, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
     a.playbackRate = rate;
   });
@@ -242,13 +275,72 @@ export function powerNetwork(svg, o, ends, {
     a2.finished.then(() => { halo.remove(); c.remove(); res(); }).catch(res);
   });
 
-  const mainFlows = mains.map((t, i) => glow(t, { delay: lay * 0.6 + (i % 8) * stagger }).then(async () => {
+  const mainFlows = mains.map((t, i) => glow(t, { delay: outline ? T0 * (t.f || 0) + lay * 0.5 : lay * 0.6 + (i % 8) * stagger }).then(async () => {
     onArrive && onArrive(i, ends[i]);
     // the glow carries on into the forks, then out to the tapering tips
     await Promise.all(t.kids.map(([f, tip]) =>
       glow(f, { dur: flow * 0.32, w: 2, core: 0.8, seg: 14, haloOp: 0.45 })
         .then(() => glow(tip, { dur: flow * 0.28, w: 1.2, core: 0.5, seg: 10, haloOp: 0.35 }))));
   }));
-  const fineFlows = fines.map((t, j) => glow(t, { delay: lay * 0.75 + (j % 10) * stagger * 0.8, dur: flow * 1.25, w: 1.6, core: 0.6, seg: 30, haloOp: 0.35 }));
+  const fineFlows = fines.map((t, j) => glow(t, { delay: outline ? T0 * (t.f || 0) + lay * 0.7 : lay * 0.75 + (j % 10) * stagger * 0.8, dur: flow * 1.25, w: 1.6, core: 0.6, seg: 30, haloOp: 0.35 }));
   return { done: Promise.all([...mainFlows, ...fineFlows]), g: base, glowG };
+}
+
+/* ---------- the logo as the circuit's chip: outline + pins on its straight edges ---------- */
+// body = { x0, y0, x1, y1, rx } in the SVG's coordinates (the logo's phone-shaped outline)
+function traceBody(b, o) {
+  const { x0, y0, x1, y1 } = b, rx = Math.min(b.rx, (x1 - x0) / 2, (y1 - y0) / 2);
+  const cx = (x0 + x1) / 2;
+  // two halves from top-centre to bottom-centre, so two glows can run round it at once
+  const right = `M${cx} ${y0}H${x1 - rx}A${rx} ${rx} 0 0 1 ${x1} ${y0 + rx}V${y1 - rx}A${rx} ${rx} 0 0 1 ${x1 - rx} ${y1}H${cx}`;
+  const left = `M${cx} ${y0}H${x0 + rx}A${rx} ${rx} 0 0 0 ${x0} ${y0 + rx}V${y1 - rx}A${rx} ${rx} 0 0 0 ${x0 + rx} ${y1}H${cx}`;
+  const wT = x1 - x0 - 2 * rx, hS = y1 - y0 - 2 * rx, arc = (Math.PI / 2) * rx;
+  const half = wT / 2 + arc + hS + arc + wT / 2;
+  return { b: { x0, y0, x1, y1, rx }, halves: [right, left], wT, hS, arc, half, o };
+}
+
+// n pins spread evenly along the straight edges (like the legs of a chip), each with its outward
+// normal and f = how far round the outline (0 top-centre .. 1 bottom-centre) the tracing glow reaches it
+function pins(ol, n) {
+  const { x0, y0, x1, y1, rx } = ol.b, cx = (x0 + x1) / 2, g = 1.5;
+  const segs = [
+    { len: ol.wT, at: u => ({ x: x0 + rx + u, y: y0 - g }), n: { x: 0, y: -1 }, f: u => Math.abs(x0 + rx + u - cx) },
+    { len: ol.hS, at: u => ({ x: x1 + g, y: y0 + rx + u }), n: { x: 1, y: 0 }, f: u => ol.wT / 2 + ol.arc + u },
+    { len: ol.wT, at: u => ({ x: x0 + rx + u, y: y1 + g }), n: { x: 0, y: 1 }, f: u => ol.half - Math.abs(x0 + rx + u - cx) },
+    { len: ol.hS, at: u => ({ x: x0 - g, y: y0 + rx + u }), n: { x: -1, y: 0 }, f: u => ol.wT / 2 + ol.arc + u }
+  ];
+  const total = segs.reduce((a, s) => a + s.len, 0);
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    let d = ((i + 0.5) / n) * total;
+    for (const s of segs) {
+      if (d <= s.len) { out.push({ p: s.at(d), n: s.n, f: Math.min(1, s.f(d) / ol.half) }); break; }
+      d -= s.len;
+    }
+  }
+  out.forEach(q => (q.ang = Math.atan2(q.p.y - ol.o.y, q.p.x - ol.o.x)));
+  return out;
+}
+
+// give each endpoint the pin facing it: both sorted by angle, then matched with the cyclic
+// offset that keeps every trace closest to its own direction
+function pairPins(ol, targets, o) {
+  const ps = pins(ol, targets.length).sort((a, b) => a.ang - b.ang);
+  const idx = targets.map((t, i) => ({ i, ang: t.ang ?? Math.atan2(t.y - o.y, t.x - o.x) })).sort((a, b) => a.ang - b.ang);
+  const n = ps.length, wrap = a => Math.abs(Math.atan2(Math.sin(a), Math.cos(a)));
+  let best = 0, bestCost = Infinity;
+  for (let k = 0; k < n; k++) {
+    let c = 0;
+    for (let j = 0; j < n; j++) c += wrap(ps[(j + k) % n].ang - idx[j].ang);
+    if (c < bestCost) { bestCost = c; best = k; }
+  }
+  const out = new Array(n);
+  idx.forEach((t, j) => (out[t.i] = ps[(j + best) % n]));
+  return out;
+}
+
+/** The logo's phone-shaped body for a logo box centred at o (from assets/brand/mad-logo.svg). */
+export function logoBody(o, w, h) {
+  const bw = w * 0.976, bh = h * 0.984;
+  return { x0: o.x - bw / 2, x1: o.x + bw / 2, y0: o.y - bh / 2, y1: o.y + bh / 2, rx: w * 0.144 };
 }

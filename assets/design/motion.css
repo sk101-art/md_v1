@@ -322,6 +322,10 @@ html.booting #nav, html.booting #main, html.booting footer.foot, html.booting .t
 
 /* ---------- phone power-up: circuits + lightning on the dark screen ---------- */
 .phone-pfx { position: absolute; inset: 0; z-index: 7; pointer-events: none; overflow: visible; }
+/* the landed logo, seated in the exact centre of the phone screen (same place as the boot logo) */
+.pfx-logo { position: absolute; left: 50%; top: 50%; z-index: 8; transform: translate(-50%, -50%); opacity: 0; pointer-events: none; }
+.pfx-logo.on { opacity: 1; }
+.pfx-logo.charging { animation: charge 900ms ease-in-out infinite; }
 /* the glow that reached the ends of the circuits washes over the screen as the interface forms */
 .phone-wash { position: absolute; inset: 0; z-index: 7; pointer-events: none; border-radius: inherit; opacity: 0;
   background: radial-gradient(140% 90% at var(--ox, 50%) var(--oy, 42%), rgba(234, 241, 255, 0.95), rgba(143, 176, 255, 0.55) 35%, rgba(88, 120, 216, 0.18) 65%, transparent 85%); }
