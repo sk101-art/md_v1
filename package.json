@@ -1,0 +1,14 @@
+{
+  "name": "mad-club-website",
+  "version": "1.0.0",
+  "description": "Mobile App Development Club (MAD) website at New Horizon College of Engineering",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.js",
+    "serve": "node scripts/serve.js",
+    "check": "node scripts/check-content.mjs"
+  },
+  "keywords": ["mad-club", "nhce", "mobile-app-development", "flutter", "android", "ios"],
+  "author": "MAD Club NHCE",
+  "license": "MIT"
+}
