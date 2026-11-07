@@ -4,6 +4,7 @@
 import { ParticleField } from "../graphics/particle-field.js";
 import { perimeter, fill, rectOfEl, radiusPx } from "../graphics/geometry-sampling.js";
 import { $, $$, motion, isSmall, clamp, wait } from "../core/util.js";
+import { makeSvg, circuit, lightning } from "../graphics/power-fx.js";
 
 const COPY = {
   READY: ["Stage is empty", "Press Build to assemble the phone"],
@@ -244,13 +245,16 @@ export class PhoneBuilder {
     const landed = await this.fly($(".nav .brand-mark"), bootImg, { morph: false, alive, dur: 1.15 });
     if (!alive()) return;
 
-    // POWERING_UP: power pulse from the logo, MAD OS boots, lock screen, home screen
+    // POWERING_UP: the logo glows, circuits grow out of it across the dark screen to every part
+    // of the interface it is about to power, then blue lightning strikes and the phone boots
     this.set("POWERING_UP", 90);
     this.stage.dataset.state = "powering";
+    if (landed) landed.classList.add("charging");
+    await this.powerUp(bootImg, alive);
+    if (!alive()) { landed && landed.remove(); return; }
     if (this.os) this.os.set("boot");
     if (landed) landed.remove();
     this.pulse(bootImg);
-    try { navigator.vibrate && navigator.vibrate([10, 40, 18]); } catch {}
     if (this.os) await this.os.boot();
     if (!alive()) return;
 
@@ -267,8 +271,57 @@ export class PhoneBuilder {
     this.field.stop();
     this.field.clear();
     this.complete();
-    // ...and the app opens itself
-    this.scope.timeout(() => this.os && this.state === "COMPLETE" && this.os.launch("mad"), 650);
+    // ...and a builder comes over and taps it, opening the Events app
+    this.scope.timeout(() => this.tapApp(), 450);
+  }
+
+  async powerUp(logoEl, alive) {
+    const screen = $(".phone-screen", this.phone);
+    if (!screen || !logoEl) return;
+    const W = screen.offsetWidth, H = screen.offsetHeight;
+    const sr = screen.getBoundingClientRect(), k = sr.width / W || 1;
+    const local = el => { const r = el.getBoundingClientRect(); return { x: (r.left - sr.left + r.width / 2) / k, y: (r.top - sr.top + r.height / 2) / k }; };
+    const o = local(logoEl);
+    // everything the logo is about to power: widget, every icon, the dock, the status bar ends
+    const targets = [...$$(".os-widget, .os-grid .ic-tile, .os-dock .ic-tile", screen)].map(local);
+    targets.push({ x: 34, y: 22 }, { x: W - 34, y: 22 }, { x: W / 2, y: H - 14 });
+    const svg = makeSvg(screen, W, H, "phone-pfx");
+    const flash = document.createElement("div");
+    flash.className = "phone-flash";
+    screen.append(flash);
+    const rate = this.director ? this.director.rate : 1;
+    await circuit(svg, o, targets, { dur: 560, stagger: 30, rate }).done;
+    if (!alive()) { svg.remove(); flash.remove(); return; }
+    await lightning(svg, o, targets, {
+      flashes: 5, rate,
+      onStrike: n => {
+        flash.animate([{ opacity: n % 2 ? 0.5 : 0.95 }, { opacity: 0 }], { duration: 160 });
+        try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(n === 0 ? 14 : 5); } catch {}
+      }
+    });
+    svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" }).finished.then(() => svg.remove()).catch(() => svg.remove());
+    flash.remove();
+  }
+
+  // A builder from the crew flies over and taps the MAD app (the logo that powered the phone)
+  async tapApp() {
+    if (!this.os || this.state !== "COMPLETE") return;
+    const slot = this.os.madSlot();
+    const d = this.director;
+    if (!slot || !d || !d.enabled) return this.os.launch("mad");
+    const r = slot.getBoundingClientRect();
+    const at = { x: r.left + scrollX + r.width * 0.55, y: r.top + scrollY + r.height * 0.55 };
+    const [a] = d._claim(1, at);
+    if (!a) return this.os.launch("mad");
+    await new Promise(res => {
+      const p = { x: a.x, y: a.y };
+      gsap.to(p, { x: at.x, y: at.y, duration: 0.7, ease: "back.out(1.2)", onUpdate: () => a.place(p.x, p.y), onComplete: res });
+    });
+    if (this.state !== "COMPLETE") { d.crew.release([a]); return; }
+    d._click(a);
+    slot.animate([{ transform: "scale(1)" }, { transform: "scale(.86)" }, { transform: "scale(1)" }], { duration: 260 });
+    await this.os.launch("mad");
+    d.crew.release([a]);
   }
 
   /** Fly a duplicate of the logo from an element (or rect) to an element; optional logo->icon morph. */

@@ -32,7 +32,7 @@ const APPS = {
 
 const clock = () => new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
 const dateLine = () => new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
-const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
+const buzz = ms => { try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(ms); } catch {} };
 
 function iconHtml(id, { slot = false } = {}) {
   const a = APPS[id];

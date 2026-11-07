@@ -139,15 +139,17 @@ export class Router {
     playShared(this.scope);
     document.dispatchEvent(new CustomEvent("mad:route", { detail: { route } }));
 
-    document.documentElement.classList.remove("booting");
     const arrival = this.first;
+    if (!(arrival && intro)) document.documentElement.classList.remove("booting");
     let seen = false;
     try { seen = sessionStorage.getItem("mad_arrived") === "1"; sessionStorage.setItem("mad_arrived", "1"); } catch {}
     this.first = false;
 
     if (arrival) {
       // Arrival: nav + page constructed together, full two-pass skeleton -> fill (shorter on revisit)
-      if (intro) await intro; // builders assigned: now they build
+      if (intro) await intro; // builders assigned and powered: now they build
+      document.documentElement.classList.remove("booting");
+      d.crew.landLogo(document.querySelector(".nav .brand-mark"));
       const wrap = { querySelectorAll: sel => [...document.getElementById("nav").querySelectorAll(sel), ...(tabbar ? [tabbar].filter(t => t.matches(sel)) : []), ...this.main.querySelectorAll(sel), ...(foot ? foot.querySelectorAll(sel) : [])] };
       await d.construct(wrap, { passes: seen ? 1 : 2 });
     } else {

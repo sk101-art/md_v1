@@ -33,7 +33,7 @@ export class FullscreenPhone {
         { transform: "translate(-50%, -50%)", transformOrigin: "0 0" }
       ], { duration: 560, easing: "cubic-bezier(.2,.9,.2,1)", composite: "replace" }).finished.catch(() => {});
     }
-    try { navigator.vibrate && navigator.vibrate(10); } catch {}
+    try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(10); } catch {}
     $(".os-ind", os)?.focus();
   }
 

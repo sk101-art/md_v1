@@ -110,7 +110,7 @@ export class SwarmDirector {
 
     // Sweep: anything held and on screen that no build has claimed is handed to the swarm.
     setInterval(() => {
-      if (this.busy || !this.held.size || document.hidden) return;
+      if (this.busy || this.introActive || !this.held.size || document.hidden) return;
       const late = [...this.held].filter(el => !this.inFlight.has(el) && inViewport(el, -24));
       if (late.length) this._sectionConstruct(late);
     }, 1000);
@@ -133,7 +133,8 @@ export class SwarmDirector {
   }
   intro(opts) {
     if (!this.enabled) return Promise.resolve();
-    this.introPromise = this.crew.intro(opts);
+    this.introActive = true;
+    this.introPromise = this.crew.intro(opts).finally(() => { this.introActive = false; });
     return this.introPromise;
   }
 

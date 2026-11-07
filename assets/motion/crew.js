@@ -3,6 +3,8 @@
 // orbit the visitor's pointer as small particles until the swarm needs them again.
 import { Agent, ROLES, visitor } from "./agents.js";
 import { isSmall } from "../core/util.js";
+import { makeSvg, circuit, lightning } from "../graphics/power-fx.js";
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 export const CREW_SIZE = 11;
 
@@ -12,6 +14,9 @@ export class Crew {
     this.agents = [];
     this.free = new Set();
     this.spin = 0;
+    this.spinV = 0.55;   // rad/s, eased toward its resting speed
+    this.rCur = 30;      // current ring radius, eased toward the target
+    this.anchor = null;  // during the intro the ring turns around the logo, not the pointer
     this.last = 0;
     this.raf = 0;
     this.dim = false;
@@ -36,58 +41,122 @@ export class Crew {
 
   // where the idle ring lives: around the visitor's pointer, or parked in a corner on touch
   centre() {
-    if (this.mouse && visitor.x > -1e4) return { x: visitor.x, y: visitor.y };
+    if (this.anchor) return this.anchor;
+    // centred on the arrow's body, not its tip (the tip is the hotspot; the eye reads the shape)
+    if (this.mouse && visitor.x > -1e4) return { x: visitor.x + 5, y: visitor.y + 8 };
     const vw = window.innerWidth, vh = window.innerHeight;
     return { x: window.scrollX + vw - 46, y: window.scrollY + vh - (isSmall() ? 132 : 54) };
   }
 
-  /** Intro: dots arrive one by one on a circle in the middle of a blank screen. */
+  /** Intro: 11 empty glass nodes on a blank screen light up clockwise as each builder arrives;
+   *  then the club logo appears in the centre and powers them with circuits and blue lightning. */
   async intro({ fast = false } = {}) {
     this.ensure();
     const vw = window.innerWidth, vh = window.innerHeight;
-    const cx = window.scrollX + vw / 2, cy = window.scrollY + vh / 2 - 10;
-    const R = isSmall() ? 46 : 58;
-    const ui = document.createElement("div");
-    ui.className = "crew-intro";
-    ui.setAttribute("role", "status");
-    ui.innerHTML = `<b>Assigning builders</b><span class="ci-n">00 / ${CREW_SIZE}</span><span class="ci-role">&nbsp;</span>`;
-    document.body.append(ui);
-    this.pause = true; // the orbit loop leaves the ring alone during the intro
-    const step = fast ? 45 : 95;
+    const cx = vw / 2, cy = vh / 2 - 16;                 // viewport coordinates
+    const R = isSmall() ? 70 : 92;
+    const sp = { x: window.scrollX, y: window.scrollY };  // agents live in page coordinates
+    const stage = document.createElement("div");
+    stage.className = "crew-stage";
+    stage.setAttribute("role", "status");
+    stage.innerHTML = `<div class="crew-label"><b>Assigning builders</b><span class="ci-n">00 / ${CREW_SIZE}</span><span class="ci-role">&nbsp;</span></div>`;
+    document.body.append(stage);
+    this.stage = stage;
+    const svg = makeSvg(stage, vw, vh, "crew-svg");
     const pos = i => {
-      const ang = -Math.PI / 2 + (i / CREW_SIZE) * Math.PI * 2;
-      return { x: cx + Math.cos(ang) * R, y: cy + Math.sin(ang) * R, ang };
+      const ang = -Math.PI / 2 + (i / CREW_SIZE) * Math.PI * 2;  // clockwise from 12 o'clock
+      return { x: cx + Math.cos(ang) * R, y: cy + Math.sin(ang) * R };
     };
+    // empty glass placeholders first
+    const nodes = Array.from({ length: CREW_SIZE }, (_, i) => {
+      const n = document.createElement("i");
+      n.className = "crew-node";
+      const p = pos(i);
+      n.style.left = `${p.x}px`; n.style.top = `${p.y}px`;
+      n.style.setProperty("--c", this.agents[i].role.color);
+      stage.append(n);
+      return n;
+    });
+    nodes.forEach((n, i) => n.animate([{ opacity: 0, transform: "translate(-50%,-50%) scale(.6)" }, { opacity: 1, transform: "translate(-50%,-50%) scale(1)" }], { duration: 360, delay: i * 18, easing: "cubic-bezier(.34,1.4,.64,1)", fill: "backwards" }));
+    this.pause = true;
+    await sleep(fast ? 160 : 320);
+    const step = fast ? 55 : 110;
     for (let i = 0; i < CREW_SIZE; i++) {
       const a = this.agents[i], p = pos(i);
-      a.place(p.x, p.y);
+      a.place(sp.x + p.x, sp.y + p.y);
       a.el.style.opacity = "1";
-      a.el.animate([{ transform: `translate3d(${cx}px, ${cy}px, 0) scale(0)` }, { transform: `translate3d(${p.x}px, ${p.y}px, 0) scale(1)` }], { duration: 420, easing: "cubic-bezier(.34,1.56,.64,1)" });
-      ui.querySelector(".ci-n").textContent = `${String(i + 1).padStart(2, "0")} / ${CREW_SIZE}`;
-      ui.querySelector(".ci-role").textContent = a.role.name;
-      await new Promise(r => setTimeout(r, step));
+      a.el.animate([{ opacity: 0, filter: "blur(4px)" }, { opacity: 1, filter: "none" }], { duration: 300 });
+      nodes[i].classList.add("lit");
+      stage.querySelector(".ci-n").textContent = `${String(i + 1).padStart(2, "0")} / ${CREW_SIZE}`;
+      stage.querySelector(".ci-role").textContent = a.role.name;
+      await sleep(step);
     }
-    // a full turn of the assembled ring, then hand over to the site build
-    ui.querySelector("b").textContent = "Builders assigned";
-    ui.querySelector(".ci-role").textContent = "Design · Build · Motion · Review · Ship";
-    await new Promise(res => {
-      const t0 = performance.now(), dur = fast ? 380 : 720;
-      const tick = now => {
-        const k = Math.min(1, (now - t0) / dur);
-        const e = 1 - Math.pow(1 - k, 3);
-        this.agents.forEach((a, i) => {
-          const ang = -Math.PI / 2 + (i / CREW_SIZE) * Math.PI * 2 + e * Math.PI * 2;
-          const r = R * (1 - 0.12 * Math.sin(k * Math.PI));
-          a.place(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
-        });
-        k < 1 ? requestAnimationFrame(tick) : res();
-      };
-      requestAnimationFrame(tick);
+
+    // the club logo arrives in the centre and powers the ring
+    stage.querySelector("b").textContent = "Powering up";
+    stage.querySelector(".ci-role").textContent = "MAD Club";
+    const logo = document.createElement("img");
+    logo.className = "crew-logo";
+    logo.src = "assets/brand/mad-logo.svg";
+    logo.alt = "";
+    logo.style.left = `${cx}px`; logo.style.top = `${cy}px`;
+    stage.append(logo);
+    this.logo = logo;
+    await logo.animate([{ opacity: 0, transform: "translate(-50%,-50%) scale(.5)" }, { opacity: 1, transform: "translate(-50%,-50%) scale(1)" }], { duration: 420, easing: "cubic-bezier(.34,1.5,.64,1)", fill: "forwards" }).finished.catch(() => {});
+    logo.classList.add("charging");
+    const targets = nodes.map((_, i) => pos(i));
+    await circuit(svg, { x: cx, y: cy }, targets, { dur: fast ? 360 : 620, stagger: fast ? 12 : 26 }).done;
+    await lightning(svg, { x: cx, y: cy }, targets, {
+      flashes: fast ? 3 : 5,
+      onStrike: k => { stage.classList.toggle("flash", k % 2 === 0); nodes.forEach(n => n.classList.add("zap")); try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(6); } catch {} }
     });
-    ui.classList.add("out");
-    setTimeout(() => ui.remove(), 400);
+    stage.classList.remove("flash");
+    nodes.forEach(n => n.classList.add("powered"));
+    stage.querySelector("b").textContent = "Builders powered";
+    stage.querySelector(".ci-role").textContent = "Design · Build · Motion · Review · Ship";
+    svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
+
+    // ALIVE: the power sets the ring in motion around the logo. The orbit starts exactly where
+    // each dot sits (no jump), spins up fast, then settles — and that same orbit is what later
+    // follows the visitor's cursor, so the motion never stops.
+    this.agents.forEach(a => { a.oc = { x: sp.x + cx, y: sp.y + cy }; });
+    this.anchor = { x: sp.x + cx, y: sp.y + cy };
+    this.rCur = R;
+    this.anchorR = R;
+    this.spin = -Math.PI / 2;
+    this.spinV = 5.2;
+    nodes.forEach((n, i) => n.animate([{ opacity: 1, transform: "translate(-50%,-50%) scale(1)" }, { opacity: 0, transform: "translate(-50%,-50%) scale(1.6)" }], { duration: 520, delay: i * 14, fill: "forwards", easing: "ease-out" }));
     this.pause = false;
     this.kick();
+    await sleep(fast ? 420 : 760);
+  }
+
+  /** The logo leaves the centre and settles into its place in the nav; it stays there (as a
+   *  stand-in) until the swarm has built the real brand mark underneath it. */
+  async landLogo(target) {
+    const stage = this.stage, logo = this.logo;
+    if (!stage) return;
+    this.stage = this.logo = null;
+    stage.querySelectorAll(".crew-node, .crew-label").forEach(n => n.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 360, fill: "forwards" }));
+    // the ring lets go of the logo and drifts to the visitor's pointer, still turning
+    this.anchor = null;
+    this.anchorR = null;
+    if (!logo || !target) { setTimeout(() => stage.remove(), 400); return; }
+    const a = logo.getBoundingClientRect(), z = target.getBoundingClientRect();
+    logo.classList.remove("charging");
+    const dx = z.left + z.width / 2 - (a.left + a.width / 2), dy = z.top + z.height / 2 - (a.top + a.height / 2);
+    const k = z.height / a.height;
+    await logo.animate([
+      { transform: "translate(-50%,-50%) scale(1)" },
+      { transform: `translate(calc(-50% + ${dx * 0.5}px), calc(-50% + ${dy * 0.5 - 40}px)) scale(${(1 + k) / 2 + 0.15}) rotate(-6deg)`, offset: 0.5 },
+      { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${k})` }
+    ], { duration: 820, easing: "cubic-bezier(.65,0,.35,1)", fill: "forwards" }).finished.catch(() => {});
+    // hand over to the real logo once the swarm has built it
+    const brand = target.closest("[data-sw]") || target;
+    const done = () => { logo.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: "forwards" }); setTimeout(() => stage.remove(), 220); };
+    const t0 = performance.now();
+    const wait = () => (!brand.classList.contains("sw-hold") || performance.now() - t0 > 6000 ? done() : requestAnimationFrame(wait));
+    wait();
   }
 
   /** Take n builders off the ring, nearest to `near` first. They become cursors. */
@@ -96,12 +165,12 @@ export class Crew {
     const pool = [...this.free];
     if (near) pool.sort((a, b) => Math.hypot(a.x - near.x, a.y - near.y) - Math.hypot(b.x - near.x, b.y - near.y));
     const out = pool.slice(0, n);
-    out.forEach(a => { this.free.delete(a); a.setMode("cursor"); a.el.style.opacity = "1"; });
+    out.forEach(a => { this.free.delete(a); a.oc = null; a.setMode("cursor"); a.el.style.opacity = "1"; });
     return out;
   }
   /** Builders finished: they turn back into particles and rejoin the ring. */
   release(list) {
-    list.filter(a => a.crew).forEach(a => { a.setMode("dot"); this.free.add(a); });
+    list.filter(a => a.crew).forEach(a => { a.setMode("dot"); a.returning = true; a.oc = { x: a.x, y: a.y }; this.free.add(a); });
     list.filter(a => !a.crew).forEach(a => a.remove());
     this.kick();
   }
@@ -113,17 +182,30 @@ export class Crew {
     if (document.hidden) return;
     const dt = Math.min(64, now - this.last) / 1000;
     this.last = now;
-    this.spin += dt * 0.55;
+    this.spinV += (0.55 - this.spinV) * Math.min(1, dt * 1.6);
+    this.spin += dt * this.spinV;
     if (!this.pause && this.free.size) {
       const c = this.centre();
       const ring = [...this.free].sort((a, b) => a.index - b.index);
-      const R = this.mouse ? 30 : 16;
+      const Rt = this.anchorR || (this.mouse ? 30 : 16);
+      this.rCur += (Rt - this.rCur) * Math.min(1, dt * 3);
+      const R = this.rCur;
+      const breathe = Math.sin(now / 700) * 1.5;            // the whole ring breathes together
       ring.forEach((a, j) => {
-        const ang = this.spin + (j / ring.length) * Math.PI * 2;
-        const r = R + Math.sin(now / 520 + a.index) * 2.2; // breathing
-        const tx = c.x + Math.cos(ang) * r, ty = c.y + Math.sin(ang) * r;
-        const k = 0.09 + (a.index % 4) * 0.035;            // staggered lag = comet-like trail
-        a.place(a.x + (tx - a.x) * k, a.y + (ty - a.y) * k);
+        // each builder follows its own slightly-lagged copy of the centre (comet trail while
+        // moving), but sits on one exact circle around it, so at rest the ring is perfectly round
+        if (!a.oc) a.oc = { x: a.x, y: a.y };
+        const k = this.anchor ? 1 : 0.16 + (a.index % 4) * 0.05;
+        a.oc.x += (c.x - a.oc.x) * k;
+        a.oc.y += (c.y - a.oc.y) * k;
+        const slot = ring.length === CREW_SIZE ? a.index : j;
+        const ang = this.spin + (slot / ring.length) * Math.PI * 2;
+        const tx = a.oc.x + Math.cos(ang) * (R + breathe), ty = a.oc.y + Math.sin(ang) * (R + breathe);
+        // returning from a job: glide in rather than jump onto the ring
+        if (a.returning) {
+          a.place(a.x + (tx - a.x) * 0.18, a.y + (ty - a.y) * 0.18);
+          if (Math.hypot(tx - a.x, ty - a.y) < 3) a.returning = false;
+        } else a.place(tx, ty);
       });
     }
     this.raf = requestAnimationFrame(t => this.frame(t));
