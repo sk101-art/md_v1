@@ -402,7 +402,11 @@ export class MadOS {
     if (act === "theme") { setTheme(el.checked ? "dark" : "light", true, el); buzz(6); }
     if (act === "rebuild") this.onRebuild && this.onRebuild();
     if (act === "replay") playMotion();
-    if (act === "motion") { motion.override = el.checked ? "on" : "off"; if (el.checked) playMotion(); }
+    if (act === "motion") {
+      motion.override = el.checked ? "on" : "off";
+      window.__mad?.director?.crew.hideAll(!el.checked);
+      if (el.checked) playMotion();
+    }
     if (act === "full") this.onFullscreen && this.onFullscreen();
     if (act === "year") {
       const page = el.closest(".app-page");

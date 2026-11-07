@@ -10,17 +10,23 @@ import { wireSurfaces } from "../motion/surface.js";
 (async function boot() {
   const main = $("#main");
   try {
-    const [site, { events }] = await Promise.all([loadData("site"), loadData("events")]);
+    // The crew assembles on a blank screen while the content loads
     const director = new SwarmDirector();
+    let fast = false;
+    try { fast = sessionStorage.getItem("mad_arrived") === "1"; } catch {}
+    if (director.enabled) document.documentElement.classList.add("booting");
+    const intro = director.intro({ fast });
+    const [site, { events }] = await Promise.all([loadData("site"), loadData("events")]);
     let router = null;
     buildShell(site, events, { navigate: href => router && router.navigate(href), director });
     router = new Router({ site, events, director });
     const inspector = new Inspector();
     wireSurfaces();
     window.__mad = { director, router, inspector };
-    await router.render();
+    await router.render({ intro });
   } catch (err) {
     console.error("[MAD] boot failed", err);
+    document.documentElement.classList.remove("booting");
     const file = location.protocol === "file:";
     main.innerHTML = `<header class="page-head wrap"><h1>Something went wrong.</h1>
       <p class="lead">${file ? "Open the site through a local server (npm start) so the content files can load." : "The content could not be loaded. Please refresh."}</p>

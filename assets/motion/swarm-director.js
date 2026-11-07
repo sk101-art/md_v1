@@ -2,6 +2,7 @@
 // Recipes: construct (2-pass skeleton -> fill, or 1-pass), rebuild teardown, morph,
 // connect, disperse. Geometry is always measured from the live DOM.
 import { Agent, ROLES, visitor } from "./agents.js";
+import { Crew, CREW_SIZE } from "./crew.js";
 import { pageRect, radiusOf, inViewport, lineRects, dist } from "./selection-geometry.js";
 import { traceContainer, roundedRectPath } from "./container-tracer.js";
 import { motion, wait, clamp, isSmall } from "../core/util.js";
@@ -58,6 +59,7 @@ export class SwarmDirector {
     document.body.append(this.layer);
 
     this.agents = [];
+    this.crew = new Crew(this.layer);
     this.runs = new Set();
     this.observers = [];
     this.held = new Set();
@@ -115,6 +117,24 @@ export class SwarmDirector {
     document.addEventListener("keydown", e => {
       if (e.key === "Escape" && this.hud.classList.contains("on")) this.skip();
     });
+  }
+
+  // take builders from the crew ring; fall back to temporary agents if all are busy
+  _claim(n, near) {
+    if (!this.enabled) return [];
+    const got = this.crew.claim(n, near);
+    for (let i = got.length; i < Math.min(n, 1); i++) {
+      const a = new Agent(this.layer, ROLES[i % ROLES.length], 60 + i);
+      a.setMode("cursor");
+      if (near) a.place(near.x - 30, near.y - 30);
+      got.push(a);
+    }
+    return got;
+  }
+  intro(opts) {
+    if (!this.enabled) return Promise.resolve();
+    this.introPromise = this.crew.intro(opts);
+    return this.introPromise;
   }
 
   get rate() { return this.base * this.boost * this.slow; }
@@ -367,7 +387,7 @@ export class SwarmDirector {
   // ---------- recipes ----------
 
   /** Construct: cursors arrive, select, lay skeletons, fill content, deselect. */
-  async construct(root, { agents = isSmall() ? 5 : 10, passes = 2, hud = true, deferBelow = true } = {}) {
+  async construct(root, { agents = isSmall() ? 7 : CREW_SIZE, passes = 2, hud = true, deferBelow = true } = {}) {
     const els = this.layersIn(root);
     if (!this.enabled) { els.forEach(el => this._release(el)); return; }
     const t0 = performance.now();
@@ -385,7 +405,7 @@ export class SwarmDirector {
     let done = 0;
     const tick = () => { done++; if (hud) this._hud(true, this.agents.length, done, total, "Building"); };
 
-    if (!this.agents.length) this.agents = this._spawnAgents(Math.min(agents, Math.max(3, layers.length)));
+    if (!this.agents.length) this.agents = this._claim(Math.min(agents, Math.max(3, layers.length)), layers[0] && layers[0].rect);
     if (hud) this._hud(true, this.agents.length, 0, total, "Building");
 
     // placement marks where each layer will land
@@ -471,7 +491,7 @@ export class SwarmDirector {
   }
 
   /** Rebuild teardown: selected regions fragment into neutral pieces and the canvas clears. */
-  async teardown(root, { agents = isSmall() ? 5 : 10, max = 14 } = {}) {
+  async teardown(root, { agents = isSmall() ? 7 : CREW_SIZE, max = 14 } = {}) {
     if (!this.enabled) return;
     this.cancelRuns();
     const run = new Run("main");
@@ -480,7 +500,7 @@ export class SwarmDirector {
     const layers = this._describe(els).filter(L => L.kind !== "box").slice(0, max);
     // the containers on screen fade with their contents
     const boxes = this.layersIn(root).filter(el => inViewport(el) && kindOf(el) === "box");
-    if (!this.agents.length) this.agents = this._spawnAgents(agents);
+    if (!this.agents.length) this.agents = this._claim(agents);
     let done = 0;
     this._hud(true, this.agents.length, 0, layers.length, "Rebuilding");
 
@@ -522,9 +542,9 @@ export class SwarmDirector {
     const run = new Run("mini");
     this.runs.add(run);
     const a = pageRect(el, 6);
-    const agent = new Agent(this.layer, ROLES[0], 99);
-    agent.place(a.x + a.w - 8, a.y - 10);
-    gsap.fromTo(agent.el, { opacity: 0 }, { opacity: 1, duration: 0.15 });
+    const [agent] = this._claim(1, { x: a.x + a.w, y: a.y });
+    await this._move(run, agent, a.x + a.w - 8, a.y - 10, 0.7);
+    this._click(agent);
     const b = this._box(a, { fill: "clear", color });
     gsap.fromTo(b, { opacity: 0 }, { opacity: 1, duration: 0.12 });
     try {
@@ -537,7 +557,8 @@ export class SwarmDirector {
       });
       await wait(120);
     } finally {
-      gsap.to([b, agent.el], { opacity: 0, duration: 0.2, onComplete: () => { b.remove(); agent.remove(); } });
+      gsap.to(b, { opacity: 0, duration: 0.2, onComplete: () => b.remove() });
+      this.crew.release([agent]);
       run.cancel();
       this.runs.delete(run);
     }
@@ -569,11 +590,11 @@ export class SwarmDirector {
     if (!this.enabled) return;
     const run = new Run("mini");
     this.runs.add(run);
-    const agent = new Agent(this.layer, ROLES[3], 98);
     const ox = host.left + window.scrollX, oy = host.top + window.scrollY;
-    agent.place(ox + pts[0].x, oy + pts[0].y);
-    gsap.fromTo(agent.el, { opacity: 0 }, { opacity: 1, duration: 0.2 });
+    const [agent] = this._claim(1, { x: ox + pts[0].x, y: oy + pts[0].y });
     try {
+      await this._move(run, agent, ox + pts[0].x, oy + pts[0].y, 0.8);
+      this._click(agent);
       for (const path of paths) {
         const len = path.getTotalLength();
         const mask = document.createElementNS(NS, "path");
@@ -601,7 +622,7 @@ export class SwarmDirector {
         void mask;
       }
     } finally {
-      gsap.to(agent.el, { opacity: 0, duration: 0.25, delay: 0.1, onComplete: () => agent.remove() });
+      this.crew.release([agent]);
       run.cancel();
       this.runs.delete(run);
     }
@@ -610,6 +631,13 @@ export class SwarmDirector {
   /** Briefly frame a set of elements (e.g. particle donors) with selection boxes. */
   frameEls(els, ms = 800) {
     if (!this.enabled) return;
+    const run = new Run("mini");
+    const crew = this._claim(els.length, els[0] && pageRect(els[0]));
+    crew.forEach((a, i) => {
+      const r = pageRect(els[i]);
+      this._move(run, a, r.x + r.w * 0.6, r.y + r.h * 0.7, 0.8).then(() => this._click(a));
+    });
+    setTimeout(() => { run.cancel(); this.crew.release(crew); }, ms + 300);
     els.forEach((el, i) => {
       const b = this._box(pageRect(el, 4), { fill: "clear", dims: i < 3 });
       gsap.fromTo(b, { opacity: 0 }, { opacity: 1, duration: 0.15, delay: i * 0.05 });
@@ -620,14 +648,7 @@ export class SwarmDirector {
   /** Disperse: cursors drift out of the content and dissolve, returning control. */
   async disperse() {
     const ag = this.agents.splice(0);
-    if (!ag.length) return;
-    const vw = window.innerWidth;
-    await Promise.all(ag.map((a, i) => new Promise(res => {
-      const p = { x: a.x, y: a.y };
-      const toX = a.x + (a.x - window.scrollX < vw / 2 ? -60 : 60);
-      gsap.to(p, { x: toX, y: a.y + 30, duration: 0.45, delay: i * 0.02, ease: "power2.in", onUpdate: () => a.place(p.x, p.y) });
-      gsap.to(a.el, { opacity: 0, duration: 0.4, delay: 0.1 + i * 0.02, onComplete: () => { a.remove(); res(); } });
-    })));
+    if (ag.length) this.crew.release(ag); // they turn back into particles and rejoin the ring
   }
 
   // ---------- section-scoped constructs as content scrolls in ----------
@@ -656,15 +677,8 @@ export class SwarmDirector {
     const layers = this._describe(els);
     layers.forEach(L => this.inFlight.add(L.el));
     els.filter(el => !layers.some(L => L.el === el)).forEach(el => this._release(el));
-    const n = clamp(Math.ceil(layers.length / 3), 1, 4);
-    const agents = [];
-    for (let i = 0; i < n; i++) {
-      const a = new Agent(this.layer, ROLES[(i + this.stats.constructs) % ROLES.length], 50 + i);
-      const r = layers[i] ? layers[i].rect : { x: window.scrollX + 40, y: window.scrollY + 40 };
-      a.place(r.x - 30 - i * 20, r.y - 40);
-      gsap.fromTo(a.el, { opacity: 0 }, { opacity: 1, duration: 0.2 });
-      agents.push(a);
-    }
+    const n = clamp(Math.ceil(layers.length / 2), 1, 5);
+    const agents = this._claim(n, layers[0] && layers[0].rect);
     const quick = async (agent, L) => {
       await this._move(run, agent, L.rect.x, L.rect.y, 0.7);
       if (run.cancelled) return;
@@ -695,7 +709,7 @@ export class SwarmDirector {
       layers.forEach(L => this._release(L.el));
       run.cancel();
       this.runs.delete(run);
-      agents.forEach((a, i) => gsap.to(a.el, { opacity: 0, duration: 0.3, delay: 0.05 + i * 0.04, onComplete: () => a.remove() }));
+      this.crew.release(agents);
     }
   }
 
@@ -728,7 +742,7 @@ export class SwarmDirector {
     this._safety = new Set();
     this.releaseAll();
     this.layer.querySelectorAll(".sw-box,.sw-frag,.sw-guide,.trace-svg,.trace-head").forEach(n => n.remove());
-    if (!keepAgents) { this.agents.splice(0).forEach(a => a.remove()); this._hud(false); }
+    if (!keepAgents) { this.crew.release(this.agents.splice(0)); this._hud(false); }
   }
 }
 

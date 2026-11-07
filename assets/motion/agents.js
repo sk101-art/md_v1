@@ -24,12 +24,14 @@ export class Agent {
     this.el.className = "sw-agent";
     this.el.style.setProperty("--c", role.color);
     // only the first instance of each role carries a visible name tag
-    this.el.innerHTML = `${icons.cursor}${index < ROLES.length ? `<span class="sw-name">${role.name}</span>` : ""}`;
+    this.el.innerHTML = `<i class="sw-dotc"></i>${icons.cursor}${index < ROLES.length ? `<span class="sw-name">${role.name}</span>` : ""}`;
     layer.append(this.el);
     if (index < ROLES.length) this.el.classList.add("named");
   }
+  setMode(m) { this.mode = m; this.el.classList.toggle("dot", m === "dot"); }
   place(x, y) {
     this.x = x; this.y = y;
+    if (this.mode === "dot") { this.el.style.transform = `translate3d(${x}px, ${y}px, 0)`; return; }
     let dx = x - visitor.x, dy = y - visitor.y;
     const d = Math.hypot(dx, dy);
     if (d < YIELD_R && d > 0.01) {

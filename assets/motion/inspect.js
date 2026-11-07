@@ -37,6 +37,7 @@ export class Inspector {
   toggle(force) {
     this.on = force ?? !this.on;
     document.documentElement.classList.toggle("inspecting", this.on);
+    window.__mad?.director?.crew.setDim(this.on);
     [this.box, this.card, this.pill].forEach(n => n.classList.toggle("on", this.on));
     if (this.on) {
       window.addEventListener("pointermove", this.move, { passive: true });

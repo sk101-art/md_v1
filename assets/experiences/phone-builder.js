@@ -8,13 +8,14 @@ import { $, $$, motion, isSmall, clamp, wait } from "../core/util.js";
 const COPY = {
   READY: ["Stage is empty", "Press Build to assemble the phone"],
   ACTIVATING: ["Gathering parts", "Selecting donor components"],
-  EMITTING: ["Releasing particles", "From the headline, controls and nav"],
+  EMITTING: ["Releasing particles", "Only from the site's tabs"],
   CONVERGING: ["In flight", "Particles converging on the stage"],
   CHASSIS: ["Chassis formed", "Rails, corners, buttons, camera"],
   CONTAINERS: ["Tracing the interface", "Screen, header, tabs, cards"],
   MATERIALIZING: ["Materializing", "Satin body and glass screen"],
+  LOGO_APPROACH: ["Club logo incoming", "The logo powers the phone"],
   POWERING_UP: ["Powering up", "Booting MAD OS"],
-  LOGO_APPROACH: ["Installing MAD", "The club logo becomes an app"],
+  INSTALLING: ["Installing MAD", "The club logo becomes an app"],
   COMPLETE: ["Live", "Tap apps · drag beside the phone to spin it"],
   RESETTING: ["Clearing the stage", ""]
 };
@@ -63,12 +64,12 @@ export class PhoneBuilder {
     document.dispatchEvent(new CustomEvent("mad:build", { detail: { state } }));
   }
 
+  // The phone is made only from the website's own tabs: Home, Events, About, Achievements,
+  // Team, Contact (or the bottom tab bar on phones). Everything the club is, becomes the device.
   donors() {
-    const pick = [
-      $(".nav .brand"), $(".hero-title"), $(".hero .lead"), $(".hero-actions .btn.primary"),
-      $(".hero-actions .btn:not(.primary)"), this.btn, $(".nav-links")
-    ];
-    return pick.filter(el => el && el.getBoundingClientRect().width > 0);
+    const vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+    const top = $$(".nav-links a").filter(vis);
+    return top.length ? top : $$(".tabbar a").filter(vis);
   }
 
   targets() {
@@ -128,6 +129,8 @@ export class PhoneBuilder {
     const donors = this.donors();
     donors.forEach((d, i) => setTimeout(() => d.classList.add("donor-glow"), i * 60));
     if (this.director && this.director.enabled) this.director.frameEls(donors, 900);
+    const names = donors.map(d => d.textContent.trim()).filter(Boolean);
+    const sub = $("#build-status span"); if (sub) sub.textContent = `Tabs: ${names.join(", ")}`;
     this.stage.dataset.state = "building";
     await wait(520);
     if (!alive()) return;
@@ -233,23 +236,77 @@ export class PhoneBuilder {
     this.field.p.forEach(p => (p.fade = Math.max(p.fade || 0, 0.01)));
     setTimeout(() => { if (this.field) { this.field.p = []; } }, 500);
 
-    // POWERING_UP: power pulse, MAD OS boots to lock screen, unlocks to the home screen
-    this.set("POWERING_UP", 86);
+    // LOGO_APPROACH: the club logo (a motion duplicate; the nav logo stays put) flies into
+    // the dark screen. Its arrival is what powers the phone on.
+    this.set("LOGO_APPROACH", 84);
+    this.stage.dataset.state = "logo";
+    const bootImg = $(".os-boot img", this.phone);
+    const landed = await this.fly($(".nav .brand-mark"), bootImg, { morph: false, alive, dur: 1.15 });
+    if (!alive()) return;
+
+    // POWERING_UP: power pulse from the logo, MAD OS boots, lock screen, home screen
+    this.set("POWERING_UP", 90);
     this.stage.dataset.state = "powering";
-    this.pulse($(".phone-screen", this.phone));
+    if (this.os) this.os.set("boot");
+    if (landed) landed.remove();
+    this.pulse(bootImg);
+    try { navigator.vibrate && navigator.vibrate([10, 40, 18]); } catch {}
     if (this.os) await this.os.boot();
     if (!alive()) return;
 
-    // LOGO_APPROACH: a duplicate of the nav logo flies in and becomes the MAD app icon
-    this.set("LOGO_APPROACH", 94);
-    this.stage.dataset.state = "logo";
-    await this.flyEmblem(alive);
-    if (!alive()) return;
+    // INSTALLING: the same logo travels from where it booted into the dock and becomes the app
+    this.set("INSTALLING", 96);
+    const slot = this.os ? this.os.madSlot() : null;
+    if (slot) {
+      const ghost = await this.fly(this.bootRect, slot, { morph: true, alive, dur: 0.9, arc: 40 });
+      if (!alive()) return;
+      this.os.installMad();
+      this.pulse(slot);
+      if (ghost) ghost.remove();
+    }
     this.field.stop();
     this.field.clear();
     this.complete();
     // ...and the app opens itself
     this.scope.timeout(() => this.os && this.state === "COMPLETE" && this.os.launch("mad"), 650);
+  }
+
+  /** Fly a duplicate of the logo from an element (or rect) to an element; optional logo->icon morph. */
+  async fly(from, toEl, { morph = false, alive, dur = 1, arc = 120 } = {}) {
+    if (!from || !toEl) return null;
+    const a = from.getBoundingClientRect ? from.getBoundingClientRect() : from;
+    const clone = document.createElement("div");
+    clone.className = "emblem-flight";
+    clone.innerHTML = `<img class="ef-logo" src="assets/brand/mad-logo.svg" alt=""><img class="ef-icon" src="assets/brand/mad-app-icon.svg" alt="">`;
+    document.body.append(clone);
+    this.clone = clone;
+    const logo = $(".ef-logo", clone), icon = $(".ef-icon", clone);
+    const s = { t: 0 };
+    await new Promise(res => gsap.to(s, {
+      t: 1, duration: dur, ease: "power2.inOut",
+      onUpdate: () => {
+        const z = toEl.getBoundingClientRect(); // live target (handles scroll / tilt)
+        const t = s.t;
+        const w = a.width + (z.width - a.width) * t;
+        const h = a.height + (z.height - a.height) * t;
+        const x = a.left + (z.left - a.left) * t;
+        const y = a.top + (z.top - a.top) * t - Math.sin(t * Math.PI) * arc;
+        const grow = 1 + Math.sin(t * Math.PI) * (morph ? 0.5 : 0.9);
+        const rot = Math.sin(t * Math.PI) * -18;
+        clone.style.width = `${w}px`;
+        clone.style.height = `${h}px`;
+        clone.style.transform = `translate(${x}px, ${y}px) perspective(700px) rotateY(${rot}deg) scale(${grow})`;
+        const m = morph ? Math.min(1, Math.max(0, (t - 0.2) / 0.5)) : 0;
+        logo.style.opacity = String(1 - m);
+        icon.style.opacity = String(m);
+      },
+      onComplete: res
+    }));
+    this.clone = null;
+    if (alive && !alive()) { clone.remove(); return null; }
+    const r = toEl.getBoundingClientRect();
+    this.bootRect = { left: r.left, top: r.top, width: r.width, height: r.height };
+    return clone;
   }
 
   pulse(el) {
@@ -262,45 +319,6 @@ export class PhoneBuilder {
       ring.style.top = `${(r.top - p.top + r.height / 2) / k}px`;
     }
     ring.classList.remove("go"); void ring.offsetWidth; ring.classList.add("go");
-  }
-
-  async flyEmblem(alive) {
-    const src = $(".nav .brand-mark");
-    const slot = this.os ? this.os.madSlot() : null;
-    if (!src || !slot) return;
-    const a = src.getBoundingClientRect();
-    const clone = document.createElement("div");
-    clone.className = "emblem-flight";
-    clone.innerHTML = `<img class="ef-logo" src="assets/brand/mad-logo.svg" alt=""><img class="ef-icon" src="assets/brand/mad-app-icon.svg" alt="">`;
-    document.body.append(clone);
-    this.clone = clone;
-    const logo = $(".ef-logo", clone), icon = $(".ef-icon", clone);
-    const s = { t: 0 };
-    await new Promise(res => gsap.to(s, {
-      t: 1, duration: 1.25, ease: "power2.inOut",
-      onUpdate: () => {
-        const z = slot.getBoundingClientRect(); // live target (handles scroll / tilt)
-        const t = s.t;
-        const w = a.width + (z.width - a.width) * t;
-        const h = a.height + (z.height - a.height) * t;
-        const x = a.left + (z.left - a.left) * t;
-        const y = a.top + (z.top - a.top) * t - Math.sin(t * Math.PI) * 120;
-        const grow = 1 + Math.sin(t * Math.PI) * 0.9;
-        const rot = Math.sin(t * Math.PI) * -18;
-        clone.style.width = `${w}px`;
-        clone.style.height = `${h}px`;
-        clone.style.transform = `translate(${x}px, ${y}px) perspective(700px) rotateY(${rot}deg) scale(${grow})`;
-        const m = Math.min(1, Math.max(0, (t - 0.3) / 0.4)); // logo morphs into the app icon mid-flight
-        logo.style.opacity = String(1 - m);
-        icon.style.opacity = String(m);
-      },
-      onComplete: res
-    }));
-    if (!alive()) { clone.remove(); return; }
-    this.os.installMad();
-    this.pulse(slot);
-    clone.remove();
-    this.clone = null;
   }
 
   complete() {

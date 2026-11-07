@@ -96,7 +96,8 @@ export class Router {
     await this.render(my, { restore });
   }
 
-  async render(my = ++this.gen, { restore = 0 } = {}) {
+  async render(my, { restore = 0, intro = null } = {}) {
+    if (typeof my !== "number") { intro = my && my.intro || intro; my = ++this.gen; }
     const d = this.director;
     const route = (() => {
       const r = normalizeRoute(location.pathname);
@@ -123,7 +124,8 @@ export class Router {
     void res;
 
     // hold layers before first paint of the new page
-    if (this.first) d.hold(document.getElementById("nav"));
+    const tabbar = document.querySelector(".tabbar");
+    if (this.first) { d.hold(document.getElementById("nav")); if (tabbar) d.hold(tabbar); }
     d.hold(this.main);
     const foot = document.querySelector("footer.foot");
     if (foot) d.hold(foot);
@@ -137,6 +139,7 @@ export class Router {
     playShared(this.scope);
     document.dispatchEvent(new CustomEvent("mad:route", { detail: { route } }));
 
+    document.documentElement.classList.remove("booting");
     const arrival = this.first;
     let seen = false;
     try { seen = sessionStorage.getItem("mad_arrived") === "1"; sessionStorage.setItem("mad_arrived", "1"); } catch {}
@@ -144,7 +147,8 @@ export class Router {
 
     if (arrival) {
       // Arrival: nav + page constructed together, full two-pass skeleton -> fill (shorter on revisit)
-      const wrap = { querySelectorAll: sel => [...document.getElementById("nav").querySelectorAll(sel), ...this.main.querySelectorAll(sel), ...(foot ? foot.querySelectorAll(sel) : [])] };
+      if (intro) await intro; // builders assigned: now they build
+      const wrap = { querySelectorAll: sel => [...document.getElementById("nav").querySelectorAll(sel), ...(tabbar ? [tabbar].filter(t => t.matches(sel)) : []), ...this.main.querySelectorAll(sel), ...(foot ? foot.querySelectorAll(sel) : [])] };
       await d.construct(wrap, { passes: seen ? 1 : 2 });
     } else {
       const wrap = { querySelectorAll: sel => [...this.main.querySelectorAll(sel), ...(foot ? foot.querySelectorAll(sel) : [])] };

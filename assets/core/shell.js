@@ -69,7 +69,7 @@ export function buildShell(site, events, { navigate, director }) {
       </div>
     </header>
     <nav class="menu-sheet glass" id="menu-sheet" aria-label="Menu">${NAV.map(([h, t]) => `<a href="${h}">${t}</a>`).join("")}</nav>
-    <nav class="tabbar glass" aria-label="Quick navigation"><span class="tab-ind" aria-hidden="true"></span>${TABS.map(([h, t, ic]) => `<a href="${h}">${ic}<span>${t}</span></a>`).join("")}</nav>`);
+    <nav class="tabbar glass" aria-label="Quick navigation" data-sw="box" data-sw-g="0"><span class="tab-ind" aria-hidden="true"></span>${TABS.map(([h, t, ic]) => `<a href="${h}">${ic}<span>${t}</span></a>`).join("")}</nav>`);
 
   const years = [...new Set(events.map(e => semYear(e.semester)).filter(Boolean))].sort().reverse();
   document.body.insertAdjacentHTML("beforeend", `
