@@ -982,295 +982,600 @@
     }
   };
 
-  // --- PhoneBuilder: State Machine & 7-Stage Assembly Orchestrator (Parts 3 & 4) ---
+  // --- PhoneBuilder: Master Geometric Assembly Engine (Ania Portfolio Benchmark + MAD Enhancements) ---
   const PhoneBuilder = {
-    state: "IDLE",
-    isBusy: false,
+    running: false,
+    rafId: null,
+    animStart: 0,
+    particles: [],
+    cuboidTimers: [],
+
+    PARTICLE_DURATION: 1450, // ms travel duration per particle
+    PHASE_GAP: 520,          // gap between phase completions
+    JITTER: [180, 200, 260], // organic per-phase scatter
+    DIM_ALPHA: 0.24,         // content particles hold dim pre-activation
+    SHOCK_HOLD: 420,         // wait for cuboid landing before shock
+    SHOCK_FLASH: 300,        // shockwave flash duration
+    POST_SHOCK_HOLD: 380,    // full brightness hold before crossfade
+
+    easeOutCubic: t => 1 - Math.pow(1 - t, 3),
 
     init(events) {
-      this.state = "READY_TO_BUILD";
-      this.isBusy = false;
+      const stage = $(".device-stage");
+      const deviceFrame = $("#device-frame");
+      const buildBtn = $("#build-btn");
+      const buildCanvas = $("#build-canvas");
+      const buildCuboid = $("#build-cuboid");
 
-      const buildBtn = $("#btn-build-phone");
-      const phone = $(".phone");
-      const blueprint = $("#stage-blueprint");
+      if (!stage || !deviceFrame || !buildBtn || !buildCanvas) return;
 
-      // Phone stage starts strictly EMPTY
-      if (phone) {
-        phone.classList.add("is-hidden");
-        phone.classList.remove("is-materializing", "is-live");
-      }
-      if (blueprint) {
-        blueprint.classList.remove("is-faded");
-      }
+      this.running = false;
+      if (this.rafId) cancelAnimationFrame(this.rafId);
+      this.clearCuboidTimers();
 
-      if (buildBtn) {
-        buildBtn.onclick = () => {
-          if (this.isBusy) return;
-          if (this.state === "COMPLETE") {
-            this.rebuild(events);
-          } else {
-            this.startBuild(events);
-          }
+      // Ensure stage starts with phone awaiting build
+      deviceFrame.classList.remove("is-building", "is-live");
+      deviceFrame.classList.add("is-awaiting-build");
+      stage.classList.remove("is-building");
+      buildBtn.disabled = false;
+      buildBtn.classList.remove("is-spinning");
+
+      this.updateStatus("Interactive Prototype Stage Ready", false);
+
+      buildBtn.onclick = () => {
+        if (this.running) return;
+        this.startBuild();
+      };
+
+      const rebuildBtn = $("#btn-rebuild-phone");
+      if (rebuildBtn) {
+        rebuildBtn.onclick = () => {
+          this.resetStage();
+          setTimeout(() => this.startBuild(), 250);
         };
       }
+
+      const resetBtn = $("#btn-reset-stage");
+      if (resetBtn) {
+        resetBtn.onclick = () => this.resetStage();
+      }
     },
 
-    updateTicker(phaseText, progressPct) {
-      const ticker = $("#build-phase-ticker");
-      const fill = $(".build-progress-bar .bp-fill");
-      if (ticker) ticker.textContent = phaseText;
-      if (fill) fill.style.width = `${progressPct}%`;
+    updateStatus(text, isActive = false) {
+      const label = $("#build-status-label");
+      const indicator = $("#build-status-indicator");
+      if (label) label.textContent = text;
+      if (indicator) indicator.classList.toggle("is-active", isActive);
     },
 
-    async startBuild(events) {
-      if (this.isBusy) return;
-      this.isBusy = true;
-      this.state = "ACTIVATING";
+    rectOf(el, deviceFrame) {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      const f = deviceFrame.getBoundingClientRect();
+      return { x: r.left - f.left, y: r.top - f.top, w: r.width, h: r.height };
+    },
 
-      const buildBtn = $("#btn-build-phone");
-      const phone = $(".phone");
-      const blueprint = $("#stage-blueprint");
-      const stage = $(".stage");
+    pointInAnyRect(px, py, rects, pad = 1) {
+      for (const r of rects) {
+        if (!r) continue;
+        if (px >= r.x - pad && px <= r.x + r.w + pad && py >= r.y - pad && py <= r.y + r.h + pad) return true;
+      }
+      return false;
+    },
 
-      if (buildBtn) buildBtn.classList.add("is-active");
-      sound.playTone(280, 0.15, "triangle");
+    // Generates points along perimeter of a rounded rectangle
+    perimeterPoints(rect, step, color, size, phase, radius = 0) {
+      const pts = [];
+      const { x, y, w, h } = rect;
+      const r = Math.min(radius, w / 2, h / 2);
 
-      // STAGE 1: Global Activation
-      this.updateTicker("STAGE 1/7: ACTIVATING GLOBAL ENERGY BUS...", 15);
-      const donorSelectors = [
-        "header.nav",
-        ".brand-emblem-svg",
-        ".links a",
-        ".hero-title",
-        ".hero-badge",
-        ".hero-actions a",
-        ".code-badge",
-        ".btn-build"
+      if (r <= 2) {
+        for (let px = x; px <= x + w; px += step) {
+          pts.push({ tx: px, ty: y, color, size, phase });
+          pts.push({ tx: px, ty: y + h, color, size, phase });
+        }
+        for (let py = y; py <= y + h; py += step) {
+          pts.push({ tx: x, ty: py, color, size, phase });
+          pts.push({ tx: x + w, ty: py, color, size, phase });
+        }
+        return pts;
+      }
+
+      // Straight top & bottom
+      for (let px = x + r; px <= x + w - r; px += step) {
+        pts.push({ tx: px, ty: y, color, size, phase });
+        pts.push({ tx: px, ty: y + h, color, size, phase });
+      }
+      // Straight left & right
+      for (let py = y + r; py <= y + h - r; py += step) {
+        pts.push({ tx: x, ty: py, color, size, phase });
+        pts.push({ tx: x + w, ty: py, color, size, phase });
+      }
+      // 4 rounded corners
+      const corners = [
+        { cx: x + w - r, cy: y + r, a1: -Math.PI / 2, a2: 0 },
+        { cx: x + w - r, cy: y + h - r, a1: 0, a2: Math.PI / 2 },
+        { cx: x + r, cy: y + h - r, a1: Math.PI / 2, a2: Math.PI },
+        { cx: x + r, cy: y + r, a1: Math.PI, a2: 3 * Math.PI / 2 }
       ];
-      $$(donorSelectors.join(",")).forEach((el, idx) => {
-        setTimeout(() => el.classList.add("pulse-donor"), idx * 60);
+      const arcLen = (Math.PI / 2) * r;
+      const arcSteps = Math.max(3, Math.round(arcLen / step));
+      corners.forEach(c => {
+        for (let i = 0; i <= arcSteps; i++) {
+          const a = c.a1 + (c.a2 - c.a1) * (i / arcSteps);
+          pts.push({ tx: c.cx + Math.cos(a) * r, ty: c.cy + Math.sin(a) * r, color, size, phase });
+        }
+      });
+      return pts;
+    },
+
+    fillPoints(rect, count, color, size, phase, excludeRects = null) {
+      const pts = [];
+      let attempts = 0;
+      while (pts.length < count && attempts < count * 4) {
+        attempts++;
+        const px = rect.x + Math.random() * rect.w;
+        const py = rect.y + Math.random() * rect.h;
+        if (excludeRects && this.pointInAnyRect(px, py, excludeRects, 1)) continue;
+        pts.push({ tx: px, ty: py, color, size, phase });
+      }
+      return pts;
+    },
+
+    circlePoints(cx, cy, radius, count, color, size, phase) {
+      const pts = [];
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()) * radius;
+        pts.push({ tx: cx + Math.cos(a) * r, ty: cy + Math.sin(a) * r, color, size, phase });
+      }
+      return pts;
+    },
+
+    phaseTimings() {
+      const start0 = 0;
+      const dur0 = this.PARTICLE_DURATION + this.JITTER[0];
+      const solidify0 = dur0 + 260;
+
+      const start1 = solidify0 + this.PHASE_GAP;
+      const dur1 = this.PARTICLE_DURATION + this.JITTER[1];
+      const solidify1 = dur1 + 260;
+
+      const start2 = start1 + solidify1 + this.PHASE_GAP;
+      const dur2 = this.PARTICLE_DURATION + this.JITTER[2];
+      const aligned2 = start2 + dur2;
+
+      const shockAt = aligned2 + this.SHOCK_HOLD;
+      const chargedAt = shockAt + this.SHOCK_FLASH;
+      const finishAt = chargedAt + this.POST_SHOCK_HOLD;
+
+      return {
+        starts: [start0, start1, start2],
+        solidAt: [dur0, start1 + dur1, aligned2],
+        aligned2, shockAt, chargedAt, finishAt,
+        total: finishAt
+      };
+    },
+
+    roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(x, y, w, h, r);
+      } else {
+        ctx.rect(x, y, w, h);
+      }
+    },
+
+    buildTargets(deviceFrame) {
+      const targets = [];
+      const f = deviceFrame.getBoundingClientRect();
+
+      const COL_CHASSIS_EDGE = "#a5b4fc";
+      const COL_CHASSIS_FILL = "#1e2238";
+      const COL_SCREEN_EDGE = "#38bdf8";
+      const COL_SCREEN_FILL = "#0a0e1c";
+      const COL_CYAN = "#67e8f9";
+      const COL_PURPLE = "#c084fc";
+      const COL_TEXT = "#e2e8f0";
+      const COL_GREEN = "#10b981";
+
+      const screenEl = deviceFrame.querySelector(".screen");
+      const islandEl = deviceFrame.querySelector(".dynamic-island");
+      const headerEl = deviceFrame.querySelector(".phone-header");
+      const tabsEl = deviceFrame.querySelector(".phone-tabs");
+      const tabBtns = deviceFrame.querySelectorAll(".phone-tab");
+      const listItems = deviceFrame.querySelectorAll(".s-list li");
+      const actionLink = deviceFrame.querySelector(".action-link");
+      const codeBadge = deviceFrame.parentElement.querySelector(".code-badge");
+
+      const screenRect = screenEl ? this.rectOf(screenEl, deviceFrame) : null;
+      const islandRect = islandEl ? this.rectOf(islandEl, deviceFrame) : null;
+
+      // Phase 0: Titanium Smartphone Chassis (Outer Perimeter + Buttons)
+      const chassisRect = { x: 0, y: 0, w: f.width, h: f.height };
+      targets.push(...this.perimeterPoints(chassisRect, 7, COL_CHASSIS_EDGE, 1.6, 0, 42));
+      const excludeScreen = screenRect ? [screenRect] : [];
+      targets.push(...this.fillPoints(chassisRect, 280, COL_CHASSIS_FILL, 1.25, 0, excludeScreen));
+
+      // Side buttons
+      const volUp = deviceFrame.querySelector(".phone-vol-up");
+      const volDown = deviceFrame.querySelector(".phone-vol-down");
+      const power = deviceFrame.querySelector(".phone-power");
+      [volUp, volDown, power].forEach(btn => {
+        if (btn) {
+          const br = this.rectOf(btn, deviceFrame);
+          targets.push(...this.perimeterPoints(br, 4, COL_CHASSIS_EDGE, 1.3, 0, 3));
+          targets.push(...this.fillPoints(br, 14, COL_CHASSIS_EDGE, 1.1, 0));
+        }
       });
 
-      await new Promise(r => setTimeout(r, 650));
+      // Phase 1: Sapphire Glass Screen & Dynamic Island
+      if (screenRect) {
+        targets.push(...this.perimeterPoints(screenRect, 8, COL_SCREEN_EDGE, 1.35, 1, 32));
+        const excludeIsland = islandRect ? [islandRect] : [];
+        targets.push(...this.fillPoints(screenRect, 200, COL_SCREEN_FILL, 1.1, 1, excludeIsland));
+      }
+      if (islandRect) {
+        targets.push(...this.perimeterPoints(islandRect, 5, "#000000", 1.3, 1, 12));
+        targets.push(...this.fillPoints(islandRect, 45, "#000000", 1.1, 1));
+        const sensorDot = deviceFrame.querySelector(".sensor");
+        if (sensorDot) {
+          const sr = this.rectOf(sensorDot, deviceFrame);
+          targets.push(...this.circlePoints(sr.x + sr.w / 2, sr.y + sr.h / 2, 4, 12, COL_GREEN, 1.2, 1));
+        }
+      }
 
-      // STAGE 2: Particle Emission from Real UI Modules
-      this.state = "COLLECTING_PARTICLES";
-      this.updateTicker("STAGE 2/7: EXTRACTING PARTICLES FROM UI MODULES...", 35);
-      sound.playTone(420, 0.2, "sawtooth");
+      // Phase 2: Interface Containers & Controls
+      if (headerEl) {
+        const hr = this.rectOf(headerEl, deviceFrame);
+        targets.push(...this.perimeterPoints(hr, 10, COL_PURPLE, 1.2, 2, 6));
+        targets.push(...this.fillPoints(hr, 30, COL_TEXT, 1.0, 2));
+      }
+      if (tabsEl) {
+        const tr = this.rectOf(tabsEl, deviceFrame);
+        targets.push(...this.perimeterPoints(tr, 9, COL_CYAN, 1.2, 2, 8));
+      }
+      tabBtns.forEach(btn => {
+        const br = this.rectOf(btn, deviceFrame);
+        targets.push(...this.perimeterPoints(br, 7, COL_PURPLE, 1.2, 2, 6));
+        targets.push(...this.fillPoints(br, 18, COL_TEXT, 1.0, 2));
+      });
+      listItems.forEach(item => {
+        const ir = this.rectOf(item, deviceFrame);
+        targets.push(...this.perimeterPoints(ir, 8, item.classList.contains("on") ? COL_CYAN : COL_CHASSIS_EDGE, 1.2, 2, 10));
+        targets.push(...this.fillPoints(ir, 35, COL_TEXT, 1.0, 2));
+      });
+      if (actionLink) {
+        const ar = this.rectOf(actionLink, deviceFrame);
+        targets.push(...this.perimeterPoints(ar, 6, COL_CYAN, 1.3, 2, 8));
+        targets.push(...this.fillPoints(ar, 25, COL_CYAN, 1.1, 2));
+      }
+      if (codeBadge) {
+        const cr = this.rectOf(codeBadge, deviceFrame);
+        targets.push(...this.perimeterPoints(cr, 12, COL_PURPLE, 1.2, 2, 12));
+        targets.push(...this.fillPoints(cr, 45, COL_TEXT, 1.0, 2));
+      }
 
-      const donorElements = [
-        $(".brand-emblem-svg"),
-        ...$$(".links a"),
+      return targets;
+    },
+
+    clearCuboidTimers() {
+      this.cuboidTimers.forEach(id => clearTimeout(id));
+      this.cuboidTimers = [];
+    },
+
+    setCuboidPose(cuboid, cx, cy, scale, rotX, instant) {
+      if (!cuboid) return;
+      if (instant) cuboid.style.transition = "none";
+      cuboid.style.left = `${cx}px`;
+      cuboid.style.top = `${cy}px`;
+      cuboid.style.transform = `translate(-50%, -50%) scale(${scale}) rotateX(${rotX}deg)`;
+      cuboid.style.opacity = "1";
+      if (instant) {
+        void cuboid.offsetWidth;
+        cuboid.style.transition = "";
+      }
+    },
+
+    scheduleCuboid(deviceFrame) {
+      const buildCuboid = $("#build-cuboid");
+      if (!buildCuboid) return;
+
+      const { aligned2, shockAt, finishAt } = this.phaseTimings();
+      const STAY_AFTER_DONE = 1200;
+      const FLIGHT = 600;
+      const leaveAt = finishAt + STAY_AFTER_DONE;
+
+      buildCuboid.classList.remove("is-charging");
+      buildCuboid.style.opacity = "0";
+
+      const navLogo = $(".nav .brand-emblem-svg") || $(".brand");
+      const navRect = navLogo ? navLogo.getBoundingClientRect() : null;
+      const homeX = navRect ? navRect.left + navRect.width / 2 : 40;
+      const homeY = navRect ? navRect.top + navRect.height / 2 : 40;
+
+      const f = deviceFrame.getBoundingClientRect();
+      const targetX = f.left + f.width / 2;
+      const targetY = f.top + 160;
+
+      // Spawn at nav logo position and fly to phone screen
+      this.cuboidTimers.push(setTimeout(() => {
+        this.setCuboidPose(buildCuboid, homeX, homeY, 0.55, 0, true);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => this.setCuboidPose(buildCuboid, targetX, targetY, 1, -12, false));
+        });
+        sound.playTone(520, 0.25, "triangle");
+      }, Math.max(0, aligned2)));
+
+      // Discharge electrical shock
+      this.cuboidTimers.push(setTimeout(() => {
+        buildCuboid.classList.add("is-charging");
+        sound.playTone(880, 0.35, "sine");
+        this.updateStatus("Emblem Discharging Ignition Shock...", true);
+      }, Math.max(0, shockAt)));
+
+      // Return home to nav logo
+      this.cuboidTimers.push(setTimeout(() => {
+        buildCuboid.classList.remove("is-charging");
+        this.setCuboidPose(buildCuboid, homeX, homeY, 0.55, 0, false);
+      }, Math.max(0, leaveAt)));
+
+      // Vanish once docked at nav
+      this.cuboidTimers.push(setTimeout(() => {
+        buildCuboid.style.opacity = "0";
+      }, Math.max(0, leaveAt + FLIGHT)));
+    },
+
+    startBuild() {
+      const stage = $(".device-stage");
+      const deviceFrame = $("#device-frame");
+      const buildBtn = $("#build-btn");
+      const buildCanvas = $("#build-canvas");
+
+      if (!stage || !deviceFrame || !buildBtn || !buildCanvas) return;
+
+      this.running = true;
+      buildBtn.disabled = true;
+      buildBtn.classList.add("is-spinning");
+      stage.classList.add("is-building");
+
+      // Pulse UI donors across the page
+      const donors = [
+        $(".brand"),
         $(".hero-title"),
+        $(".hero-badge"),
+        $("#build-btn"),
         $(".code-badge"),
-        $(".btn-build")
+        $(".links")
       ].filter(Boolean);
 
-      if (particleEngine.emitFromElements && stage) {
-        particleEngine.emitFromElements(donorElements, stage.getBoundingClientRect());
-      }
+      donors.forEach((el, idx) => {
+        setTimeout(() => el.classList.add("is-donating-energy"), idx * 70);
+      });
+      setTimeout(() => {
+        donors.forEach(el => el.classList.remove("is-donating-energy"));
+      }, 1600);
 
-      await new Promise(r => setTimeout(r, 1200));
-
-      // STAGE 3: Construct Device Chassis Wireframe
-      this.state = "BUILDING_CHASSIS";
-      this.updateTicker("STAGE 3/7: FORGING TITANIUM DEVICE SKELETON...", 55);
-      sound.playTone(520, 0.25, "triangle");
-
-      if (particleEngine.formChassisWireframe) {
-        particleEngine.formChassisWireframe();
-      }
-
-      await new Promise(r => setTimeout(r, 1300));
-
-      // STAGE 4: Internal Screen Container Assembly
-      this.state = "ASSEMBLING_CONTAINERS";
-      this.updateTicker("STAGE 4/7: SYNTHESIZING SCREEN CONTAINERS...", 75);
-      sound.playTone(660, 0.2, "sine");
-
-      if (particleEngine.formInternalContainers) {
-        particleEngine.formInternalContainers();
-      }
-
-      await new Promise(r => setTimeout(r, 1100));
-
-      // STAGE 5: Materialization into Physical Device
-      this.state = "MATERIALIZING";
-      this.updateTicker("STAGE 5/7: MATERIALIZING TITANIUM & OPTICAL GLASS...", 88);
-
-      if (blueprint) blueprint.classList.add("is-faded");
-      if (phone) {
-        phone.classList.remove("is-hidden");
-        phone.classList.add("is-materializing");
-      }
-      sound.playTone(740, 0.3, "sine");
-
-      await new Promise(r => setTimeout(r, 950));
-
-      // STAGE 6: MAD Emblem Ignition Flight
-      this.state = "LOGO_APPROACH";
-      this.updateTicker("STAGE 6/7: COUPLING MAD CORE IGNITION EMBLEM...", 95);
-
-      const brandLogo = $(".brand-emblem-svg");
-      const phoneScreen = $(".screen", phone);
-      if (brandLogo && phoneScreen) {
-        await this.animateTravelingEmblem(brandLogo, phoneScreen);
-      }
-
-      // STAGE 7: Power-up & Boot Screen
-      this.state = "POWERING_UP";
-      this.updateTicker("STAGE 7/7: MAD OS ONLINE · SYSTEM SYNCHRONIZED", 100);
-      sound.playTone(880, 0.35, "triangle");
-
-      const bootScreen = $("#phone-boot-screen", phone);
-      if (bootScreen) {
-        bootScreen.classList.remove("is-off");
-        await new Promise(r => setTimeout(r, 900));
-        bootScreen.classList.add("is-off");
-      }
-
-      // COMPLETE STATE
-      this.state = "COMPLETE";
-      this.isBusy = false;
-      if (phone) {
-        phone.classList.remove("is-materializing");
-        phone.classList.add("is-live");
-      }
-
-      // Update button UI to Rebuild / Reset options
-      const buildDock = $("#build-dock");
-      if (buildDock) {
-        buildDock.innerHTML = `
-          <div class="build-complete-actions">
-            <button class="btn-build is-rebuild" id="btn-rebuild-phone" type="button">
-              <div class="btn-build-surface">
-                <div class="btn-build-icon">✦</div>
-                <div class="btn-build-meta">
-                  <span class="btn-build-primary">REBUILD EXPERIENCE</span>
-                  <span class="btn-build-secondary">Re-ignite site-wide particle synthesis</span>
-                </div>
-              </div>
-            </button>
-            <button class="btn-reset" id="btn-reset-stage" type="button">Reset Stage</button>
-          </div>
-          <div class="build-phase-ticker" id="build-phase-ticker">ASSEMBLY COMPLETE · EXPLORE MAD OS INTERFACE</div>
-        `;
-        const newRebuild = $("#btn-rebuild-phone");
-        const newReset = $("#btn-reset-stage");
-        if (newRebuild) newRebuild.onclick = () => this.rebuild(events);
-        if (newReset) newReset.onclick = () => this.reset(events);
-      }
-
-      wireLivingPhone(events);
-      sound.playTone(1040, 0.4, "sine");
-    },
-
-    async animateTravelingEmblem(fromEl, toEl) {
-      const fromRect = fromEl.getBoundingClientRect();
-      const toRect = toEl.getBoundingClientRect();
-
-      const proxy = document.createElement("img");
-      proxy.src = "assets/brand/mad-emblem.svg";
-      proxy.className = "traveling-emblem-proxy";
-      proxy.style.left = `${fromRect.left}px`;
-      proxy.style.top = `${fromRect.top}px`;
-      proxy.style.width = `${fromRect.width}px`;
-      proxy.style.height = `${fromRect.height}px`;
-      document.body.appendChild(proxy);
-
-      sound.playTone(600, 0.25, "sawtooth");
-
-      if (typeof gsap !== "undefined") {
-        await new Promise(resolve => {
-          gsap.to(proxy, {
-            left: toRect.left + toRect.width / 2 - 24,
-            top: toRect.top + toRect.height / 2 - 24,
-            width: 48,
-            height: 48,
-            scale: 1.4,
-            rotation: 360,
-            duration: 1.1,
-            ease: "power3.inOut",
-            onComplete: () => {
-              gsap.to(proxy, {
-                scale: 0.2,
-                opacity: 0,
-                duration: 0.35,
-                onComplete: () => {
-                  proxy.remove();
-                  resolve();
-                }
-              });
-            }
-          });
-        });
-      } else {
-        proxy.remove();
-      }
-    },
-
-    async reset(events) {
-      if (this.isBusy) return;
-      this.isBusy = true;
-      this.state = "RESETTING";
-
-      const phone = $(".phone");
-      const blueprint = $("#stage-blueprint");
       sound.playTone(320, 0.15, "triangle");
 
-      if (phone) {
-        phone.style.transition = "opacity 0.5s ease, transform 0.5s ease";
-        phone.style.opacity = "0";
-        phone.style.transform = "scale(0.92)";
-        await new Promise(r => setTimeout(r, 520));
-        phone.classList.add("is-hidden");
-        phone.classList.remove("is-live", "is-materializing");
-        phone.style.opacity = "";
-        phone.style.transform = "";
-      }
+      // Position canvas directly over deviceFrame
+      const stageRect = stage.getBoundingClientRect();
+      const f = deviceFrame.getBoundingClientRect();
 
-      if (blueprint) {
-        blueprint.classList.remove("is-faded");
-      }
+      buildCanvas.style.left = `${f.left - stageRect.left}px`;
+      buildCanvas.style.top = `${f.top - stageRect.top}px`;
+      buildCanvas.style.width = `${f.width}px`;
+      buildCanvas.style.height = `${f.height}px`;
 
-      if (particleEngine.resetToAmbient) {
-        particleEngine.resetToAmbient();
-      }
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      buildCanvas.width = f.width * dpr;
+      buildCanvas.height = f.height * dpr;
 
-      // Restore initial Build Dock
-      const buildDock = $("#build-dock");
-      if (buildDock) {
-        buildDock.innerHTML = `
-          <button class="btn-build" id="btn-build-phone" type="button" aria-label="Initialize Build">
-            <div class="btn-build-surface">
-              <div class="btn-build-icon">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div class="btn-build-meta">
-                <span class="btn-build-primary">INITIALIZE BUILD</span>
-                <span class="btn-build-secondary">Your interface is waiting to be assembled</span>
-              </div>
-              <span class="btn-build-arrow">✦</span>
-            </div>
-          </button>
-          <div class="build-progress-bar"><div class="bp-fill"></div></div>
-          <div class="build-phase-ticker" id="build-phase-ticker">SYSTEM READY · 0 / 7 STAGES</div>
-        `;
-        const newBtn = $("#btn-build-phone");
-        if (newBtn) newBtn.onclick = () => this.startBuild(events);
-      }
+      const ctx = buildCanvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      this.state = "READY_TO_BUILD";
-      this.isBusy = false;
+      const { starts, solidAt, aligned2, shockAt, finishAt } = this.phaseTimings();
+      const targets = this.buildTargets(deviceFrame);
+
+      // Measure donor coordinates relative to deviceFrame
+      const donorRects = donors.map(d => {
+        const r = d.getBoundingClientRect();
+        return {
+          x: r.left - f.left + r.width / 2,
+          y: r.top - f.top + r.height / 2,
+          w: r.width,
+          h: r.height
+        };
+      });
+
+      this.particles = targets.map((t, idx) => {
+        const donor = donorRects.length ? donorRects[idx % donorRects.length] : { x: f.width / 2, y: f.height + 40, w: 20, h: 20 };
+        const spread = 20 + Math.random() * 30;
+        const angle = Math.random() * Math.PI * 2;
+        return {
+          tx: t.tx,
+          ty: t.ty,
+          sx: donor.x + Math.cos(angle) * spread,
+          sy: donor.y + Math.sin(angle) * spread,
+          color: t.color,
+          size: t.size,
+          phase: t.phase,
+          delay: starts[t.phase] + Math.random() * this.JITTER[t.phase]
+        };
+      });
+
+      this.animStart = performance.now();
+      this.scheduleCuboid(deviceFrame);
+
+      const screenEl = deviceFrame.querySelector(".screen");
+      const islandEl = deviceFrame.querySelector(".dynamic-island");
+      const screenRectG = screenEl ? this.rectOf(screenEl, deviceFrame) : null;
+      const islandRectG = islandEl ? this.rectOf(islandEl, deviceFrame) : null;
+
+      const render = now => {
+        if (!this.running) return;
+        const elapsed = now - this.animStart;
+        ctx.clearRect(0, 0, f.width, f.height);
+
+        // Update status ticker according to elapsed phase
+        if (elapsed < solidAt[0]) {
+          this.updateStatus("Stage 1/4: Forming Titanium Frame...", true);
+        } else if (elapsed < solidAt[1]) {
+          this.updateStatus("Stage 2/4: Assembling Sapphire Glass...", true);
+        } else if (elapsed < aligned2) {
+          this.updateStatus("Stage 3/4: Synthesizing Interface Grid...", true);
+        } else if (elapsed < shockAt) {
+          this.updateStatus("Stage 4/4: Coupling MAD Ignition Core...", true);
+        } else {
+          this.updateStatus("MAD OS 1.0 // ONLINE", true);
+        }
+
+        // Solidification beats (Ania visual hallmark: plates solidify before next phase)
+        ctx.globalAlpha = 1;
+        if (elapsed >= solidAt[0]) {
+          ctx.fillStyle = "rgba(15, 19, 32, 0.96)";
+          this.roundRect(ctx, 0, 0, f.width, f.height, 42);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(129, 140, 248, 0.65)";
+          ctx.lineWidth = 2;
+          this.roundRect(ctx, 0, 0, f.width, f.height, 42);
+          ctx.stroke();
+        }
+        if (screenRectG && elapsed >= solidAt[1]) {
+          ctx.fillStyle = "rgba(8, 11, 22, 0.98)";
+          this.roundRect(ctx, screenRectG.x, screenRectG.y, screenRectG.w, screenRectG.h, 32);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+          ctx.lineWidth = 1.5;
+          this.roundRect(ctx, screenRectG.x, screenRectG.y, screenRectG.w, screenRectG.h, 32);
+          ctx.stroke();
+
+          if (islandRectG) {
+            ctx.fillStyle = "#000000";
+            this.roundRect(ctx, islandRectG.x, islandRectG.y, islandRectG.w, islandRectG.h, 12);
+            ctx.fill();
+          }
+        }
+
+        // Energy charge and flash calculation
+        let chargeMix = 0;
+        if (elapsed >= shockAt) {
+          chargeMix = Math.min(1, (elapsed - shockAt) / this.SHOCK_FLASH);
+        }
+        const ENERGY_COLOR = "#38bdf8";
+        const prePulse = elapsed >= aligned2 && elapsed < shockAt
+          ? 2.5 + Math.sin(elapsed / 150) * 2.2
+          : 0;
+        const chargeGlow = chargeMix > 0 && chargeMix < 1
+          ? Math.sin(chargeMix * Math.PI) * 14
+          : 0;
+
+        let allDone = true;
+        for (const p of this.particles) {
+          if (p.phase === 0 && elapsed >= solidAt[0]) continue;
+          if (p.phase === 1 && elapsed >= solidAt[1]) continue;
+
+          const local = elapsed - p.delay;
+          let t = local <= 0 ? 0 : Math.min(1, local / this.PARTICLE_DURATION);
+          const e = this.easeOutCubic(t);
+          const x = p.sx + (p.tx - p.sx) * e;
+          const y = p.sy + (p.ty - p.sy) * e;
+          const appear = local <= 0 ? 0 : 1;
+          let alpha = appear * (0.3 + 0.7 * e);
+
+          if (p.phase === 2 && t >= 1) {
+            alpha = this.DIM_ALPHA + (1 - this.DIM_ALPHA) * chargeMix;
+            const glow = prePulse + chargeGlow;
+            if (glow > 0.3) {
+              ctx.shadowColor = ENERGY_COLOR;
+              ctx.shadowBlur = glow;
+            } else {
+              ctx.shadowBlur = 0;
+            }
+          } else {
+            ctx.shadowBlur = 0;
+          }
+
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(x, y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+
+        if (elapsed < finishAt) allDone = false;
+
+        if (!allDone) {
+          this.rafId = requestAnimationFrame(render);
+        } else {
+          setTimeout(() => this.finishBuild(deviceFrame, stage, buildBtn, buildCanvas, ctx), 260);
+        }
+      };
+
+      this.rafId = requestAnimationFrame(render);
     },
 
-    rebuild(events) {
-      this.reset(events).then(() => {
-        setTimeout(() => this.startBuild(events), 300);
-      });
+    finishBuild(deviceFrame, stage, buildBtn, buildCanvas, ctx) {
+      stage.classList.remove("is-building");
+      deviceFrame.classList.remove("is-awaiting-build");
+      deviceFrame.classList.add("is-live");
+
+      buildBtn.classList.remove("is-spinning");
+      buildBtn.disabled = false;
+      this.updateStatus("MAD OS Live · Prototype Active", false);
+
+      const completeActions = $("#build-complete-actions");
+      if (completeActions) completeActions.style.display = "flex";
+
+      setTimeout(() => {
+        if (!this.running && ctx) {
+          ctx.clearRect(0, 0, buildCanvas.width, buildCanvas.height);
+        }
+      }, 400);
+
+      this.running = false;
+    },
+
+    resetStage() {
+      const stage = $(".device-stage");
+      const deviceFrame = $("#device-frame");
+      const buildBtn = $("#build-btn");
+      const buildCanvas = $("#build-canvas");
+      const buildCuboid = $("#build-cuboid");
+
+      if (this.rafId) cancelAnimationFrame(this.rafId);
+      this.clearCuboidTimers();
+      this.running = false;
+
+      if (buildCuboid) {
+        buildCuboid.classList.remove("is-charging");
+        buildCuboid.style.opacity = "0";
+      }
+
+      if (buildCanvas) {
+        const ctx = buildCanvas.getContext("2d");
+        ctx.clearRect(0, 0, buildCanvas.width, buildCanvas.height);
+      }
+
+      if (deviceFrame) {
+        deviceFrame.classList.remove("is-live", "is-building");
+        deviceFrame.classList.add("is-awaiting-build");
+      }
+
+      if (stage) stage.classList.remove("is-building");
+
+      if (buildBtn) {
+        buildBtn.disabled = false;
+        buildBtn.classList.remove("is-spinning");
+      }
+
+      const completeActions = $("#build-complete-actions");
+      if (completeActions) completeActions.style.display = "none";
+
+      this.updateStatus("Interactive Prototype Stage Ready", false);
     }
   };
 
@@ -1925,56 +2230,34 @@
               <a class="btn" href="contact.html">${esc(site.hero_cta_secondary || "Join the Guild")}</a>
             </div>
 
-            <!-- Interactive Assembly Dock (Prompt Part 3: The Build Phone Experience) -->
+            <!-- Premium Build Controller (Ania Quality Standard) -->
             <div class="build-dock reveal">
-              <div class="build-dock-header">
-                <span class="mono-label" style="font-size:0.75rem;letter-spacing:0.12em;color:var(--accent-text);">INTERACTIVE PROTOTYPE FABRICATOR</span>
-                <span class="badge" style="font-size:0.68rem;padding:2px 8px;">ZERO-G STAGE</span>
-              </div>
-              <p style="font-size:0.85rem;color:var(--muted);margin:6px 0 12px;line-height:1.45;">
-                Watch the website deconstruct and channel its energy to assemble the MAD OS smartphone flagship in real time.
-              </p>
               <div class="build-action-row">
-                <button type="button" class="btn-build" id="btn-build-phone">
+                <button type="button" class="btn-build" id="build-btn">
                   <span class="btn-build-surface">
                     <span class="build-icon">⚡</span>
-                    <span class="build-text">INITIALIZE BUILD</span>
+                    <span class="build-text">BUILD THE EXPERIENCE</span>
                   </span>
                 </button>
-                <div class="build-phase-ticker" id="build-phase-ticker">
-                  <span class="ticker-dot"></span>
-                  <span class="ticker-text" id="ticker-text">STAGE READY // CLICK TO COMMENCE</span>
+                <div class="build-status-indicator" id="build-status-indicator">
+                  <span class="status-dot"></span>
+                  <span class="status-label" id="build-status-label">Interactive Prototype Stage Ready</span>
                 </div>
               </div>
-              <div class="build-progress-bar" id="build-progress-bar">
-                <div class="build-progress-fill" id="build-progress-fill"></div>
-              </div>
               <div class="build-complete-actions" id="build-complete-actions" style="display:none;">
-                <button type="button" class="btn sm" id="btn-rebuild-phone">Rebuild Experience</button>
+                <button type="button" class="btn sm" id="btn-rebuild-phone">Replay Build</button>
                 <button type="button" class="btn sm" id="btn-reset-stage">Reset Stage</button>
               </div>
             </div>
           </div>
 
-          <!-- Scene B: The Living Phone Stage (Initially Empty Blueprint until user triggers Build) -->
-          <div class="stage" aria-label="Interactive Product Experience">
-            <!-- Stage Blueprint (Empty State with Coordinate Grid & Radar Sweep) -->
-            <div class="stage-blueprint" id="stage-blueprint">
-              <div class="blueprint-grid"></div>
-              <div class="blueprint-radar"></div>
-              <div class="blueprint-crosshairs"></div>
-              <div class="blueprint-beacon">
-                <span class="beacon-pulse"></span>
-                <span class="beacon-label">STAGE // ZERO-G FABRICATOR - AWAITING ASSEMBLY INITIATION</span>
-              </div>
-              <div class="blueprint-coords">
-                <span>SYS.FAB // 44.02° N</span>
-                <span>CHASSIS // VACANT</span>
-              </div>
-            </div>
+          <!-- Scene B: The Living Phone Stage (Spacious, Empty until user clicks Build) -->
+          <div class="stage device-stage" aria-label="Interactive Product Experience">
+            <!-- Atmospheric Lighting behind the stage -->
+            <div class="stage-ambient-glow" aria-hidden="true"></div>
 
-            <!-- Smartphone Chassis (Starts is-hidden, materializes during Phase 5) -->
-            <div class="phone is-hidden" id="hero-phone">
+            <!-- Smartphone Chassis (Awaiting build, layout preserved with visibility: hidden) -->
+            <div class="phone is-awaiting-build" id="device-frame">
               <span class="phone-vol-up"></span>
               <span class="phone-vol-down"></span>
               <span class="phone-power"></span>
@@ -1983,17 +2266,6 @@
                 <span class="camera"></span>
               </div>
               <div class="screen">
-                <!-- Boot Screen Overlay for Power-up Sequence -->
-                <div class="phone-boot-screen is-off" id="phone-boot-screen">
-                  <div class="boot-emblem-wrap">
-                    <img src="assets/brand/mad-emblem.svg" class="boot-emblem" alt="MAD Emblem">
-                  </div>
-                  <span class="boot-status" id="boot-status">MAD OS // INITIALIZING...</span>
-                  <div class="boot-bar">
-                    <div class="boot-progress" id="boot-progress"></div>
-                  </div>
-                </div>
-
                 <div class="phone-header">
                   <span class="s-brand">MAD / OS</span>
                   <span class="s-status">Live</span>
@@ -2032,7 +2304,7 @@
                     <span>450+ Active Handshakes</span>
                   </div>
                 </div>
-                <!-- View 3: Join Mini (Verified Real Async Submission) -->
+                <!-- View 3: Join Mini (Verified student submission & Instagram fallback) -->
                 <div class="phone-view">
                   <p style="font-size:0.75rem;color:var(--muted);margin-bottom:8px;">Fast-track membership interest:</p>
                   <form class="phone-mini-form" id="phone-mini-form">
@@ -2044,6 +2316,19 @@
                 </div>
               </div>
             </div>
+
+            <!-- Stage-Aligned Precision Construction Canvas -->
+            <canvas id="build-canvas" class="build-canvas" aria-hidden="true"></canvas>
+
+            <!-- 3D MAD Emblem Cuboid for Flight & Activation -->
+            <div class="build-cuboid" id="build-cuboid" aria-hidden="true">
+              <span class="cuboid-face cuboid-top"></span>
+              <span class="cuboid-face cuboid-side"></span>
+              <div class="cuboid-face cuboid-front">
+                <img src="assets/brand/mad-emblem.svg" alt="MAD Emblem">
+              </div>
+            </div>
+
             <div class="code-badge" aria-hidden="true">
               <span class="c-kw">class</span> <span class="c-type">MadGuild</span> <span class="c-kw">extends</span> <span class="c-type">StatelessWidget</span> {<br>
               &nbsp;&nbsp;<span class="c-fn">Widget</span> build(ctx) =&gt;<br>
