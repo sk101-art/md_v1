@@ -22,8 +22,23 @@ const TABS = [
   ["contact.html", "Join", TI('<path d="M12 5v14M5 12h14"/>')]
 ];
 
-export function setTheme(t, persist = true) {
-  root.dataset.theme = t === "dark" ? "dark" : "light";
+export function setTheme(t, persist = true, origin = null) {
+  const next = t === "dark" ? "dark" : "light";
+  // circular reveal from the control that was pressed (View Transitions where supported)
+  if (origin && document.startViewTransition && !motion.reduced && next !== root.dataset.theme) {
+    const r = origin.getBoundingClientRect();
+    const x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    const vt = document.startViewTransition(() => applyTheme(next, persist));
+    vt.ready.then(() => document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${R}px at ${x}px ${y}px)`] },
+      { duration: 620, easing: "cubic-bezier(.65,0,.35,1)", pseudoElement: "::view-transition-new(root)" })).catch(() => {});
+    return;
+  }
+  applyTheme(next, persist);
+}
+function applyTheme(t, persist) {
+  root.dataset.theme = t;
   if (persist) { try { localStorage.setItem("mad_theme", root.dataset.theme); } catch {} }
   const m = $('meta[name="theme-color"]');
   if (m) m.content = root.dataset.theme === "dark" ? "#0F141C" : "#F7F8FA";
@@ -44,6 +59,7 @@ export function buildShell(site, events, { navigate, director }) {
           <img class="brand-mark" src="assets/brand/mad-logo.svg" alt="" width="23" height="36">
           <span class="brand-name">${esc(site.name)}</span><span class="brand-tag">${esc(site.college_short)}</span>
         </a>
+        <span class="nav-progress" aria-hidden="true"></span>
         <nav class="nav-links" aria-label="Primary" data-sw="block"><span class="nav-indicator" aria-hidden="true"></span><ul>${navLinks}</ul></nav>
         <div class="nav-tools" data-sw="block">
           <button class="icon-btn search-btn" id="open-pal" type="button" aria-label="Search pages and events (Ctrl K)">${icons.search}<span>Search</span><kbd>Ctrl K</kbd></button>
@@ -83,7 +99,7 @@ export function buildShell(site, events, { navigate, director }) {
   let saved = null;
   try { saved = localStorage.getItem("mad_theme"); } catch {}
   setTheme(saved || "light", false);
-  $("#theme-btn").onclick = () => setTheme(root.dataset.theme === "dark" ? "light" : "dark");
+  $("#theme-btn").onclick = e => setTheme(root.dataset.theme === "dark" ? "light" : "dark", true, e.currentTarget);
 
   // mobile sheet
   const sheet = $("#menu-sheet"), mb = $("#menu-btn");
@@ -158,6 +174,8 @@ function wirePalette(site, events, navigate) {
     ...NAV.map(([h, t]) => ({ g: "Page", t, run: () => navigate(h) })),
     ...[...events].sort((a, b) => semKey(b.semester) - semKey(a.semester)).map(e => ({ g: "Event", t: e.name, s: `${e.semester} · ${e.category || "Event"}`, run: () => navigate(`event.html?e=${encodeURIComponent(e.slug)}`) })),
     { g: "Motion", t: "Replay the swarm build", run: () => playMotion() },
+    { g: "Design", t: "Inspect mode (press I)", s: "Hover anything to see size, type and colour", run: () => window.__mad?.inspector?.toggle(true) },
+    { g: "Design", t: "Slow motion: hold Shift", s: "Study any animation at 0.18× speed", run: () => {} },
     { g: "Motion", t: "Turn animations off", run: () => { motion.override = "off"; location.reload(); } },
     { g: "Appearance", t: "Toggle light / Graphite appearance", run: () => setTheme(root.dataset.theme === "dark" ? "light" : "dark") },
     { g: "Social", t: `Open Instagram ${site.instagram_handle}`, run: () => window.open(site.instagram, "_blank", "noopener") }

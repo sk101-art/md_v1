@@ -135,6 +135,7 @@ export class Router {
       if (h1) h1.focus({ preventScroll: true });
     }
     playShared(this.scope);
+    document.dispatchEvent(new CustomEvent("mad:route", { detail: { route } }));
 
     const arrival = this.first;
     let seen = false;

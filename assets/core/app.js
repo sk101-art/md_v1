@@ -4,6 +4,8 @@ import { loadData } from "./content.js";
 import { buildShell } from "./shell.js";
 import { Router } from "./router.js";
 import { SwarmDirector } from "../motion/swarm-director.js";
+import { Inspector } from "../motion/inspect.js";
+import { wireSurfaces } from "../motion/surface.js";
 
 (async function boot() {
   const main = $("#main");
@@ -13,7 +15,9 @@ import { SwarmDirector } from "../motion/swarm-director.js";
     let router = null;
     buildShell(site, events, { navigate: href => router && router.navigate(href), director });
     router = new Router({ site, events, director });
-    window.__mad = { director, router };
+    const inspector = new Inspector();
+    wireSurfaces();
+    window.__mad = { director, router, inspector };
     await router.render();
   } catch (err) {
     console.error("[MAD] boot failed", err);

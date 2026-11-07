@@ -11,7 +11,7 @@ export async function render(site, events) {
   ${pageHead("Achievements", `Work we can <em class="serif">point to.</em>`, "Flagship events the club has run and projects built by members.")}
 
   <section class="wrap" aria-label="Numbers">
-    <div class="stats">${(a.stats || []).map(s => `<div class="stat" data-sw="block"><b>${esc(s.value)}</b><span>${esc(s.label)}</span></div>`).join("")}</div>
+    <div class="stats">${(a.stats || []).map(s => `<div class="stat" data-sw="block"><b data-count>${esc(s.value)}</b><span>${esc(s.label)}</span></div>`).join("")}</div>
   </section>
 
   ${(a.apps || []).length ? `

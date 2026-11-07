@@ -189,3 +189,71 @@ main.fade-out { opacity: 0; transition: opacity 160ms; }
 @media (prefers-reduced-motion: reduce) {
   .sw-hold { opacity: 1 !important; }
 }
+
+/* ---------- swarm: physical cursors, the visitor's tag, slow motion ---------- */
+.sw-click { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 1.5px solid var(--c, var(--select)); pointer-events: none; }
+.sw-you {
+  position: fixed; left: 0; top: 0; z-index: 67; pointer-events: none;
+  padding: 3px 7px 4px; border-radius: 5px 9px 9px 9px; background: var(--graphite); color: #fff;
+  font: 600 10px/1 var(--font-body); opacity: 0; transition: opacity 200ms; will-change: transform;
+}
+.sw-you.on { opacity: 1; }
+@media (hover: none) { .sw-you { display: none; } }
+.sw-slow {
+  position: fixed; z-index: 68; top: 88px; left: 50%; transform: translate(-50%, -8px);
+  padding: 7px 14px; border-radius: var(--r-pill); background: var(--graphite); color: #fff;
+  font: 500 12px/1 var(--font-mono); opacity: 0; transition: opacity 160ms, transform 160ms; pointer-events: none;
+}
+.sw-slow b { color: var(--sea-glass); font-weight: 600; }
+.sw-slow.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- surfaces: pointer light on glass edges + soft interior glow ---------- */
+.glass, .card, .poster { --mx: 50%; --my: -40%; }
+.poster { position: relative; }
+.glass::after, .card::after, .poster::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+  padding: 1px;
+  background: radial-gradient(220px circle at var(--mx) var(--my), rgba(88, 120, 216, 0.75), rgba(166, 216, 212, 0.35) 40%, transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0; transition: opacity 320ms var(--ease-out);
+}
+.glass.lit::after, .card.lit::after, .poster.lit::after { opacity: 1; }
+.card.lit, .glass.lit { background-image: radial-gradient(420px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.55), transparent 60%); }
+:root[data-theme="dark"] .card.lit, :root[data-theme="dark"] .glass.lit { background-image: radial-gradient(420px circle at var(--mx) var(--my), rgba(255, 255, 255, 0.06), transparent 60%); }
+.btn.primary, .build-btn { translate: var(--tx, 0) var(--ty, 0); transition: translate 260ms var(--ease-spring), transform var(--t-fast) var(--ease-out), box-shadow var(--t-mid), background var(--t-mid); }
+
+/* poster depth: room for the parallax drift */
+.poster-media img, .ev-media img { scale: 1.08; transition: transform 900ms var(--ease-out); will-change: translate; }
+
+/* scroll progress hairline inside the nav pill */
+.nav-progress { position: absolute; left: 28px; right: 28px; bottom: 0; height: 1.5px; border-radius: 2px; background: linear-gradient(90deg, var(--cobalt), var(--sea-glass)); transform-origin: 0 50%; transform: scaleX(0); pointer-events: none; }
+
+/* ---------- inspect mode ---------- */
+.ins-box, .ins-card, .ins-pill { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; opacity: 0; transition: opacity 160ms; }
+.ins-box.on, .ins-card.on, .ins-pill.on { opacity: 1; }
+.ins-box { border: 1px solid #E5484D; background: rgba(229, 72, 77, 0.06); transition: opacity 160ms, transform 140ms var(--ease-out), width 140ms var(--ease-out), height 140ms var(--ease-out); }
+.ins-box i { position: absolute; width: 6px; height: 6px; background: #fff; border: 1px solid #E5484D; }
+.ins-box i:nth-of-type(1) { left: -3.5px; top: -3.5px; } .ins-box i:nth-of-type(2) { right: -3.5px; top: -3.5px; }
+.ins-box i:nth-of-type(3) { left: -3.5px; bottom: -3.5px; } .ins-box i:nth-of-type(4) { right: -3.5px; bottom: -3.5px; }
+.ins-dim { position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); padding: 3px 6px; border-radius: 4px; background: #E5484D; color: #fff; font: 600 10px/1 var(--font-mono); white-space: nowrap; }
+.ins-pad { position: absolute; left: 0; bottom: calc(100% + 4px); font: 500 9.5px/1 var(--font-mono); color: #E5484D; white-space: nowrap; }
+.ins-card { display: grid; gap: 5px; min-width: 210px; padding: 12px 14px; border-radius: 12px; background: #18212F; color: #E9EDF2; font: 500 11px/1.3 var(--font-mono); box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.5); }
+.ins-card .ins-name { color: #A6D8D4; font-weight: 600; margin-bottom: 2px; }
+.ins-card span { display: flex; gap: 8px; align-items: center; }
+.ins-card em { font-style: normal; color: #7A8494; width: 46px; flex: none; }
+.ins-card i { width: 10px; height: 10px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.3); }
+.ins-pill { top: auto; bottom: 18px; left: 50%; transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; background: #E5484D; color: #fff; font: 500 12px/1 var(--font-body); pointer-events: none; }
+.ins-pill kbd { font: 600 10px/1 var(--font-mono); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 4px; padding: 2px 5px; }
+html.inspecting, html.inspecting * { cursor: crosshair !important; }
+@media (max-width: 920px) { .ins-pill { bottom: calc(92px + env(safe-area-inset-bottom)); } }
+
+/* ---------- appearance switch: circular reveal from the toggle ---------- */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+
+/* ---------- phone: picked up and turned by hand ---------- */
+.stage.grab { cursor: grab; }
+.stage.grabbing { cursor: grabbing; }
+.stage.grabbing .phone { transition: none; }
+.stage.grab { touch-action: pan-y; }
+.stage[data-state="live"] .phone { transition: none; }

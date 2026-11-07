@@ -9,6 +9,10 @@ export const ROLES = [
   { id: "ship", name: "Ship", color: "var(--agent-ship)", hex: "#C9A23F", speed: 1.05 }
 ];
 
+// The visitor's pointer in page coordinates; agents near it are nudged aside.
+export const visitor = { x: -1e5, y: -1e5 };
+const YIELD_R = 90, YIELD_PUSH = 34;
+
 export class Agent {
   constructor(layer, role, index) {
     this.role = role;
@@ -26,7 +30,17 @@ export class Agent {
   }
   place(x, y) {
     this.x = x; this.y = y;
+    let dx = x - visitor.x, dy = y - visitor.y;
+    const d = Math.hypot(dx, dy);
+    if (d < YIELD_R && d > 0.01) {
+      const k = (1 - d / YIELD_R) * YIELD_PUSH;
+      x += (dx / d) * k; y += (dy / d) * k;
+    }
     this.el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  }
+  press() {
+    const svg = this.el.querySelector("svg");
+    if (svg && svg.animate) svg.animate([{ transform: "scale(1)" }, { transform: "scale(.78)" }, { transform: "scale(1)" }], { duration: 220, easing: "ease-out" });
   }
   remove() { this.el.remove(); }
 }

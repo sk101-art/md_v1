@@ -51,7 +51,7 @@ export function render(site, events) {
 
   <section class="wrap" aria-label="Club at a glance">
     <div class="stats">
-      ${(site.stats || []).map(s => `<div class="stat" data-sw="block"><b>${esc(s.value)}</b><span>${esc(s.label)}</span></div>`).join("")}
+      ${(site.stats || []).map(s => `<div class="stat" data-sw="block"><b data-count>${esc(s.value)}</b><span>${esc(s.label)}</span></div>`).join("")}
     </div>
   </section>
 
@@ -188,29 +188,59 @@ export function wire(ctx) {
   }
 }
 
-// Inertial hover once the phone is live (pointer) or gentle device tilt (touch, where allowed)
+// Once live, the phone can be picked up: drag beside it (or on its frame) to spin it in 3D,
+// it springs back with inertia; pointer hover adds a gentle tilt; touch devices tilt with the hand.
 function liveHover(scope) {
   const phone = $("#phone"), stage = $(".stage");
   if (!phone || !stage || motion.reduced) return;
-  let tx = 0, ty = 0, cx = 0, cy = 0, raf = 0;
+  let tx = 0, ty = 0, cx = 0, cy = 0, raf = 0;          // hover tilt target / current (-0.5..0.5)
+  let drag = null, rx = 0, ry = 0, vx = 0, vy = 0;      // hand rotation (deg) and velocity
+  const apply = () => {
+    phone.style.setProperty("--rx", `${(-cy * 7 + rx).toFixed(2)}deg`);
+    phone.style.setProperty("--ry", `${(cx * 9 + ry).toFixed(2)}deg`);
+  };
   const loop = () => {
     cx += (tx - cx) * 0.08; cy += (ty - cy) * 0.08;
-    phone.style.setProperty("--rx", `${(-cy * 7).toFixed(2)}deg`);
-    phone.style.setProperty("--ry", `${(cx * 9).toFixed(2)}deg`);
-    raf = Math.abs(tx - cx) > 0.001 || Math.abs(ty - cy) > 0.001 ? requestAnimationFrame(loop) : 0;
+    if (!drag) {
+      // spring back to rest with a little inertia
+      vx += -rx * 0.06; vy += -ry * 0.06; vx *= 0.86; vy *= 0.86;
+      rx += vx; ry += vy;
+    }
+    apply();
+    const moving = Math.abs(tx - cx) > 0.001 || Math.abs(ty - cy) > 0.001 || Math.abs(rx) > 0.05 || Math.abs(ry) > 0.05 || drag;
+    raf = moving ? requestAnimationFrame(loop) : 0;
   };
   const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
   scope.add(() => cancelAnimationFrame(raf));
-  if (finePointer) {
-    scope.on(stage, "pointermove", e => {
-      if (stage.dataset.state !== "live" || e.target.closest(".os")) { return; }
-      const r = stage.getBoundingClientRect();
-      tx = (e.clientX - r.left) / r.width - 0.5; ty = (e.clientY - r.top) / r.height - 0.5; kick();
-    }, { passive: true });
-    scope.on(stage, "pointerleave", () => { tx = 0; ty = 0; kick(); });
-  } else if ("DeviceOrientationEvent" in window && typeof DeviceOrientationEvent.requestPermission !== "function") {
+  const live = () => stage.dataset.state === "live";
+
+  stage.classList.toggle("grab", true);
+  scope.on(stage, "pointerdown", e => {
+    if (!live() || e.target.closest(".os")) return;   // the screen stays fully usable
+    drag = { x: e.clientX, y: e.clientY, rx, ry, t: performance.now() };
+    stage.setPointerCapture(e.pointerId);
+    stage.classList.add("grabbing");
+    kick();
+  });
+  scope.on(stage, "pointermove", e => {
+    if (drag) {
+      const nrx = Math.max(-38, Math.min(38, drag.rx - (e.clientY - drag.y) * 0.35));
+      const nry = Math.max(-70, Math.min(70, drag.ry + (e.clientX - drag.x) * 0.45));
+      vx = nrx - rx; vy = nry - ry; rx = nrx; ry = nry;
+      return;
+    }
+    if (!finePointer || !live() || e.target.closest(".os")) return;
+    const r = stage.getBoundingClientRect();
+    tx = (e.clientX - r.left) / r.width - 0.5; ty = (e.clientY - r.top) / r.height - 0.5; kick();
+  }, { passive: true });
+  const end = () => { if (!drag) return; drag = null; stage.classList.remove("grabbing"); kick(); };
+  scope.on(stage, "pointerup", end);
+  scope.on(stage, "pointercancel", end);
+  scope.on(stage, "pointerleave", () => { tx = 0; ty = 0; kick(); });
+
+  if (!finePointer && "DeviceOrientationEvent" in window && typeof DeviceOrientationEvent.requestPermission !== "function") {
     scope.on(window, "deviceorientation", e => {
-      if (stage.dataset.state !== "live" || e.gamma == null) return;
+      if (!live() || e.gamma == null) return;
       tx = Math.max(-0.5, Math.min(0.5, e.gamma / 60)); ty = Math.max(-0.5, Math.min(0.5, (e.beta - 40) / 80)); kick();
     }, { passive: true });
   }

@@ -399,7 +399,7 @@ export class MadOS {
     v.addEventListener("click", e => { if (e.target === v) close(); });
   }
   action(act, el) {
-    if (act === "theme") { setTheme(el.checked ? "dark" : "light"); buzz(6); }
+    if (act === "theme") { setTheme(el.checked ? "dark" : "light", true, el); buzz(6); }
     if (act === "rebuild") this.onRebuild && this.onRebuild();
     if (act === "replay") playMotion();
     if (act === "motion") { motion.override = el.checked ? "on" : "off"; if (el.checked) playMotion(); }

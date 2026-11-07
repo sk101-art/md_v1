@@ -1,13 +1,29 @@
 // Swarm Director: multi-agent collaborative construction of real UI regions.
 // Recipes: construct (2-pass skeleton -> fill, or 1-pass), rebuild teardown, morph,
 // connect, disperse. Geometry is always measured from the live DOM.
-import { Agent, ROLES } from "./agents.js";
+import { Agent, ROLES, visitor } from "./agents.js";
 import { pageRect, radiusOf, inViewport, lineRects, dist } from "./selection-geometry.js";
 import { traceContainer, roundedRectPath } from "./container-tracer.js";
 import { motion, wait, clamp, isSmall } from "../core/util.js";
 
 const NS = "http://www.w3.org/2000/svg";
+const PATH_OK = typeof CSS !== "undefined" && CSS.supports && CSS.supports("clip-path", 'path("M0 0H1V1Z")');
 const HOLD_SAFETY_MS = 1200;
+
+// Numbers count up the moment their layer is built (once).
+function countUp(el, dir) {
+  const nodes = el.matches("[data-count]") ? [el] : [...el.querySelectorAll("[data-count]")];
+  nodes.forEach(n => {
+    if (n.dataset.counted) return;
+    n.dataset.counted = "1";
+    const m = n.textContent.trim().match(/^(\d+)(.*)$/);
+    if (!m || !dir.enabled) return;
+    const end = +m[1], suf = m[2], isYear = end > 1900 && end < 2100;
+    const from = isYear ? end - 12 : 0;
+    const o = { v: from };
+    gsap.to(o, { v: end, duration: isYear ? 0.9 : 1.1, ease: "power3.out", onUpdate: () => (n.textContent = Math.round(o.v) + suf) });
+  });
+}
 
 class Run {
   constructor(kind) {
@@ -63,6 +79,33 @@ export class SwarmDirector {
       }, 260);
     }, { passive: true });
 
+    // ---- time: base pace, interaction boost (visitor is impatient), Shift = slow motion ----
+    this.base = 1; this.boost = 1; this.slow = 1;
+    const hurry = e => {
+      if (!this.busy || (e.target && e.target.closest && e.target.closest(".sw-hud"))) return;
+      if (e.type === "keydown" && e.key === "Shift") return;
+      this.boost = 2.6; this.setRate();
+    };
+    ["wheel", "touchmove", "pointerdown", "keydown"].forEach(t => window.addEventListener(t, hurry, { passive: true }));
+    window.addEventListener("keydown", e => {
+      if (e.key !== "Shift" || e.repeat || /input|textarea|select/i.test(document.activeElement?.tagName || "")) return;
+      this.slow = 0.18; this.setRate(); this._slowChip(true);
+    });
+    window.addEventListener("keyup", e => { if (e.key === "Shift" && this.slow !== 1) { this.slow = 1; this.setRate(); this._slowChip(false); } });
+    window.addEventListener("blur", () => { if (this.slow !== 1) { this.slow = 1; this.setRate(); this._slowChip(false); } });
+
+    // ---- the visitor joins the session: a "You" tag on the real pointer while the swarm works ----
+    this.you = document.createElement("div");
+    this.you.className = "sw-you";
+    this.you.textContent = "You";
+    this.you.setAttribute("aria-hidden", "true");
+    document.body.append(this.you);
+    window.addEventListener("pointermove", e => {
+      visitor.x = e.pageX; visitor.y = e.pageY;
+      if (e.pointerType === "mouse") this.you.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 18}px)`;
+    }, { passive: true });
+    document.addEventListener("pointerleave", () => { visitor.x = visitor.y = -1e5; });
+
     // Sweep: anything held and on screen that no build has claimed is handed to the swarm.
     setInterval(() => {
       if (this.busy || !this.held.size || document.hidden) return;
@@ -72,6 +115,28 @@ export class SwarmDirector {
     document.addEventListener("keydown", e => {
       if (e.key === "Escape" && this.hud.classList.contains("on")) this.skip();
     });
+  }
+
+  get rate() { return this.base * this.boost * this.slow; }
+  setRate() {
+    const r = this.rate;
+    if (typeof gsap !== "undefined") gsap.globalTimeline.timeScale(r);
+    try { document.getAnimations().forEach(a => (a.playbackRate = r)); } catch {}
+  }
+  _slowChip(on) {
+    let c = document.querySelector(".sw-slow");
+    if (!c) { c = document.createElement("div"); c.className = "sw-slow"; c.setAttribute("role", "status"); c.innerHTML = "<b>0.18×</b> slow motion · release Shift"; document.body.append(c); }
+    c.classList.toggle("on", on);
+  }
+  _click(agent) {
+    agent.press();
+    const c = document.createElement("i");
+    c.className = "sw-click";
+    c.style.setProperty("--c", agent.role.color);
+    c.style.left = `${agent.x}px`;
+    c.style.top = `${agent.y}px`;
+    this.layer.append(c);
+    gsap.fromTo(c, { scale: 0.3, opacity: 0.9 }, { scale: 2.4, opacity: 0, duration: 0.5, ease: "power2.out", onComplete: () => c.remove() });
   }
 
   get enabled() { return !motion.reduced && typeof gsap !== "undefined"; }
@@ -102,7 +167,44 @@ export class SwarmDirector {
     else if (kind === "media") kf = [{ clipPath: "inset(0 0 100% 0)", opacity: 0.5 }, { clipPath: "inset(0 0 0% 0)", opacity: 1 }];
     else kf = [{ opacity: 0 }, { opacity: 1 }];
     const a = el.animate(kf, { duration: dur * 1000, easing: "cubic-bezier(.16,1,.3,1)" });
+    a.playbackRate = this.rate;
+    countUp(el, this);
     return a.finished.catch(() => {});
+  }
+
+  /** Skeleton bars become the real lines: each bar is consumed left-to-right as its line appears. */
+  async _morphText(run, L) {
+    const el = L.el, bars = L.skel.filter(s => s.dataset.w);
+    this._release(el);
+    if (!PATH_OK || !bars.length || !this.enabled) {
+      L.skel.forEach(s => s.remove());
+      return this.revealEl(el, "text");
+    }
+    const er = el.getBoundingClientRect();
+    const ox = er.left + window.scrollX, oy = er.top + window.scrollY;
+    const lines = bars.map(s => {
+      const x = +s.dataset.x, y = +s.dataset.y, w = +s.dataset.w, h = +s.dataset.h;
+      const full = h / 0.64;
+      return { s, x, w, top: y - 0.18 * full - oy, H: full, lx: x - ox };
+    });
+    const N = lines.length;
+    const st = { p: 0 };
+    const draw = () => {
+      let d = "";
+      lines.forEach((l, j) => {
+        const f = clamp(st.p * N - j, 0, 1);
+        if (f > 0) d += `M${l.lx - 6} ${l.top - 2}h${(l.w + 12) * f}v${l.H + 4}h${-(l.w + 12) * f}Z`;
+        l.s.style.transform = `translate(${l.x + l.w * f}px, ${+l.s.dataset.y}px)`;
+        l.s.style.width = `${Math.max(0, l.w * (1 - f))}px`;
+        l.s.style.opacity = String(1 - f * 0.4);
+      });
+      el.style.clipPath = d ? `path("${d}")` : "inset(0 100% 0 0)";
+    };
+    draw();
+    countUp(el, this);
+    await this._tween(run, st, { p: 1, duration: clamp(0.14 * N + 0.22, 0.32, 0.95), ease: "power1.inOut", onUpdate: draw });
+    el.style.clipPath = "";
+    L.skel.forEach(s => s.remove());
   }
 
   // ---------- primitives ----------
@@ -134,10 +236,10 @@ export class SwarmDirector {
     const d = dist(agent, { x, y });
     const dur = clamp((d / 1500) * base / agent.role.speed, 0.16, 0.6) * (0.9 + Math.random() * 0.2);
     const p = { x: agent.x, y: agent.y };
-    // x and y on different eases -> natural curved hand path
+    // a hand, not a robot: fast launch, slight overshoot, settle; axes desynchronised for a curved path
     return Promise.all([
-      this._tween(run, p, { x, duration: dur, ease: "power2.inOut", onUpdate: () => agent.place(p.x, p.y) }),
-      this._tween(run, p, { y, duration: dur, ease: "power3.inOut" })
+      this._tween(run, p, { x, duration: dur, ease: "back.out(1.35)", onUpdate: () => agent.place(p.x, p.y) }),
+      this._tween(run, p, { y, duration: dur * 0.88, ease: "back.out(1.1)" })
     ]);
   }
   _box(rect, { fill = "clear", dims = true, color } = {}) {
@@ -157,6 +259,7 @@ export class SwarmDirector {
     if (d) d.textContent = `${Math.round(r.w)} × ${Math.round(r.h)}`;
   }
   async _drag(run, agent, rect, opts) {
+    this._click(agent);
     const b = this._box({ x: rect.x, y: rect.y, w: 0, h: 0 }, opts);
     run.cleanup(() => b.remove());
     const s = { w: 0, h: 0 };
@@ -178,6 +281,7 @@ export class SwarmDirector {
       f.className = "sw-frag";
       f.style.cssText = `transform:translate(${x}px,${y}px);width:${w}px;height:${h}px;border-radius:${rad}px;` +
         (outline ? "background:transparent;border:1px solid var(--silver);" : "");
+      if (kind === "text") Object.assign(f.dataset, { x, y, w, h });
       this.layer.append(f);
       pieces.push(f);
     };
@@ -254,7 +358,8 @@ export class SwarmDirector {
   }
   _hud(on, n = 0, done = 0, total = 0, verb = "") {
     this.hud.classList.toggle("on", on);
-    if (!on) return;
+    this.you.classList.toggle("on", on);
+    if (!on) { if (this.boost !== 1) { this.boost = 1; this.setRate(); } return; }
     this.hud.querySelector(".txt").textContent = `${verb ? verb + " · " : ""}${n} agents · ${done}/${total} layers`;
     this.hud.querySelector(".meter b").style.width = `${total ? (done / total) * 100 : 0}%`;
   }
@@ -292,10 +397,13 @@ export class SwarmDirector {
       // select existing skeleton, then the real content resolves inside it
       await this._move(run, agent, L.rect.x + Math.min(L.rect.w * 0.35, 120), L.rect.y + Math.min(L.rect.h * 0.5, 40));
       if (run.cancelled) return;
-      const b = this._box(L.rect, { fill: "tint" });
+      const b = this._box(L.rect, { fill: "clear" });
       run.cleanup(() => b.remove());
+      this._click(agent);
       gsap.fromTo(b, { scale: 1.015, opacity: 0.4 }, { scale: 1, opacity: 1, duration: 0.14, transformOrigin: "50% 50%" });
-      if (L.kind === "box") {
+      if (L.kind === "text") {
+        await this._morphText(run, L);
+      } else if (L.kind === "box") {
         L.skel.forEach(s => s.remove());
         await traceContainer(L.el, this.layer, { duration: clamp(0.45 + (L.rect.w + L.rect.h) / 5000, 0.45, 0.85), run, onResolve: () => this.revealEl(L.el, "box", 0.45) });
       } else {
@@ -324,10 +432,14 @@ export class SwarmDirector {
     const single = async (agent, L) => {
       await this._move(run, agent, L.rect.x, L.rect.y);
       if (run.cancelled) return;
-      const b = await this._drag(run, agent, L.rect, { fill: L.kind === "box" ? "clear" : "skeleton" });
+      const b = await this._drag(run, agent, L.rect, { fill: L.kind === "box" || L.kind === "text" ? "clear" : "skeleton" });
       const m = marks.get(L); if (m) m.remove();
       if (run.cancelled) return;
-      if (L.kind === "box") {
+      if (L.kind === "text") {
+        L.skel = this._skeleton(L.el, "text");
+        run.cleanup(() => L.skel.forEach(s => s.remove()));
+        await this._morphText(run, L);
+      } else if (L.kind === "box") {
         await traceContainer(L.el, this.layer, { duration: 0.6, run, onResolve: () => this.revealEl(L.el, "box", 0.4) });
       } else {
         b.classList.add("tint");
@@ -563,11 +675,17 @@ export class SwarmDirector {
         await traceContainer(L.el, this.layer, { duration: 0.55, run, onResolve: () => this.revealEl(L.el, "box", 0.35) });
         await this._fadeOut(run, b, 0.12);
       } else {
-        const b = await this._drag(run, agent, L.rect, { fill: "skeleton", dims: L.rect.w > 120 });
+        const b = await this._drag(run, agent, L.rect, { fill: L.kind === "text" ? "clear" : "skeleton", dims: L.rect.w > 120 });
         if (run.cancelled) return;
-        b.style.transition = "background-color 260ms";
-        b.style.backgroundColor = "transparent";
-        await this.revealEl(L.el, L.kind, 0.34);
+        if (L.kind === "text") {
+          L.skel = this._skeleton(L.el, "text");
+          run.cleanup(() => L.skel.forEach(s => s.remove()));
+          await this._morphText(run, L);
+        } else {
+          b.style.transition = "background-color 260ms";
+          b.style.backgroundColor = "transparent";
+          await this.revealEl(L.el, L.kind, 0.34);
+        }
         await this._fadeOut(run, b, 0.12);
       }
     };

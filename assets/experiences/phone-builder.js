@@ -15,7 +15,7 @@ const COPY = {
   MATERIALIZING: ["Materializing", "Satin body and glass screen"],
   POWERING_UP: ["Powering up", "Booting MAD OS"],
   LOGO_APPROACH: ["Installing MAD", "The club logo becomes an app"],
-  COMPLETE: ["Live", "Tap apps, swipe up to go home"],
+  COMPLETE: ["Live", "Tap apps · drag beside the phone to spin it"],
   RESETTING: ["Clearing the stage", ""]
 };
 
