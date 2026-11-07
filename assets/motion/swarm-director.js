@@ -50,10 +50,25 @@ export class SwarmDirector {
     this.stats = { constructs: 0, layers: 0, lastMs: 0 };
     this._buildHud();
 
-    let rw = window.innerWidth;
+    // A width change invalidates measured geometry: stop the current build and let the sweep
+    // rebuild whatever is still unbuilt at the new size (never just reveal it). Debounced, so a
+    // panel or window opening animation doesn't cancel the arrival.
+    let rw = window.innerWidth, rt = 0;
     window.addEventListener("resize", () => {
-      if (Math.abs(window.innerWidth - rw) > 40) { rw = window.innerWidth; this.skip(); }
+      clearTimeout(rt);
+      rt = setTimeout(() => {
+        if (Math.abs(window.innerWidth - rw) < 40) return;
+        rw = window.innerWidth;
+        this.restart();
+      }, 260);
     }, { passive: true });
+
+    // Sweep: anything held and on screen that no build has claimed is handed to the swarm.
+    setInterval(() => {
+      if (this.busy || !this.held.size || document.hidden) return;
+      const late = [...this.held].filter(el => !this.inFlight.has(el) && inViewport(el, -24));
+      if (late.length) this._sectionConstruct(late);
+    }, 1000);
     document.addEventListener("keydown", e => {
       if (e.key === "Escape" && this.hud.classList.contains("on")) this.skip();
     });
@@ -70,16 +85,9 @@ export class SwarmDirector {
     if (!this.enabled) return [];
     const els = this.layersIn(root);
     els.forEach(el => { el.classList.add("sw-hold"); this.held.add(el); });
-    // Safety net: anything visible but not being built (e.g. an observer never fired) is revealed.
-    // Off-screen elements stay held so they are still constructed when scrolled to.
+    // Hard safety: if motion is switched off mid-way, nothing may stay hidden.
     this._safety = this._safety || new Set();
-    // Stragglers on screen are handed to the swarm too, so nothing appears without being built.
-    const t = setInterval(() => {
-      if (this.busy) return; // the main build is still running
-      const late = [...this.held].filter(el => !this.inFlight.has(el) && inViewport(el, -24));
-      if (late.length) { late.forEach(el => (el.dataset.swBy = "sweep")); this._sectionConstruct(late); }
-      if (!this.held.size) { clearInterval(t); this._safety.delete(t); }
-    }, HOLD_SAFETY_MS);
+    const t = setTimeout(() => { if (!this.enabled) this.releaseAll(); }, HOLD_SAFETY_MS);
     this._safety.add(t);
     return els;
   }
@@ -578,6 +586,15 @@ export class SwarmDirector {
     for (const r of [...this.runs]) r.cancel();
     this.runs.clear();
   }
+  restart() {
+    if (!this.enabled) return this.skip();
+    const pending = [...this.held];
+    this.cancelRuns();
+    this._hud(false);
+    this.layer.querySelectorAll(".sw-box,.sw-frag,.sw-cross,.sw-guide,.trace-svg,.trace-head").forEach(n => n.remove());
+    // cancelled builds release their layers; put the unbuilt ones back on hold for the sweep
+    setTimeout(() => pending.forEach(el => { if (el.isConnected) { el.classList.add("sw-hold"); this.held.add(el); this.inFlight.delete(el); } }), 30);
+  }
   skip() {
     this.cancelRuns();
     this.releaseAll();
@@ -589,7 +606,7 @@ export class SwarmDirector {
   reset({ keepAgents = false } = {}) {
     this.cancelRuns();
     this.observers.splice(0).forEach(o => o.disconnect());
-    (this._safety || new Set()).forEach(clearInterval);
+    (this._safety || new Set()).forEach(clearTimeout);
     this._safety = new Set();
     this.releaseAll();
     this.layer.querySelectorAll(".sw-box,.sw-frag,.sw-guide,.trace-svg,.trace-head").forEach(n => n.remove());

@@ -3,7 +3,7 @@
 // Apps: MAD (events feed + detail), Gallery, Team, About, Join, Settings, plus Instagram/Website links.
 import { $, $$, esc, photoSrc, semKey, motion, icons } from "../core/util.js";
 import { loadData } from "../core/content.js";
-import { setTheme } from "../core/shell.js";
+import { setTheme, playMotion } from "../core/shell.js";
 
 const ICON = {
   team: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.4.2 4 1.8 4.5 4.3"/></svg>',
@@ -355,6 +355,9 @@ export class MadOS {
         <div class="ap-group">
           <label class="ap-set"><span><b>Graphite appearance</b><small>Switches the whole website, not just this phone</small></span>
             <input type="checkbox" role="switch" data-act="theme" ${dark ? "checked" : ""}></label>
+          <label class="ap-set"><span><b>Animations</b><small>Swarm build and motion across the site</small></span>
+            <input type="checkbox" role="switch" data-act="motion" ${motion.reduced ? "" : "checked"}></label>
+          <button type="button" class="ap-set" data-act="replay"><span><b>Replay the site build</b><small>Watch the swarm construct this page again</small></span><i>${icons.arrow}</i></button>
           <button type="button" class="ap-set" data-act="rebuild"><span><b>Rebuild this phone</b><small>Replay the particle build from the start</small></span><i>${icons.arrow}</i></button>
           ${this.onFullscreen ? `<button type="button" class="ap-set" data-act="full"><span><b>Full screen</b><small>Turn your screen into this phone</small></span><i>${icons.arrow}</i></button>` : ""}
         </div>
@@ -398,6 +401,8 @@ export class MadOS {
   action(act, el) {
     if (act === "theme") { setTheme(el.checked ? "dark" : "light"); buzz(6); }
     if (act === "rebuild") this.onRebuild && this.onRebuild();
+    if (act === "replay") playMotion();
+    if (act === "motion") { motion.override = el.checked ? "on" : "off"; if (el.checked) playMotion(); }
     if (act === "full") this.onFullscreen && this.onFullscreen();
     if (act === "year") {
       const page = el.closest(".app-page");

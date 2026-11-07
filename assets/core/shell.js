@@ -1,6 +1,6 @@
 // Persistent shell: floating glass navigation pill, mobile sheet, appearance toggle,
 // command palette, footer, draft banner and the optional developer HUD.
-import { $, $$, esc, icons, normalizeRoute, semKey, semYear, yearLabel } from "./util.js";
+import { $, $$, esc, icons, normalizeRoute, semKey, semYear, yearLabel, motion } from "./util.js";
 import { draftKeys } from "./content.js";
 
 export const NAV = [
@@ -68,7 +68,7 @@ export function buildShell(site, events, { navigate, director }) {
           <div><h4>Explore</h4><ul>${NAV.map(([h, t]) => `<li><a href="${h}">${t}</a></li>`).join("")}</ul></div>
           <div><h4>Event archive</h4><ul>${years.map(y => `<li><a href="events.html?y=${esc(y)}">${yearLabel(y)}</a></li>`).join("")}</ul></div>
         </div>
-        <div class="foot-legal"><span>&copy; ${new Date().getFullYear()} ${esc(site.full_name)}, ${esc(site.college_short)}. ${esc(site.tagline || "")}</span><span><a href="admin/">Editor</a></span></div>
+        <div class="foot-legal"><span>&copy; ${new Date().getFullYear()} ${esc(site.full_name)}, ${esc(site.college_short)}. ${esc(site.tagline || "")}</span><span><button type="button" class="linkish" id="replay-build">Replay the build</button> · <a href="admin/">Editor</a></span></div>
       </div>
     </footer>`);
 
@@ -92,8 +92,28 @@ export function buildShell(site, events, { navigate, director }) {
   sheet.addEventListener("click", e => e.target.closest("a") && setMenu(false));
   document.addEventListener("keydown", e => { if (e.key === "Escape") setMenu(false); });
 
+  $("#replay-build").onclick = () => playMotion();
+  motionNotice();
   wirePalette(site, events, navigate);
   wireDevHud(director);
+}
+
+// Turn animations on (overriding a reduced-motion device setting) and replay the build
+export function playMotion() {
+  if (motion.reduced) motion.override = "on";
+  $(".motion-chip")?.remove();
+  document.dispatchEvent(new CustomEvent("mad:replay"));
+}
+
+// Honour reduced motion, but say so, and offer a way in
+function motionNotice() {
+  if (!motion.osReduced || motion.override) return;
+  document.body.insertAdjacentHTML("beforeend", `<div class="motion-chip glass" role="status">
+    <span>Animations are paused because your device asks for reduced motion.</span>
+    <button type="button" class="btn sm primary" id="mc-play">Play animations</button>
+    <button type="button" class="mc-x" id="mc-x" aria-label="Keep animations off">&times;</button></div>`);
+  $("#mc-play").onclick = () => playMotion();
+  $("#mc-x").onclick = () => { motion.override = "off"; $(".motion-chip")?.remove(); };
 }
 
 export function markActive(route) {
@@ -137,6 +157,8 @@ function wirePalette(site, events, navigate) {
   const items = [
     ...NAV.map(([h, t]) => ({ g: "Page", t, run: () => navigate(h) })),
     ...[...events].sort((a, b) => semKey(b.semester) - semKey(a.semester)).map(e => ({ g: "Event", t: e.name, s: `${e.semester} · ${e.category || "Event"}`, run: () => navigate(`event.html?e=${encodeURIComponent(e.slug)}`) })),
+    { g: "Motion", t: "Replay the swarm build", run: () => playMotion() },
+    { g: "Motion", t: "Turn animations off", run: () => { motion.override = "off"; location.reload(); } },
     { g: "Appearance", t: "Toggle light / Graphite appearance", run: () => setTheme(root.dataset.theme === "dark" ? "light" : "dark") },
     { g: "Social", t: `Open Instagram ${site.instagram_handle}`, run: () => window.open(site.instagram, "_blank", "noopener") }
   ];

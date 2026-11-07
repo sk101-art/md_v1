@@ -53,8 +53,22 @@ export class Router {
       this.navigate(href);
     });
 
+    // Replay the whole-page swarm build on demand (Settings app, Ctrl+K, notice chip, footer)
+    document.addEventListener("mad:replay", () => this.replay());
+
     window.addEventListener("popstate", () => this.go(location.pathname.split("/").pop() + location.search, { push: false, restore: history.state && history.state.scroll }));
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+  }
+
+  async replay() {
+    const d = this.director;
+    if (!d.enabled) return;
+    d.reset();
+    window.scrollTo(0, 0);
+    const nav = document.getElementById("nav"), foot = document.querySelector("footer.foot");
+    d.hold(nav); d.hold(this.main); if (foot) d.hold(foot);
+    const wrap = { querySelectorAll: sel => [...nav.querySelectorAll(sel), ...this.main.querySelectorAll(sel), ...(foot ? foot.querySelectorAll(sel) : [])] };
+    await d.construct(wrap, { passes: 2 });
   }
 
   navigate(href) {

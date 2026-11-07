@@ -7,9 +7,20 @@ export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export const lerp = (a, b, t) => a + (b - a) * t;
 
 const rm = window.matchMedia("(prefers-reduced-motion: reduce)");
+// The device's reduced-motion setting is honoured by default; a visitor can explicitly
+// opt back in (Settings app, the notice chip, Ctrl+K, or ?motion in the URL).
 export const motion = {
+  get osReduced() { return rm.matches; },
+  get override() { try { return localStorage.getItem("mad_motion") || ""; } catch { return ""; } },
+  set override(v) { try { v ? localStorage.setItem("mad_motion", v) : localStorage.removeItem("mad_motion"); } catch {} },
   get reduced() {
-    try { if (new URLSearchParams(location.search).has("still")) return true; } catch {}
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.has("still")) return true;
+      if (q.has("motion")) return false;
+    } catch {}
+    if (this.override === "on") return false;
+    if (this.override === "off") return true;
     return rm.matches;
   }
 };
