@@ -316,17 +316,23 @@ export class PhoneBuilder {
     if (!slot || !d || !d.enabled) return this.os.launch("mad");
     const r = slot.getBoundingClientRect();
     const at = { x: r.left + scrollX + r.width * 0.55, y: r.top + scrollY + r.height * 0.55 };
-    const [a] = d._claim(1, at);
+    const [a, ...help] = d._claim(4, at);
     if (!a) return this.os.launch("mad");
+    // three helpers gather round the icon while the lead taps it
+    help.forEach((h, i) => {
+      const ang = -Math.PI / 2 + (i - 1) * 0.9, R = r.width * 0.95;
+      const p = { x: h.x, y: h.y };
+      gsap.to(p, { x: at.x + Math.cos(ang) * R, y: at.y - r.height * 0.2 + Math.sin(ang) * R, duration: 0.6 + i * 0.08, ease: "back.out(1.2)", onUpdate: () => h.place(p.x, p.y) });
+    });
     await new Promise(res => {
       const p = { x: a.x, y: a.y };
       gsap.to(p, { x: at.x, y: at.y, duration: 0.7, ease: "back.out(1.2)", onUpdate: () => a.place(p.x, p.y), onComplete: res });
     });
-    if (this.state !== "COMPLETE") { d.crew.release([a]); return; }
+    if (this.state !== "COMPLETE") { d.crew.release([a, ...help]); return; }
     d._click(a);
     slot.animate([{ transform: "scale(1)" }, { transform: "scale(.86)" }, { transform: "scale(1)" }], { duration: 260 });
     await this.os.launch("mad");
-    d.crew.release([a]);
+    d.crew.release([a, ...help]);
   }
 
   /** Fly a duplicate of the logo from an element (or rect) to an element; optional logo->icon morph. */

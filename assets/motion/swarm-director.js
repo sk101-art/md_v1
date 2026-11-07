@@ -342,6 +342,8 @@ export class SwarmDirector {
   // ---------- scheduler: agents claim the nearest of the next K layers ----------
   async _schedule(run, agents, layers, task) {
     const pending = [...layers];
+    const active = new Set();
+    let working = agents.length;
     const worker = async (agent, i) => {
       await wait(i * 45);
       while (pending.length && !run.cancelled) {
@@ -352,10 +354,44 @@ export class SwarmDirector {
           if (d < bd) { bd = d; best = k; }
         }
         const L = pending.splice(best, 1)[0];
+        active.add(L);
         try { await task(agent, L); } catch (e) { console.warn("[swarm]", e); this._release(L.el); }
+        active.delete(L);
+      }
+      working--;
+      // out of work: help whoever is still busy (hold a corner of their selection) until the
+      // whole job is done, so the crew finishes together instead of one builder working alone
+      let k = i;
+      while (working > 0 && !run.cancelled) {
+        const list = [...active];
+        if (!list.length) { await wait(60); continue; }
+        const L = list[k++ % list.length];
+        const r = L.rect, c = k % 4;
+        const x = r.x + (c % 2 ? r.w : 0) + (Math.random() - 0.5) * 10;
+        const y = r.y + (c > 1 ? r.h : 0) + (Math.random() - 0.5) * 10;
+        await this._move(run, agent, x, y, 1.1);
+        await wait(140 + Math.random() * 220);
       }
     };
     await Promise.all(agents.map(worker));
+  }
+
+  // helpers gather at the corners of a rect while a lead does the job
+  async _assist(run, helpers, rectFn, done) {
+    let finished = false;
+    done.then(() => (finished = true), () => (finished = true));
+    await Promise.all(helpers.map(async (a, i) => {
+      let c = i + 1;
+      while (!finished && !run.cancelled) {
+        const r = rectFn();
+        const x = r.x + ((c % 4) % 2 ? r.w : 0) + (Math.random() - 0.5) * 8;
+        const y = r.y + ((c % 4) > 1 ? r.h : 0) + (Math.random() - 0.5) * 8;
+        await this._move(run, a, x, y, 1.1);
+        if (Math.random() < 0.5) this._click(a);
+        await wait(160 + Math.random() * 200);
+        c++;
+      }
+    }));
   }
 
   _describe(els) {
@@ -406,7 +442,7 @@ export class SwarmDirector {
     let done = 0;
     const tick = () => { done++; if (hud) this._hud(true, this.agents.length, done, total, "Building"); };
 
-    if (!this.agents.length) this.agents = this._claim(Math.min(agents, Math.max(3, layers.length)), layers[0] && layers[0].rect);
+    if (!this.agents.length) this.agents = this._claim(Math.min(agents, Math.max(4, layers.length)), layers[0] && layers[0].rect);
     if (hud) this._hud(true, this.agents.length, 0, total, "Building");
 
     // placement marks where each layer will land
@@ -543,7 +579,7 @@ export class SwarmDirector {
     const run = new Run("mini");
     this.runs.add(run);
     const a = pageRect(el, 6);
-    const [agent] = this._claim(1, { x: a.x + a.w, y: a.y });
+    const [agent, ...helpers] = this._claim(4, { x: a.x + a.w, y: a.y });
     await this._move(run, agent, a.x + a.w - 8, a.y - 10, 0.7);
     this._click(agent);
     const b = this._box(a, { fill: "clear", color });
@@ -552,14 +588,20 @@ export class SwarmDirector {
       await mutate();
       const z = pageRect(el, 6);
       const s = { ...a };
+      const corners = (q) => [[q.x, q.y], [q.x, q.y + q.h], [q.x + q.w, q.y + q.h]];
+      helpers.forEach((h, i) => { const [hx, hy] = corners(a)[i]; this._move(run, h, hx, hy, 0.6); });
       await this._tween(run, s, {
         x: z.x, y: z.y, w: z.w, h: z.h, duration: 0.42, ease: "power3.out",
-        onUpdate: () => { this._setBox(b, s); agent.place(s.x + s.w - 8, s.y + s.h - 8); }
+        onUpdate: () => {
+          this._setBox(b, s); agent.place(s.x + s.w - 8, s.y + s.h - 8);
+          // helpers ride the frame's other corners only once they have reached them
+          corners(s).forEach(([hx, hy], i) => { const h = helpers[i]; if (h && Math.hypot(h.x - hx, h.y - hy) < 30) h.place(hx, hy); });
+        }
       });
       await wait(120);
     } finally {
       gsap.to(b, { opacity: 0, duration: 0.2, onComplete: () => b.remove() });
-      this.crew.release([agent]);
+      this.crew.release([agent, ...helpers]);
       run.cancel();
       this.runs.delete(run);
     }
@@ -592,7 +634,7 @@ export class SwarmDirector {
     const run = new Run("mini");
     this.runs.add(run);
     const ox = host.left + window.scrollX, oy = host.top + window.scrollY;
-    const [agent] = this._claim(1, { x: ox + pts[0].x, y: oy + pts[0].y });
+    const [agent, ...helpers] = this._claim(3, { x: ox + pts[0].x, y: oy + pts[0].y });
     try {
       await this._move(run, agent, ox + pts[0].x, oy + pts[0].y, 0.8);
       this._click(agent);
@@ -616,6 +658,7 @@ export class SwarmDirector {
             draw.style.strokeDashoffset = `${len * (1 - s.p)}`;
             const pt = path.getPointAtLength(len * s.p);
             agent.place(ox + pt.x, oy + pt.y);
+            helpers.forEach((h, i) => { const q = path.getPointAtLength(Math.max(0, len * s.p - 26 * (i + 1))); h.place(ox + q.x - 14 * (i + 1), oy + q.y); });
           }
         });
         path.style.opacity = "";
@@ -623,7 +666,7 @@ export class SwarmDirector {
         void mask;
       }
     } finally {
-      this.crew.release([agent]);
+      this.crew.release([agent, ...helpers]);
       run.cancel();
       this.runs.delete(run);
     }
@@ -678,8 +721,11 @@ export class SwarmDirector {
     const layers = this._describe(els);
     layers.forEach(L => this.inFlight.add(L.el));
     els.filter(el => !layers.some(L => L.el === el)).forEach(el => this._release(el));
-    const n = clamp(Math.ceil(layers.length / 2), 1, 5);
-    const agents = this._claim(n, layers[0] && layers[0].rect);
+    const n = clamp(Math.ceil(layers.length / 2), 3, 5);
+    // wait (briefly) until a proper team is free rather than sending one builder alone
+    const t0 = performance.now();
+    while (this.crew.available < 3 && performance.now() - t0 < 5000 && !run.cancelled) await wait(90);
+    const agents = this._claim(Math.max(1, Math.min(n, this.crew.available || 1)), layers[0] && layers[0].rect);
     const quick = async (agent, L) => {
       await this._move(run, agent, L.rect.x, L.rect.y, 0.7);
       if (run.cancelled) return;
