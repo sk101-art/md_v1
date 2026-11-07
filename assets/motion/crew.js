@@ -61,7 +61,11 @@ export class Crew {
       const ang = -Math.PI / 2 + (i / CREW_SIZE) * Math.PI * 2;
       return { x: Math.cos(ang) * R, y: Math.sin(ang) * R, ang };
     };
-    const centre = () => ({ x: window.scrollX + window.innerWidth / 2, y: window.scrollY + window.innerHeight / 2 - 16 });
+    let boxEl = null;
+    const centre = () => {
+      if (boxEl) { const r = boxEl.getBoundingClientRect(); return { x: r.left + r.width / 2 + window.scrollX, y: r.top + r.height / 2 + window.scrollY }; }
+      return { x: window.scrollX + document.documentElement.clientWidth / 2, y: window.scrollY + document.documentElement.clientHeight / 2 - 16 };
+    };
     this.introCentre = centre;
 
     const stage = document.createElement("div");
@@ -72,6 +76,7 @@ export class Crew {
     document.body.append(stage);
     this.stage = stage;
     const box = stage.querySelector(".crew-box");
+    boxEl = box;
     const svg = makeSvg(box, BOX, BOX, "crew-svg");
     const nodes = Array.from({ length: CREW_SIZE }, (_, i) => {
       const n = document.createElement("i");
@@ -86,7 +91,8 @@ export class Crew {
 
     // builders sit in their nodes; keep them there if the viewport changes size
     let seated = 0;
-    const seat = () => { const c = centre(); for (let i = 0; i < seated; i++) { const p = off(i); this.agents[i].place(c.x + p.x, c.y + p.y); } };
+    // seat each builder at the measured centre of its own node (immune to scrollbars, zoom, resizes)
+    const seat = () => { for (let i = 0; i < seated; i++) { const r = nodes[i].getBoundingClientRect(); this.agents[i].place(r.left + r.width / 2 + window.scrollX, r.top + r.height / 2 + window.scrollY); } };
     const onResize = () => { if (this.pause) seat(); if (this.anchor) this.anchor = centre(); };
     window.addEventListener("resize", onResize);
 
