@@ -5,7 +5,52 @@
       "name": "Mindspark'23",
       "semester": "23-24 Odd Sem",
       "flagship": true,
-      "description": "Our first flagship event: WikiWhiz, UI Clash and CodeMaze over 3 rounds with 150+ participants.",
+      "status": "completed",
+      "category": "Flagship Challenge",
+      "start_at": "2023-10-18T09:30:00+05:30",
+      "end_at": "2023-10-18T16:30:00+05:30",
+      "timezone": "Asia/Kolkata",
+      "venue": "Falcon Auditorium & CS Labs",
+      "address_hint": "NHCE Campus, Outer Ring Road, Bengaluru",
+      "description": "Our inaugural flagship event: WikiWhiz, UI Clash and CodeMaze over 3 intense rounds with 150+ enthusiastic participants.",
+      "poster": "photos/mindspark23/1.jpeg",
+      "registration_url": "",
+      "team_size": "Teams of 2 to 3",
+      "eligibility": "Open to all NHCE engineering and MCA students",
+      "rounds": [
+        {
+          "round": "01",
+          "title": "WikiWhiz",
+          "time": "09:30 AM - 11:00 AM",
+          "summary": "Rapid-fire technical speed run and digital scavenger hunt testing computer science fundamentals and quick problem-solving."
+        },
+        {
+          "round": "02",
+          "title": "UI Clash",
+          "time": "11:30 AM - 01:30 PM",
+          "summary": "Figma-based high-fidelity mobile UI prototyping challenge under restrictive design constraints."
+        },
+        {
+          "round": "03",
+          "title": "CodeMaze",
+          "time": "02:30 PM - 04:30 PM",
+          "summary": "Algorithmic debugging and live app feature implementation against the clock."
+        }
+      ],
+      "highlights": [
+        "Over 150 participants from 6 academic departments",
+        "3 progressively challenging rounds",
+        "Cash prizes and official MAD Club certificates"
+      ],
+      "prizes": [
+        { "position": "1st Place", "reward": "Cash Prize + Trophy + Certificate of Merit" },
+        { "position": "2nd Place", "reward": "Cash Prize + Certificate of Merit" },
+        { "position": "Best UI/UX", "reward": "Special Jury Mention + Merch" }
+      ],
+      "faq": [
+        { "q": "Who was eligible?", "a": "All enrolled students at New Horizon College of Engineering." },
+        { "q": "Were laptops required?", "a": "Yes, at least one laptop per team with Figma and Android Studio/VS Code installed." }
+      ],
       "photos": [
         "photos/mindspark23/1.jpeg",
         "photos/mindspark23/2.jpg",
@@ -30,7 +75,44 @@
       "name": "InnoWave'24",
       "semester": "23-24 Odd Sem",
       "flagship": true,
-      "description": "Trivial Battle and Pitchpoint over 2 rounds with 150+ participants. Held January 2024.",
+      "status": "completed",
+      "category": "Hackathon & Pitch",
+      "start_at": "2024-01-19T10:00:00+05:30",
+      "end_at": "2024-01-19T17:00:00+05:30",
+      "timezone": "Asia/Kolkata",
+      "venue": "MBA Seminar Hall & IoT Labs",
+      "address_hint": "NHCE Campus, Bengaluru",
+      "description": "Trivia Battle and PitchPoint over 2 rounds with 150+ participants. Innovate, architect and pitch breakthrough mobile solutions.",
+      "poster": "photos/innowave24/1.jpeg",
+      "registration_url": "",
+      "team_size": "Teams of 2 to 4",
+      "eligibility": "All branches and semesters",
+      "rounds": [
+        {
+          "round": "01",
+          "title": "Trivia Battle",
+          "time": "10:00 AM - 11:30 AM",
+          "summary": "Deep dive technical trivia into modern mobile architectures, Flutter, React Native, Kotlin and iOS ecosystems."
+        },
+        {
+          "round": "02",
+          "title": "PitchPoint",
+          "time": "01:00 PM - 04:30 PM",
+          "summary": "Live prototype demonstration and elevator pitch in front of industry mentors and faculty judges."
+        }
+      ],
+      "highlights": [
+        "150+ student builders engaged",
+        "Live mobile prototypes showcased to startup founders",
+        "Hands-on mentorship sessions during the pitching round"
+      ],
+      "prizes": [
+        { "position": "Winner", "reward": "Prize Pool + Incubation Guidance" },
+        { "position": "Runner Up", "reward": "Prize Pool + Certificate" }
+      ],
+      "faq": [
+        { "q": "What tech stack was supported?", "a": "Any mobile tech: Flutter, Kotlin/Java, Swift/SwiftUI, React Native or PWA." }
+      ],
       "photos": [
         "photos/innowave24/1.jpeg",
         "photos/innowave24/2.jpeg",
@@ -42,7 +124,50 @@
       "name": "TechSync'24",
       "semester": "23-24 Even Sem",
       "flagship": true,
-      "description": "A cross-club event with 4 clubs: Visual Recall, Car Racing and Construction over 3 rounds.",
+      "status": "completed",
+      "category": "Multi-Club Arena",
+      "start_at": "2024-05-10T09:00:00+05:30",
+      "end_at": "2024-05-10T17:00:00+05:30",
+      "timezone": "Asia/Kolkata",
+      "venue": "Campus Grounds & Tech Quad",
+      "address_hint": "NHCE Campus, Bengaluru",
+      "description": "A cross-club flagship event uniting 4 clubs: Visual Recall, Car Racing and Construction challenges over 3 rounds.",
+      "poster": "photos/techsync24/1.jpg",
+      "registration_url": "",
+      "team_size": "Teams of 3",
+      "eligibility": "Open campus registration",
+      "rounds": [
+        {
+          "round": "01",
+          "title": "Visual Recall",
+          "time": "09:30 AM - 11:00 AM",
+          "summary": "High-speed visual memory and pattern recognition challenge using real-time app telemetry."
+        },
+        {
+          "round": "02",
+          "title": "Car Racing Tech Arena",
+          "time": "11:30 AM - 01:30 PM",
+          "summary": "Mobile-controlled telemetry and obstacle navigation course."
+        },
+        {
+          "round": "03",
+          "title": "Tower & Code Construction",
+          "time": "02:30 PM - 04:30 PM",
+          "summary": "Integrated physical building and logical constraint problem-solving."
+        }
+      ],
+      "highlights": [
+        "Co-hosted with 3 partner tech clubs at NHCE",
+        "Over 200 participants across outdoor and lab tracks",
+        "Dynamic real-time scoreboard app developed by MAD Club"
+      ],
+      "prizes": [
+        { "position": "Overall Champions", "reward": "Grand Trophy + Cash Awards" },
+        { "position": "Track Winners", "reward": "Category Medals + Certificates" }
+      ],
+      "faq": [
+        { "q": "Which clubs participated?", "a": "MAD Club, Robotics Club, IEEE Student Branch, and Developers Guild." }
+      ],
       "photos": [
         "photos/techsync24/1.jpg",
         "photos/techsync24/2.jpg",
@@ -61,7 +186,43 @@
       "name": "Connect'24",
       "semester": "23-24 Even Sem",
       "flagship": true,
-      "description": "Flagship networking and collaboration event.",
+      "status": "completed",
+      "category": "Summit & Demo Day",
+      "start_at": "2024-06-07T10:00:00+05:30",
+      "end_at": "2024-06-07T16:00:00+05:30",
+      "timezone": "Asia/Kolkata",
+      "venue": "Auditorium Main Stage",
+      "address_hint": "NHCE Campus, Bengaluru",
+      "description": "Flagship networking, product showcase and mobile development collaboration summit uniting developers and designers.",
+      "poster": "photos/connect24/1.jpg",
+      "registration_url": "",
+      "team_size": "Individual or Teams",
+      "eligibility": "Students, Alumni & Guest Creators",
+      "rounds": [
+        {
+          "round": "01",
+          "title": "Keynote & Tech Showcase",
+          "time": "10:00 AM - 12:00 PM",
+          "summary": "Next-generation mobile ecosystems, on-device AI and Flutter 3 architecture breakdown."
+        },
+        {
+          "round": "02",
+          "title": "Project Showcase & Networking",
+          "time": "01:30 PM - 04:00 PM",
+          "summary": "Interactive showcase stations where club members demoed live iOS and Android builds."
+        }
+      ],
+      "highlights": [
+        "Showcase of student-built apps including Evently and Treasure Hunt",
+        "Interactive Q&A with senior mobile architects",
+        "Club achievement retrospectives and honors"
+      ],
+      "prizes": [
+        { "position": "Best Student App of the Year", "reward": "MAD Club Excellence Award" }
+      ],
+      "faq": [
+        { "q": "Were external participants allowed?", "a": "Yes, invitees and guest mentors joined the demo sessions." }
+      ],
       "photos": [
         "photos/connect24/1.jpg",
         "photos/connect24/2.jpg",
@@ -74,7 +235,42 @@
       "name": "Pixel Pursuit'24",
       "semester": "24-25 Odd Sem",
       "flagship": false,
-      "description": "A pixel-themed challenge event.",
+      "status": "completed",
+      "category": "Design & UI Sprint",
+      "start_at": "2024-11-15T11:00:00+05:30",
+      "end_at": "2024-11-15T16:00:00+05:30",
+      "timezone": "Asia/Kolkata",
+      "venue": "Computer Science Lab 3",
+      "address_hint": "NHCE Campus, Bengaluru",
+      "description": "A high-octane pixel-themed UI design sprint and micro-interaction challenge for frontend and mobile enthusiasts.",
+      "poster": "photos/pixel-pursuit24/1.jpg",
+      "registration_url": "",
+      "team_size": "Solo or Duos",
+      "eligibility": "All students with a passion for UX/UI",
+      "rounds": [
+        {
+          "round": "01",
+          "title": "Speed Pixel Sprint",
+          "time": "11:00 AM - 01:00 PM",
+          "summary": "Rapid wireframing of an interactive game dashboard."
+        },
+        {
+          "round": "02",
+          "title": "Micro-Motion Showdown",
+          "time": "02:00 PM - 04:00 PM",
+          "summary": "Prototyping dynamic state transitions, haptics and particle micro-interactions."
+        }
+      ],
+      "highlights": [
+        "Hands-on workshop on design systems and tokenized components",
+        "Peer critique circles and live Figma design battles"
+      ],
+      "prizes": [
+        { "position": "Top Designer", "reward": "Design Kit + Certificate" }
+      ],
+      "faq": [
+        { "q": "Did participants need prior design experience?", "a": "No, a 30-minute primer was conducted before round 1." }
+      ],
       "photos": [
         "photos/pixel-pursuit24/1.jpg"
       ]
@@ -84,7 +280,50 @@
       "name": "Codathon",
       "semester": "24-25 Even Sem",
       "flagship": false,
-      "description": "A coding marathon for all students.",
+      "status": "completed",
+      "category": "Coding Marathon",
+      "start_at": "2025-03-21T09:30:00+05:30",
+      "end_at": "2025-03-21T17:30:00+05:30",
+      "timezone": "Asia/Kolkata",
+      "venue": "Central Computing Lab",
+      "address_hint": "NHCE Campus, Bengaluru",
+      "description": "An 8-hour continuous mobile coding marathon challenging students to build full-stack native mobile features from scratch.",
+      "poster": "photos/codathon/1.png",
+      "registration_url": "",
+      "team_size": "Teams of 2 to 3",
+      "eligibility": "All engineering departments",
+      "rounds": [
+        {
+          "round": "01",
+          "title": "Problem Statement Release & Architecture",
+          "time": "09:30 AM - 11:30 AM",
+          "summary": "Selecting track (Health, Campus Life, FinTech) and writing clean entity architectures."
+        },
+        {
+          "round": "02",
+          "title": "Continuous Sprint & API Integrations",
+          "time": "11:30 AM - 04:00 PM",
+          "summary": "Building functional screens, local persistence and REST/GraphQL backends."
+        },
+        {
+          "round": "03",
+          "title": "Live Device Emulation & Judging",
+          "time": "04:30 PM - 05:30 PM",
+          "summary": "Deploying APKs to physical test devices and live evaluation."
+        }
+      ],
+      "highlights": [
+        "Real-time API endpoints provided by the club",
+        "Over 25 complete mobile apps submitted and reviewed",
+        "Mentors on call for debugging Flutter and native issues"
+      ],
+      "prizes": [
+        { "position": "Codathon Champion", "reward": "Prize Pool + Project Funding" },
+        { "position": "Best Architecture", "reward": "Developer Swag + Certificate" }
+      ],
+      "faq": [
+        { "q": "Were pre-built templates permitted?", "a": "Only boilerplate starter templates with zero business logic were allowed." }
+      ],
       "photos": [
         "photos/codathon/1.png"
       ]
@@ -93,8 +332,53 @@
       "slug": "appsylum25",
       "name": "Appsylum'25",
       "semester": "25-26 Odd Sem",
-      "flagship": false,
-      "description": "App building showdown.",
+      "flagship": true,
+      "status": "open",
+      "category": "Flagship Hackathon",
+      "start_at": "2026-11-28T09:00:00+05:30",
+      "end_at": "2026-11-29T18:00:00+05:30",
+      "timezone": "Asia/Kolkata",
+      "venue": "NHCE Innovation & Incubation Center",
+      "address_hint": "Outer Ring Road, Marathahalli, Bengaluru",
+      "description": "Our biggest mobile app showdown yet: 36 hours of relentless ideation, mobile craftsmanship, and breakthrough product launches.",
+      "poster": "",
+      "registration_url": "contact.html?intent=register&event=appsylum25",
+      "team_size": "Teams of 2 to 4",
+      "eligibility": "Open to all college students across India",
+      "rounds": [
+        {
+          "round": "01",
+          "title": "System Design & Prototype Checkpoint",
+          "time": "Day 1 - 02:00 PM",
+          "summary": "Figma flows and foundational data schema defense."
+        },
+        {
+          "round": "02",
+          "title": "Alpha Deployment Checkpoint",
+          "time": "Day 2 - 08:00 AM",
+          "summary": "Working builds running on iOS simulator or Android physical device."
+        },
+        {
+          "round": "03",
+          "title": "Grand Jury Demo & Pitch",
+          "time": "Day 2 - 03:00 PM",
+          "summary": "Live stage demonstrations with investor and engineering leads."
+        }
+      ],
+      "highlights": [
+        "INR 50,000+ total prize pool",
+        "Direct fast-track interview opportunities for top builders",
+        "Cloud credits, free domain names, and developer swag kits"
+      ],
+      "prizes": [
+        { "position": "1st Prize", "reward": "₹25,000 + Trophy + Incubation Grant" },
+        { "position": "2nd Prize", "reward": "₹15,000 + Trophy + Swag" },
+        { "position": "Best Flutter App", "reward": "₹10,000 Special Prize" }
+      ],
+      "faq": [
+        { "q": "Is food and accommodation provided?", "a": "Yes, meals, caffeine, and designated rest zones are fully provided for the duration." },
+        { "q": "Can beginners participate?", "a": "Absolutely! We run beginner tracks with dedicated mentors to assist with setup." }
+      ],
       "photos": []
     },
     {
@@ -102,7 +386,43 @@
       "name": "Game Design'26",
       "semester": "25-26 Even Sem",
       "flagship": false,
-      "description": "Game design challenge.",
+      "status": "upcoming",
+      "category": "Interactive & Gaming",
+      "start_at": "2027-02-14T10:00:00+05:30",
+      "end_at": "2027-02-14T17:00:00+05:30",
+      "timezone": "Asia/Kolkata",
+      "venue": "Multimedia & Graphics Studio",
+      "address_hint": "NHCE Campus, Bengaluru",
+      "description": "Mobile game design, physics engines, and real-time multiplayer mobile gameplay challenge using Flutter Flame and Unity.",
+      "poster": "",
+      "registration_url": "contact.html?intent=register&event=game-design26",
+      "team_size": "Teams of 1 to 3",
+      "eligibility": "All enrolled college students",
+      "rounds": [
+        {
+          "round": "01",
+          "title": "Game Mechanics & Art Asset Sprint",
+          "time": "10:00 AM - 01:00 PM",
+          "summary": "Concept art, tilemaps and core game loop architecture."
+        },
+        {
+          "round": "02",
+          "title": "Playable Build & Battle Test",
+          "time": "02:00 PM - 05:00 PM",
+          "summary": "Multiplayer latency testing and peer gameplay voting."
+        }
+      ],
+      "highlights": [
+        "Hands-on workshop on sprite sheets, collision detection, and audio loops",
+        "Peer play-testing tournament on giant projection screens"
+      ],
+      "prizes": [
+        { "position": "Best Gameplay", "reward": "Gaming Headsets + Trophies" },
+        { "position": "Best Visual Design", "reward": "Graphic Tablets + Certificates" }
+      ],
+      "faq": [
+        { "q": "Do we have to use Unity?", "a": "No, you may use Godot, Flutter Flame, or custom Canvas/WebGL engines." }
+      ],
       "photos": []
     },
     {
@@ -110,7 +430,43 @@
       "name": "Gitout'26",
       "semester": "25-26 Even Sem",
       "flagship": false,
-      "description": "Hands-on Git and collaboration event.",
+      "status": "upcoming",
+      "category": "Workshop & Hack",
+      "start_at": "2027-04-10T10:30:00+05:30",
+      "end_at": "2027-04-10T16:30:00+05:30",
+      "timezone": "Asia/Kolkata",
+      "venue": "Open Source Innovation Lab",
+      "address_hint": "NHCE Campus, Bengaluru",
+      "description": "Hands-on collaborative Git workflows, open-source contribution sprint, merge conflict survival games, and automated CI/CD for mobile apps.",
+      "poster": "",
+      "registration_url": "contact.html?intent=register&event=gitout26",
+      "team_size": "Individual",
+      "eligibility": "Open to all students",
+      "rounds": [
+        {
+          "round": "01",
+          "title": "Merge Hell & Rebase Escapes",
+          "time": "10:30 AM - 12:30 PM",
+          "summary": "Resolving complex Git octopus merges, interactive rebases and cherry-picks."
+        },
+        {
+          "round": "02",
+          "title": "Live Open Source Mobile PR Sprint",
+          "time": "01:30 PM - 04:30 PM",
+          "summary": "Submitting genuine Pull Requests to verified mobile open-source projects on GitHub."
+        }
+      ],
+      "highlights": [
+        "Real Pull Requests to production repositories",
+        "Exclusive Git Master stickers and GitHub swag",
+        "Mastering mobile CI/CD pipelines with GitHub Actions"
+      ],
+      "prizes": [
+        { "position": "Top Contributor", "reward": "Mechanical Keyboard + Merch" }
+      ],
+      "faq": [
+        { "q": "Do I need a GitHub account beforehand?", "a": "Yes, please have an active GitHub account and Git CLI installed." }
+      ],
       "photos": []
     }
   ]

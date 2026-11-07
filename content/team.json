@@ -1,20 +1,139 @@
 {
   "current_year": "2025-26",
   "current": [
-    { "name": "Sujay K", "role": "President" },
-    { "name": "Manushree M", "role": "Vice President" },
-    { "name": "Sathvikha Manish", "role": "Secretary" },
-    { "name": "Marylin Nithika", "role": "Treasurer" },
-    { "name": "Hari Prasad S", "role": "Program Committee Chair" },
-    { "name": "Prajna R", "role": "Program Committee Vice Chair" },
-    { "name": "Poojitha Subramanyam", "role": "Project Committee Chair" },
-    { "name": "Rajeev Sharma", "role": "Project Committee Vice Chair" },
-    { "name": "Mohammed Faidh", "role": "Marketing Committee Chair" },
-    { "name": "Mrinal Satheesh", "role": "Marketing Committee Vice Chair" },
-    { "name": "Sanjay Padmaraj", "role": "Review Committee Chair" }
+    {
+      "name": "Sujay K",
+      "role": "President",
+      "committee": "Leadership",
+      "bio": "Directs overall club vision, leads cross-committee architecture, and drives campus-wide mobile initiatives.",
+      "specialties": ["Flutter", "Product Strategy", "System Architecture"],
+      "github": "https://github.com/sk101-art",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    },
+    {
+      "name": "Manushree M",
+      "role": "Vice President",
+      "committee": "Leadership",
+      "bio": "Coordinates executive operations, partnerships, and oversees seamless execution across flagship events.",
+      "specialties": ["Operations", "Mobile UX", "Team Dynamics"],
+      "github": "",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    },
+    {
+      "name": "Sathvikha Manish",
+      "role": "Secretary",
+      "committee": "Leadership",
+      "bio": "Manages official club documentation, communications, institutional liaisons, and scheduling.",
+      "specialties": ["Technical Writing", "Comms", "Governance"],
+      "github": "",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    },
+    {
+      "name": "Marylin Nithika",
+      "role": "Treasurer",
+      "committee": "Leadership",
+      "bio": "Oversees financial planning, budget allocations, event sponsorships, and resource procurement.",
+      "specialties": ["Financial Modeling", "Sponsorship", "Budgeting"],
+      "github": "",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    },
+    {
+      "name": "Hari Prasad S",
+      "role": "Program Committee Chair",
+      "committee": "Program",
+      "bio": "Curates hackathon challenge tracks, technical problem statements, and live competition structures.",
+      "specialties": ["Algorithms", "Round Design", "Mentorship"],
+      "github": "https://github.com",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    },
+    {
+      "name": "Prajna R",
+      "role": "Program Committee Vice Chair",
+      "committee": "Program",
+      "bio": "Coordinates speaker sessions, hands-on workshop schedules, and participant onboarding.",
+      "specialties": ["Workshops", "Event Logistics", "Community"],
+      "github": "",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    },
+    {
+      "name": "Poojitha Subramanyam",
+      "role": "Project Committee Chair",
+      "committee": "Project",
+      "bio": "Leads internal technical initiatives, member project incubations, and open-source tooling.",
+      "specialties": ["Full-Stack Mobile", "Firebase", "State Management"],
+      "github": "https://github.com",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    },
+    {
+      "name": "Rajeev Sharma",
+      "role": "Project Committee Vice Chair",
+      "committee": "Project",
+      "bio": "Mentors beginner developers through Flutter sprints and ensures high-quality app submissions.",
+      "specialties": ["Android Native", "Kotlin", "Clean Architecture"],
+      "github": "https://github.com",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    },
+    {
+      "name": "Mohammed Faidh",
+      "role": "Marketing Committee Chair",
+      "committee": "Marketing",
+      "bio": "Commands visual branding, digital outreach campaigns, motion graphics, and social engagement.",
+      "specialties": ["Brand Identity", "Motion Design", "Visual Media"],
+      "github": "",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    },
+    {
+      "name": "Mrinal Satheesh",
+      "role": "Marketing Committee Vice Chair",
+      "committee": "Marketing",
+      "bio": "Drives content strategy, campus influencer collaborations, and event buzz generation.",
+      "specialties": ["Content Strategy", "Video Production", "Copywriting"],
+      "github": "",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    },
+    {
+      "name": "Sanjay Padmaraj",
+      "role": "Review Committee Chair",
+      "committee": "Review",
+      "bio": "Guarantees technical rigor, audits project codebases, and designs judging rubrics for hackathons.",
+      "specialties": ["Code Review", "App Security", "QA Automation"],
+      "github": "https://github.com/123sanjaypadmaraj",
+      "linkedin": "https://linkedin.com",
+      "portrait": ""
+    }
   ],
   "earlier": [
-    { "name": "Chiranjeevi", "role": "President", "year": "2024-25" },
-    { "name": "Likitha K", "role": "Vice President", "year": "2024-25" }
+    {
+      "name": "Chiranjeevi",
+      "role": "President",
+      "year": "2024-25",
+      "committee": "Alumni",
+      "bio": "Pioneered the expansion into cross-club hackathons and established MAD Club's core project incubation.",
+      "specialties": ["Leadership", "Community Building"],
+      "github": "",
+      "linkedin": "",
+      "portrait": ""
+    },
+    {
+      "name": "Likitha K",
+      "role": "Vice President",
+      "year": "2024-25",
+      "committee": "Alumni",
+      "bio": "Spearheaded operational excellence across InnoWave and TechSync while expanding female builder participation.",
+      "specialties": ["Event Direction", "Creative Strategy"],
+      "github": "",
+      "linkedin": "",
+      "portrait": ""
+    }
   ]
 }

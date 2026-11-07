@@ -1,3 +1,3 @@
 User-agent: *
 Disallow: /admin/
-Sitemap: https://123sanjaypadmaraj.github.io/MD-Club-Website-Personal/sitemap.xml
+Sitemap: https://sk101-art.github.io/md_v1/sitemap.xml

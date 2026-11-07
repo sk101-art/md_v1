@@ -1,16 +1,15 @@
-# Decap CMS config. Setup steps are in README.md.
+# Decap CMS config for MAD Club
 backend:
   name: github
-  repo: YOUR_GITHUB_USERNAME/YOUR_REPO   # e.g. 123sanjaypadmaraj/md-club
+  repo: sk101-art/md_v1
   branch: main
-  # base_url: https://YOUR-OAUTH-PROXY     # only if the site is NOT on Netlify (see README)
 
 local_backend: true   # lets `npx decap-server` edit files locally without logging in
 
 media_folder: photos
 public_folder: /photos
-site_url: https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO
-display_url: https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPO
+site_url: https://sk101-art.github.io/md_v1
+display_url: https://sk101-art.github.io/md_v1
 
 collections:
   - name: pages
@@ -28,6 +27,8 @@ collections:
           - { name: tagline, label: Tagline, widget: string }
           - { name: instagram, label: Instagram URL, widget: string }
           - { name: instagram_handle, label: Instagram handle, widget: string }
+          - { name: github, label: GitHub URL, widget: string, required: false }
+          - { name: hero_badge, label: Hero Eyebrow Badge, widget: string }
           - { name: hero_title, label: Home headline, widget: text }
           - { name: hero_lead, label: Home intro paragraph, widget: text }
           - name: stats
@@ -36,11 +37,20 @@ collections:
             fields:
               - { name: value, label: Figure, widget: string }
               - { name: label, label: Label, widget: string }
+          - name: learning_pipeline
+            label: Learning Pipeline
+            widget: list
+            fields:
+              - { name: step, label: Step Number, widget: string }
+              - { name: name, label: Phase Name, widget: string }
+              - { name: tag, label: Focus Tag, widget: string }
+              - { name: desc, label: Description, widget: text }
           - name: highlights
             label: Highlights
             widget: list
             fields:
               - { name: title, label: Title, widget: string }
+              - { name: tag, label: Tag, widget: string }
               - { name: text, label: Text, widget: text }
           - { name: why_title, label: Why-join heading, widget: string }
           - { name: why_lead, label: Why-join intro, widget: text }
@@ -56,21 +66,34 @@ collections:
             label: About page
             widget: object
             fields:
+              - { name: manifesto_quote, label: Manifesto Quote, widget: text }
               - { name: who, label: Who we are, widget: text }
               - { name: objective, label: Objective, widget: text }
               - { name: outcomes, label: Outcomes, widget: text }
-              - name: functions
-                label: What we do
+              - name: timeline
+                label: Timeline
                 widget: list
                 fields:
+                  - { name: year, label: Year, widget: string }
                   - { name: title, label: Title, widget: string }
-                  - { name: text, label: Text, widget: text }
+                  - { name: desc, label: Description, widget: text }
+              - name: committees
+                label: Committees
+                widget: list
+                fields:
+                  - { name: name, label: Name, widget: string }
+                  - { name: role, label: Domain / Role, widget: string }
+                  - { name: desc, label: Description, widget: text }
           - name: contact
             label: Contact page
             widget: object
             fields:
               - { name: coordinators, label: Coordinators, widget: string }
-              - { name: form_endpoint, label: "Form endpoint (Formspree URL, leave empty to hide the form)", widget: string, required: false }
+              - { name: faculty_advisor, label: Faculty Advisor, widget: string }
+              - { name: location, label: Physical Location, widget: string }
+              - { name: email, label: Email, widget: string }
+              - { name: form_endpoint, label: Form endpoint (Formspree URL), widget: string, required: false }
+
       - name: events
         label: Events
         file: content/events.json
@@ -78,14 +101,54 @@ collections:
           - name: events
             label: Events
             widget: list
-            summary: "{{fields.name}} - {{fields.semester}}"
+            summary: "{{fields.name}} - {{fields.semester}} [{{fields.status}}]"
             fields:
               - { name: slug, label: URL slug (letters, numbers, dashes), widget: string, pattern: ['^[a-z0-9-]+$', 'Use lowercase letters, numbers and dashes only'] }
               - { name: name, label: Name, widget: string }
-              - { name: semester, label: "Semester (e.g. 24-25 Odd Sem)", widget: string, pattern: ['^\d\d-\d\d (Odd|Even) Sem$', 'Use the form 24-25 Odd Sem'] }
+              - { name: semester, label: Semester, widget: string, pattern: ['^\d\d-\d\d (Odd|Even) Sem$', 'Use the form 24-25 Odd Sem'] }
               - { name: flagship, label: Flagship event, widget: boolean, default: false }
+              - { name: status, label: Status, widget: select, options: ["upcoming", "open", "completed", "archived"], default: "completed" }
+              - { name: category, label: Category, widget: string }
+              - { name: start_at, label: Start Date/Time (ISO), widget: string, required: false }
+              - { name: end_at, label: End Date/Time (ISO), widget: string, required: false }
+              - { name: timezone, label: Timezone, widget: string, default: "Asia/Kolkata" }
+              - { name: venue, label: Venue, widget: string, required: false }
+              - { name: address_hint, label: Address Hint, widget: string, required: false }
               - { name: description, label: Description, widget: text }
-              - { name: photos, label: Photos, widget: list, field: { name: photo, label: Photo, widget: image }, required: false }
+              - { name: poster, label: Poster image path, widget: string, required: false }
+              - { name: registration_url, label: Registration Link, widget: string, required: false }
+              - { name: team_size, label: Team Size, widget: string, required: false }
+              - { name: eligibility, label: Eligibility, widget: string, required: false }
+              - name: rounds
+                label: Rounds / Schedule
+                widget: list
+                required: false
+                fields:
+                  - { name: round, label: Round #, widget: string }
+                  - { name: title, label: Title, widget: string }
+                  - { name: time, label: Time, widget: string }
+                  - { name: summary, label: Summary, widget: text }
+              - name: highlights
+                label: Highlights
+                widget: list
+                required: false
+                field: { name: highlight, label: Highlight item, widget: string }
+              - name: prizes
+                label: Prizes
+                widget: list
+                required: false
+                fields:
+                  - { name: position, label: Position, widget: string }
+                  - { name: reward, label: Reward, widget: string }
+              - name: faq
+                label: FAQs
+                widget: list
+                required: false
+                fields:
+                  - { name: q, label: Question, widget: string }
+                  - { name: a, label: Answer, widget: text }
+              - { name: photos, label: Gallery Photos, widget: list, field: { name: photo, label: Photo, widget: image }, required: false }
+
       - name: team
         label: Team
         file: content/team.json
@@ -98,6 +161,12 @@ collections:
             fields:
               - { name: name, label: Name, widget: string }
               - { name: role, label: Role, widget: string }
+              - { name: committee, label: Committee, widget: select, options: ["Leadership", "Program", "Project", "Marketing", "Review"] }
+              - { name: bio, label: Short Bio, widget: text, required: false }
+              - { name: specialties, label: Specialties, widget: list, required: false }
+              - { name: github, label: GitHub URL, widget: string, required: false }
+              - { name: linkedin, label: LinkedIn URL, widget: string, required: false }
+              - { name: portrait, label: Portrait Image Path, widget: string, required: false }
           - name: earlier
             label: Earlier teams
             widget: list
@@ -106,19 +175,36 @@ collections:
               - { name: name, label: Name, widget: string }
               - { name: role, label: Role, widget: string }
               - { name: year, label: Year, widget: string }
+              - { name: committee, label: Committee, widget: string, required: false }
+              - { name: bio, label: Bio, widget: text, required: false }
+
       - name: achievements
         label: Achievements
         file: content/achievements.json
         fields:
           - name: stats
-            label: Figures
+            label: Key Metrics
             widget: list
             fields:
               - { name: value, label: Figure, widget: string }
               - { name: label, label: Label, widget: string }
           - name: apps
-            label: Apps built by members
+            label: Member Case Studies
             widget: list
             fields:
-              - { name: name, label: Name, widget: string }
-              - { name: text, label: Description, widget: text }
+              - { name: name, label: App Name, widget: string }
+              - { name: tagline, label: Tagline, widget: string }
+              - { name: category, label: Category, widget: string }
+              - { name: status, label: Status, widget: string }
+              - { name: text, label: Summary, widget: text }
+              - { name: tech, label: Tech Stack, widget: list }
+              - { name: features, label: Key Features, widget: list }
+              - { name: metrics, label: Production Metrics, widget: string }
+              - { name: link, label: GitHub / Demo Link, widget: string, required: false }
+          - name: milestones
+            label: Milestones
+            widget: list
+            fields:
+              - { name: quarter, label: Quarter / Date, widget: string }
+              - { name: title, label: Title, widget: string }
+              - { name: summary, label: Summary, widget: text }
