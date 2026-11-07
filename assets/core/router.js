@@ -35,6 +35,9 @@ export class Router {
     this.gen = 0;
     this.main = $("#main");
     this.first = true;
+    // the HTML file that was actually served declares its page; used when the URL
+    // itself doesn't name a route (e.g. hosted previews, custom roots)
+    this.served = document.body.dataset.page || "home";
 
     document.addEventListener("click", e => {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -81,7 +84,12 @@ export class Router {
 
   async render(my = ++this.gen, { restore = 0 } = {}) {
     const d = this.director;
-    const route = (() => { const r = normalizeRoute(location.pathname); return known.has(r) ? r : "notfound"; })();
+    const route = (() => {
+      const r = normalizeRoute(location.pathname);
+      if (known.has(r)) return r;
+      if (/\.html$/i.test(location.pathname)) return "notfound";
+      return known.has(this.served) ? this.served : "notfound";
+    })();
     const page = PAGES[route];
 
     if (this.scope) this.scope.dispose();
