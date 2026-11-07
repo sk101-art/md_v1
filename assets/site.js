@@ -64,6 +64,16 @@
   };
   const semYear = s => (String(s).match(/^\d\d-\d\d/) || [""])[0];
 
+  // Route normalizer: guarantees '/' and 'index.html' map directly to 'home'
+  function normalizeRoute(url) {
+    if (!url) return "home";
+    const clean = url.split("?")[0].split("#")[0];
+    const last = clean.split("/").filter(Boolean).pop() || "home";
+    const name = last.replace(/\.html$/i, "");
+    if (name === "index" || name === "" || name === "home") return "home";
+    return name;
+  }
+
   // --- Skin / Atmosphere Presets ---
   const skinOk = k => (SKINS.some(s => s[0] === k) ? k : "nebula");
   try {
@@ -79,6 +89,7 @@
     try { localStorage.setItem("skin", valid); } catch {}
     $$(".theme-selector button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.skin === valid)));
     syncThemeColor();
+    if (particleEngine && particleEngine.syncSkinColors) particleEngine.syncSkinColors();
     sound.playTone(520, 0.05);
   }
 
@@ -132,188 +143,565 @@
   };
   sound.init();
 
-  // --- The Particle-to-Product Choreography Engine (Section 03) ---
-  // Beats: 0. Initial -> 1. Ignition -> 2. Chassis -> 3. Interface -> 4. Material -> 5. Living -> 6. Transformation
+  // --- The Particle-to-Product Choreography Engine (Sections 03 & 05) ---
+  // High-performance Three.js WebGL GPU Simulation with Authored Morphs:
+  // Target 0: Cosmic Haze (ambient unformed energy)
+  // Target 1: Geometric MAD Emblem (monogram: M pillars, delta A apex, D curve & counter)
+  // Target 2: Titanium Smartphone Chassis (rounded rect rim, camera pill, bezel)
+  // Target 3: Living App Interface Grid (matrix of squircle app tiles & dock)
   const particleEngine = {
     canvas: null,
-    ctx: null,
-    particles: [],
+    renderer: null,
+    scene: null,
+    camera: null,
+    points: null,
+    geometry: null,
+    material: null,
+    count: 880,
+    targets: [[], [], [], []], // 0: haze, 1: emblem, 2: phone, 3: app
+    currentPos: null,
+    origPos: null,
+    phases: null,
+    colors: null,
+    mouse: { x: -2000, y: -2000, targetX: 0, targetY: 0, active: false },
+    camTarget: { x: 0, y: 0 },
+    morph: { progress: 0 },
     state: "idle",
-    beat: 0,
-    width: 0,
-    height: 0,
-    mouse: { x: -1000, y: -1000, active: false },
     running: true,
     rafId: null,
+    useWebGL: false,
+    ctx2d: null,
+    particles2d: [],
 
     init() {
       this.canvas = $("#particles");
       if (!this.canvas || reduced) return;
-      this.ctx = this.canvas.getContext("2d");
-      if (!this.ctx) return;
 
-      this.resize();
+      if (typeof THREE !== "undefined") {
+        try {
+          this.initThree();
+          this.useWebGL = true;
+        } catch (e) {
+          console.warn("Three.js WebGL initialization fallback to 2D:", e);
+          this.init2dFallback();
+        }
+      } else {
+        this.init2dFallback();
+      }
+
       window.addEventListener("resize", () => this.resize(), { passive: true });
       window.addEventListener("pointermove", e => {
+        this.mouse.active = true;
         this.mouse.x = e.clientX;
         this.mouse.y = e.clientY;
-        this.mouse.active = true;
+        if (this.useWebGL) {
+          this.mouse.targetX = (e.clientX / window.innerWidth) * 2 - 1;
+          this.mouse.targetY = -(e.clientY / window.innerHeight) * 2 + 1;
+          this.camTarget.x = this.mouse.targetX * 30;
+          this.camTarget.y = this.mouse.targetY * 30;
+        }
       }, { passive: true });
-      window.addEventListener("pointerleave", () => { this.mouse.active = false; });
+
+      window.addEventListener("pointerleave", () => {
+        this.mouse.active = false;
+        this.camTarget.x = 0;
+        this.camTarget.y = 0;
+      });
+
+      window.addEventListener("scroll", () => {
+        if (this.points && this.useWebGL) {
+          const sc = Math.min(1, window.scrollY / 600);
+          this.points.position.z = -sc * 180;
+          if (this.material) this.material.opacity = Math.max(0.2, 0.95 - sc * 0.6);
+        }
+      }, { passive: true });
 
       document.addEventListener("visibilitychange", () => {
         this.running = !document.hidden;
         if (this.running) this.loop();
       });
 
-      this.createParticles();
       this.startChoreography();
       this.loop();
     },
 
-    resize() {
-      this.width = this.canvas.width = window.innerWidth;
-      this.height = this.canvas.height = window.innerHeight;
+    createGlowTexture() {
+      const c = document.createElement("canvas");
+      c.width = 64;
+      c.height = 64;
+      const ctx = c.getContext("2d");
+      const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      g.addColorStop(0, "rgba(255, 255, 255, 1)");
+      g.addColorStop(0.2, "rgba(235, 245, 255, 0.9)");
+      g.addColorStop(0.5, "rgba(121, 91, 255, 0.45)");
+      g.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 64, 64);
+      return new THREE.CanvasTexture(c);
     },
 
-    createParticles() {
-      const count = Math.min(260, Math.floor((this.width * this.height) / 10000));
-      this.particles = [];
-      for (let i = 0; i < count; i++) {
-        this.particles.push({
-          id: i,
-          x: Math.random() * this.width,
-          y: Math.random() * this.height,
-          targetX: Math.random() * this.width,
-          targetY: Math.random() * this.height,
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.4,
-          baseRadius: Math.random() * 1.6 + 0.6,
-          radius: Math.random() * 1.6 + 0.6,
-          alpha: Math.random() * 0.45 + 0.15,
-          colorType: Math.random() > 0.4 ? "accent" : "cyan",
-          phase: Math.random() * Math.PI * 2
-        });
+    getThemeColors() {
+      const skin = root.dataset.skin || "nebula";
+      if (skin === "aurora") {
+        return { primary: new THREE.Color(0.06, 0.72, 0.50), secondary: new THREE.Color(0.18, 0.83, 0.75) };
+      } else if (skin === "ocean") {
+        return { primary: new THREE.Color(0.15, 0.39, 0.92), secondary: new THREE.Color(0.22, 0.74, 0.97) };
+      } else if (skin === "solar") {
+        return { primary: new THREE.Color(0.96, 0.62, 0.04), secondary: new THREE.Color(0.96, 0.25, 0.37) };
+      }
+      // Nebula (default)
+      return { primary: new THREE.Color(0.47, 0.36, 1.0), secondary: new THREE.Color(0.40, 0.91, 0.98) };
+    },
+
+    initThree() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      this.scene = new THREE.Scene();
+      this.camera = new THREE.PerspectiveCamera(55, w / h, 1, 3000);
+      this.camera.position.set(0, 0, 660);
+
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: this.canvas,
+        alpha: true,
+        antialias: true,
+        powerPreference: "high-performance"
+      });
+      this.renderer.setSize(w, h);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+      this.buildTargets();
+
+      this.geometry = new THREE.BufferGeometry();
+      this.currentPos = new Float32Array(this.count * 3);
+      this.origPos = new Float32Array(this.count * 3);
+      this.colors = new Float32Array(this.count * 3);
+      this.phases = new Float32Array(this.count);
+
+      const themeCols = this.getThemeColors();
+
+      for (let i = 0; i < this.count; i++) {
+        const i3 = i * 3;
+        // Start at Target 0 (Cosmic Haze)
+        this.currentPos[i3] = this.targets[0][i3];
+        this.currentPos[i3 + 1] = this.targets[0][i3 + 1];
+        this.currentPos[i3 + 2] = this.targets[0][i3 + 2];
+
+        this.origPos[i3] = this.currentPos[i3];
+        this.origPos[i3 + 1] = this.currentPos[i3 + 1];
+        this.origPos[i3 + 2] = this.currentPos[i3 + 2];
+
+        this.phases[i] = Math.random() * Math.PI * 2;
+
+        const c = Math.random() > 0.4 ? themeCols.primary : themeCols.secondary;
+        this.colors[i3] = c.r;
+        this.colors[i3 + 1] = c.g;
+        this.colors[i3 + 2] = c.b;
+      }
+
+      this.geometry.setAttribute("position", new THREE.BufferAttribute(this.currentPos, 3));
+      this.geometry.setAttribute("color", new THREE.BufferAttribute(this.colors, 3));
+
+      const texture = this.createGlowTexture();
+      this.material = new THREE.PointsMaterial({
+        size: 14,
+        map: texture,
+        transparent: true,
+        opacity: 0.92,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        vertexColors: true
+      });
+
+      this.points = new THREE.Points(this.geometry, this.material);
+      this.scene.add(this.points);
+    },
+
+    buildTargets() {
+      // Initialize 4 target buffers of size count * 3
+      for (let t = 0; t < 4; t++) {
+        this.targets[t] = new Float32Array(this.count * 3);
+      }
+
+      // --- TARGET 0: Cosmic Volumetric Haze ---
+      for (let i = 0; i < this.count; i++) {
+        const i3 = i * 3;
+        const r = 180 + Math.random() * 320;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        this.targets[0][i3] = r * Math.sin(phi) * Math.cos(theta);
+        this.targets[0][i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        this.targets[0][i3 + 2] = (Math.random() - 0.5) * 260;
+      }
+
+      // --- TARGET 1: Geometric MAD Emblem ---
+      // Monogram geometry derived from official brand emblem:
+      // Outer Squircle, M pillars & diagonal, Delta A apex & bar, D semicircular arc & loop
+      const scaleEmblem = 3.2;
+      for (let i = 0; i < this.count; i++) {
+        const i3 = i * 3;
+        let x = 0, y = 0, z = (Math.random() - 0.5) * 16;
+
+        if (i < 220) {
+          // Outer squircle rim: radius 36 centered at (0, 0)
+          const angle = (i / 220) * Math.PI * 2;
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          const rx = Math.sign(cos) * Math.pow(Math.abs(cos), 0.7) * 44;
+          const ry = Math.sign(sin) * Math.pow(Math.abs(sin), 0.7) * 44;
+          x = rx * scaleEmblem;
+          y = ry * scaleEmblem;
+        } else if (i < 440) {
+          // M shape: Left vertical pillar and diagonal chevron
+          const t = (i - 220) / 220;
+          if (t < 0.5) {
+            // Left pillar: x = -28, y in [-22, 22]
+            x = -28;
+            y = -22 + (t / 0.5) * 44;
+          } else {
+            // M diagonal chevron: (-28, 22) -> (-10, -2) -> (-2, 8)
+            const dt = (t - 0.5) / 0.5;
+            x = -28 + dt * 18;
+            y = 22 - dt * 24;
+          }
+          x *= scaleEmblem;
+          y *= scaleEmblem;
+        } else if (i < 640) {
+          // A shape: Delta apex and crossbar
+          const t = (i - 440) / 200;
+          if (t < 0.4) {
+            // Left leg: (-8, -22) -> (0, 22)
+            const dt = t / 0.4;
+            x = -8 + dt * 8;
+            y = -22 + dt * 44;
+          } else if (t < 0.8) {
+            // Right leg: (0, 22) -> (8, -22)
+            const dt = (t - 0.4) / 0.4;
+            x = dt * 8;
+            y = 22 - dt * 44;
+          } else {
+            // Crossbar: (-5, -4) -> (5, -4)
+            const dt = (t - 0.8) / 0.2;
+            x = -5 + dt * 10;
+            y = -4;
+          }
+          x *= scaleEmblem;
+          y *= scaleEmblem;
+        } else {
+          // D shape: Stem & curved semicircular loop
+          const t = (i - 640) / (this.count - 640);
+          if (t < 0.35) {
+            // D Stem: x = 12, y in [-22, 22]
+            x = 12;
+            y = -22 + (t / 0.35) * 44;
+          } else {
+            // D Arc: centered at (12, 0), radius 22, angle from -PI/2 to PI/2
+            const dt = (t - 0.35) / 0.65;
+            const angle = -Math.PI / 2 + dt * Math.PI;
+            x = 12 + Math.cos(angle) * 20;
+            y = Math.sin(angle) * 22;
+          }
+          x *= scaleEmblem;
+          y *= scaleEmblem;
+        }
+
+        this.targets[1][i3] = x + (Math.random() - 0.5) * 4;
+        this.targets[1][i3 + 1] = y + (Math.random() - 0.5) * 4;
+        this.targets[1][i3 + 2] = z;
+      }
+
+      // --- TARGET 2: Smartphone Chassis ---
+      const pw = 280, ph = 560, pr = 42;
+      for (let i = 0; i < this.count; i++) {
+        const i3 = i * 3;
+        let x = 0, y = 0, z = (Math.random() - 0.5) * 8;
+
+        if (i < 380) {
+          // Outer perimeter of rounded phone chassis
+          const t = (i / 380) * 4;
+          const hw = pw / 2, hh = ph / 2;
+          if (t < 1) {
+            x = -hw + t * pw;
+            y = hh;
+          } else if (t < 2) {
+            x = hw;
+            y = hh - (t - 1) * ph;
+          } else if (t < 3) {
+            x = hw - (t - 2) * pw;
+            y = -hh;
+          } else {
+            x = -hw;
+            y = -hh + (t - 3) * ph;
+          }
+        } else if (i < 460) {
+          // Camera Dynamic Island at top center
+          const t = (i - 380) / 80;
+          x = -32 + t * 64;
+          y = 215;
+          z = 6;
+        } else if (i < 720) {
+          // Inner screen bezel perimeter
+          const t = ((i - 460) / 260) * 4;
+          const bw = pw - 24, bh = ph - 28;
+          const hbw = bw / 2, hbh = bh / 2;
+          if (t < 1) { x = -hbw + t * bw; y = hbh; }
+          else if (t < 2) { x = hbw; y = hbh - (t - 1) * bh; }
+          else if (t < 3) { x = hbw - (t - 2) * bw; y = -hbh; }
+          else { x = -hbw; y = -hbh + (t - 3) * bh; }
+        } else {
+          // Specular chassis edge halo
+          const angle = Math.random() * Math.PI * 2;
+          const rad = 240 + Math.random() * 80;
+          x = Math.cos(angle) * (pw / 2 + 15);
+          y = Math.sin(angle) * (ph / 2 + 15);
+          z = (Math.random() - 0.5) * 35;
+        }
+
+        this.targets[2][i3] = x + (Math.random() - 0.5) * 4;
+        this.targets[2][i3 + 1] = y + (Math.random() - 0.5) * 4;
+        this.targets[2][i3 + 2] = z;
+      }
+
+      // --- TARGET 3: App Grid / Living Matrix ---
+      for (let i = 0; i < this.count; i++) {
+        const i3 = i * 3;
+        let x = 0, y = 0, z = (Math.random() - 0.5) * 12;
+
+        if (i < 640) {
+          // App icons: 4 columns x 5 rows in screen space
+          const iconIdx = Math.floor(i / 32) % 20;
+          const col = iconIdx % 4;
+          const row = Math.floor(iconIdx / 4);
+          const iconX = -78 + col * 52;
+          const iconY = 145 - row * 62;
+
+          // Clustered squircle around icon center
+          const angle = Math.random() * Math.PI * 2;
+          const rad = Math.random() * 16;
+          x = iconX + Math.cos(angle) * rad;
+          y = iconY + Math.sin(angle) * rad;
+        } else if (i < 760) {
+          // Bottom dock: 4 icons at y = -205
+          const dockCol = Math.floor((i - 640) / 30) % 4;
+          const dockX = -75 + dockCol * 50;
+          const angle = Math.random() * Math.PI * 2;
+          const rad = Math.random() * 15;
+          x = dockX + Math.cos(angle) * rad;
+          y = -205 + Math.sin(angle) * rad;
+        } else {
+          // Status bar and screen edges
+          const t = (i - 760) / (this.count - 760);
+          x = -100 + t * 200;
+          y = 238;
+        }
+
+        this.targets[3][i3] = x + (Math.random() - 0.5) * 4;
+        this.targets[3][i3 + 1] = y + (Math.random() - 0.5) * 4;
+        this.targets[3][i3 + 2] = z;
       }
     },
 
     startChoreography() {
-      // Beat 0: Initial frame (quiet cosmic dust)
-      this.beat = 0;
-      this.state = "idle";
+      if (reduced) {
+        this.morph.progress = 3;
+        const phone = $(".phone");
+        if (phone) phone.style.opacity = "1";
+        return;
+      }
 
-      // Beat 1: Ignition after 600ms
-      setTimeout(() => {
-        if (this.beat === 0) {
-          this.beat = 1;
-          this.state = "ignition";
-          this.particles.forEach(p => {
-            p.vx += (Math.random() - 0.5) * 1.2;
-            p.vy += (Math.random() - 0.5) * 1.2;
+      if (typeof gsap !== "undefined") {
+        const tl = gsap.timeline();
+
+        // Stage 0 -> 1: Cosmic Haze to MAD Emblem (0.6s - 2.0s)
+        tl.to(this.morph, {
+          progress: 1,
+          duration: 1.5,
+          delay: 0.5,
+          ease: "power2.inOut",
+          onStart: () => {
+            this.state = "emblem";
+            sound.playTone(320, 0.08, "triangle");
+          }
+        });
+
+        // Stage 1 Specular reveal & 3D tilt (2.0s - 3.0s)
+        if (this.points) {
+          tl.to(this.points.rotation, {
+            y: 0.25,
+            duration: 0.55,
+            ease: "power1.inOut"
+          }, "+=0.1");
+          tl.to(this.points.rotation, {
+            y: 0,
+            duration: 0.55,
+            ease: "power1.inOut"
           });
         }
-      }, 600);
 
-      // Beat 2: Device Chassis Tracing (form phone silhouette)
-      setTimeout(() => {
-        if (this.beat === 1) {
-          this.beat = 2;
-          this.state = "chassis";
-          this.projectToChassis();
-        }
-      }, 1600);
-
-      // Beat 3: Interface Assembly
-      setTimeout(() => {
-        if (this.beat === 2) {
-          this.beat = 3;
-          this.state = "assembly";
-          this.projectToInterface();
-        }
-      }, 2800);
-
-      // Beat 4 & 5: Material Handoff to Living State
-      setTimeout(() => {
-        if (this.beat === 3) {
-          this.beat = 4;
-          this.state = "living";
-          // Phone element reveals with specular sweep
-          const phoneEl = $(".phone");
-          if (phoneEl) {
-            phoneEl.style.opacity = "1";
-            phoneEl.style.filter = "drop-shadow(0 0 30px var(--glow))";
-            setTimeout(() => { phoneEl.style.filter = ""; }, 800);
+        // Stage 1 -> 3: Morph to Smartphone Chassis & App Grid (3.2s - 4.6s)
+        tl.to(this.morph, {
+          progress: 3,
+          duration: 1.4,
+          ease: "power3.inOut",
+          onStart: () => {
+            this.state = "chassis";
+            sound.playTone(480, 0.08, "triangle");
+          },
+          onComplete: () => {
+            this.state = "living";
+            const phone = $(".phone");
+            if (phone) {
+              phone.style.opacity = "1";
+              phone.style.filter = "drop-shadow(0 0 32px var(--glow))";
+              setTimeout(() => { phone.style.filter = ""; }, 900);
+            }
+            sound.playTone(720, 0.14, "sine");
           }
-        }
-      }, 3800);
+        });
+      } else {
+        setTimeout(() => { this.morph.progress = 1; }, 600);
+        setTimeout(() => {
+          this.morph.progress = 3;
+          const p = $(".phone");
+          if (p) p.style.opacity = "1";
+        }, 3400);
+      }
     },
 
-    projectToChassis() {
-      const stage = $(".stage");
-      if (!stage) return;
-      const rect = stage.getBoundingClientRect();
-      const pw = 280, ph = 540;
-      const px = rect.left + rect.width / 2 - pw / 2;
-      const py = rect.top + rect.height / 2 - ph / 2;
-
-      this.particles.forEach((p, idx) => {
-        const t = (idx / this.particles.length) * 4;
-        let tx = px, ty = py;
-        if (t < 1) { tx = px + t * pw; ty = py; }
-        else if (t < 2) { tx = px + pw; ty = py + (t - 1) * ph; }
-        else if (t < 3) { tx = px + pw - (t - 2) * pw; ty = py + ph; }
-        else { tx = px; ty = py + ph - (t - 3) * ph; }
-
-        p.targetX = tx + (Math.random() - 0.5) * 12;
-        p.targetY = ty + (Math.random() - 0.5) * 12;
-      });
+    resize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (this.useWebGL && this.renderer && this.camera) {
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h);
+      } else if (this.canvas) {
+        this.canvas.width = w;
+        this.canvas.height = h;
+      }
     },
 
-    projectToInterface() {
-      const stage = $(".stage");
-      if (!stage) return;
-      const rect = stage.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
+    syncSkinColors() {
+      if (!this.useWebGL || !this.colors || !this.geometry) return;
+      const themeCols = this.getThemeColors();
+      for (let i = 0; i < this.count; i++) {
+        const i3 = i * 3;
+        const c = i % 2 === 0 ? themeCols.primary : themeCols.secondary;
+        this.colors[i3] = c.r;
+        this.colors[i3 + 1] = c.g;
+        this.colors[i3 + 2] = c.b;
+      }
+      this.geometry.attributes.color.needsUpdate = true;
+    },
 
-      this.particles.forEach((p, idx) => {
-        // Grid pattern inside screen
-        const col = idx % 6;
-        const row = Math.floor(idx / 6) % 10;
-        p.targetX = cx - 110 + col * 44 + (Math.random() - 0.5) * 8;
-        p.targetY = cy - 200 + row * 40 + (Math.random() - 0.5) * 8;
-      });
+    init2dFallback() {
+      this.useWebGL = false;
+      this.ctx2d = this.canvas.getContext("2d");
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+      const count = Math.min(220, Math.floor((this.canvas.width * this.canvas.height) / 10000));
+      this.particles2d = [];
+      for (let i = 0; i < count; i++) {
+        this.particles2d.push({
+          x: Math.random() * this.canvas.width,
+          y: Math.random() * this.canvas.height,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          radius: Math.random() * 1.6 + 0.6,
+          alpha: Math.random() * 0.45 + 0.15
+        });
+      }
     },
 
     loop() {
       if (!this.running) return;
-      this.ctx.clearRect(0, 0, this.width, this.height);
 
-      const skin = root.dataset.skin || "nebula";
-      const colorAccent = skin === "aurora" ? "16, 185, 129" :
-                          skin === "ocean" ? "37, 99, 235" :
-                          skin === "solar" ? "245, 158, 11" : "121, 91, 255";
-      const colorCyan = "103, 232, 249";
+      if (this.useWebGL) {
+        this.loopThree();
+      } else if (this.ctx2d) {
+        this.loop2d();
+      }
 
-      for (let i = 0; i < this.particles.length; i++) {
-        const p = this.particles[i];
+      this.rafId = requestAnimationFrame(() => this.loop());
+    },
 
-        if (this.state === "chassis" || this.state === "assembly") {
-          // Guided convergence to targets
-          p.x += (p.targetX - p.x) * 0.08;
-          p.y += (p.targetY - p.y) * 0.08;
-        } else {
-          // Ambient breathing drift
-          p.x += p.vx;
-          p.y += p.vy;
+    loopThree() {
+      const pos = this.geometry.attributes.position.array;
+      const prog = this.morph.progress;
+      const fromTargetIdx = Math.min(3, Math.floor(prog));
+      const toTargetIdx = Math.min(3, fromTargetIdx + 1);
+      const subProg = prog - fromTargetIdx;
 
-          if (p.x < 0) p.x = this.width;
-          if (p.x > this.width) p.x = 0;
-          if (p.y < 0) p.y = this.height;
-          if (p.y > this.height) p.y = 0;
+      const fromT = this.targets[fromTargetIdx];
+      const toT = this.targets[toTargetIdx];
+      const time = performance.now() * 0.0012;
+
+      // Mouse position in 3D projection
+      const mouse3dX = this.mouse.targetX * 360;
+      const mouse3dY = this.mouse.targetY * 260;
+
+      for (let i = 0; i < this.count; i++) {
+        const i3 = i * 3;
+        const phase = this.phases[i];
+
+        // Base target interpolation
+        let tx = fromT[i3] + (toT[i3] - fromT[i3]) * subProg;
+        let ty = fromT[i3 + 1] + (toT[i3 + 1] - fromT[i3 + 1]) * subProg;
+        let tz = fromT[i3 + 2] + (toT[i3 + 2] - fromT[i3 + 2]) * subProg;
+
+        // Subtle organic Brownian oscillation
+        const drift = (this.state === "living" || this.state === "idle") ? 3.5 : 1.2;
+        tx += Math.sin(time + phase) * drift;
+        ty += Math.cos(time + phase * 1.3) * drift;
+
+        // Pointer repulsion in 3D
+        if (this.mouse.active) {
+          const dx = tx - mouse3dX;
+          const dy = ty - mouse3dY;
+          const distSq = dx * dx + dy * dy;
+          if (distSq < 19600 && distSq > 0) { // radius ~140px
+            const dist = Math.sqrt(distSq);
+            const force = (140 - dist) / 140;
+            tx += (dx / dist) * force * 45;
+            ty += (dy / dist) * force * 45;
+            tz += force * 25;
+          }
         }
 
-        // Bounded & damped pointer repulsion (Section 03)
+        // Smooth spring towards target
+        pos[i3] += (tx - pos[i3]) * 0.1;
+        pos[i3 + 1] += (ty - pos[i3 + 1]) * 0.1;
+        pos[i3 + 2] += (tz - pos[i3 + 2]) * 0.1;
+      }
+
+      this.geometry.attributes.position.needsUpdate = true;
+
+      // Camera parallax
+      this.camera.position.x += (this.camTarget.x - this.camera.position.x) * 0.04;
+      this.camera.position.y += (this.camTarget.y - this.camera.position.y) * 0.04;
+      this.camera.lookAt(0, 0, 0);
+
+      this.renderer.render(this.scene, this.camera);
+    },
+
+    loop2d() {
+      const w = this.canvas.width;
+      const h = this.canvas.height;
+      this.ctx2d.clearRect(0, 0, w, h);
+      const skin = root.dataset.skin || "nebula";
+      const col = skin === "aurora" ? "16, 185, 129" :
+                  skin === "ocean" ? "37, 99, 235" :
+                  skin === "solar" ? "245, 158, 11" : "121, 91, 255";
+
+      for (let i = 0; i < this.particles2d.length; i++) {
+        const p = this.particles2d[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h;
+        if (p.y > h) p.y = 0;
+
         if (this.mouse.active) {
           const dx = this.mouse.x - p.x;
           const dy = this.mouse.y - p.y;
@@ -325,14 +713,11 @@
           }
         }
 
-        const col = p.colorType === "cyan" ? colorCyan : colorAccent;
-        this.ctx.fillStyle = `rgba(${col}, ${p.alpha})`;
-        this.ctx.beginPath();
-        this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        this.ctx.fill();
+        this.ctx2d.fillStyle = `rgba(${col}, ${p.alpha})`;
+        this.ctx2d.beginPath();
+        this.ctx2d.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        this.ctx2d.fill();
       }
-
-      this.rafId = requestAnimationFrame(() => this.loop());
     }
   };
 
@@ -359,7 +744,7 @@
 
       // Browser History Back/Forward Support
       window.addEventListener("popstate", () => {
-        const currentUrl = location.pathname.split("/").pop() || "index.html";
+        const currentUrl = location.pathname.split("/").filter(Boolean).pop() || "index.html";
         const target = currentUrl + location.search;
         this.renderView(target, site, events, false);
       });
@@ -397,16 +782,17 @@
     },
 
     async renderView(url, site, events, scrollReset = true) {
-      const pageFile = url.split("?")[0].split("/").pop() || "index.html";
-      const pageName = pageFile.replace(".html", "") || "home";
+      const pageName = normalizeRoute(url);
+      const pageFile = pageName === "home" ? "index.html" : `${pageName}.html`;
       document.body.dataset.page = pageName;
 
       // Update active links in nav and dock
       $$(".links a, .dock a").forEach(a => {
         const href = a.getAttribute("href");
-        const isMatch = href === pageFile || (pageFile === "index.html" && href === "index.html");
+        const isMatch = href === pageFile || (pageName === "home" && (href === "index.html" || href === "./" || href === "/"));
         a.toggleAttribute("aria-current", isMatch);
         if (isMatch) a.setAttribute("aria-current", "page");
+        else a.removeAttribute("aria-current");
       });
 
       const main = $("#main");
@@ -416,12 +802,14 @@
       if (scrollReset) window.scrollTo({ top: 0, behavior: "instant" });
 
       // Wire interactive controllers for current page
-      if (pageName === "home" || pageName === "index") {
+      if (pageName === "home") {
         wireLivingPhone(events);
         wireCollaborativeSwarm();
         wireTheFoundry(events);
       } else if (pageName === "events") {
         wireEventsArena();
+      } else if (pageName === "about") {
+        wireAboutPage(site);
       } else if (pageName === "team") {
         wireTeamPage();
       } else if (pageName === "contact") {
@@ -741,6 +1129,99 @@
     });
 
     renderArenaWithFlip();
+  }
+
+  // --- About Page: 5-Phase Interactive Pipeline Controller ---
+  function wireAboutPage(site) {
+    const pipeline = site.learning_pipeline || [];
+    const stepperBtns = $$(".pipeline-step-btn");
+    const stageName = $("#pipeline-active-name");
+    const stageTag = $("#pipeline-active-tag");
+    const stageDesc = $("#pipeline-active-desc");
+    const previewBox = $("#pipeline-preview-content");
+
+    if (!stepperBtns.length) return;
+
+    const stagePreviews = [
+      // 01: Discover
+      `<div class="preview-metric" style="width:100%;">
+         <span class="mono-label" style="color:var(--accent-text);font-size:0.75rem;letter-spacing:0.08em;">CAMPUS BOTTLENECK AUDIT</span>
+         <h4 style="margin:8px 0 12px;font-size:1.15rem;">Event Registration Friction: 42%</h4>
+         <div style="background:rgba(255,255,255,0.04);padding:14px;border-radius:10px;font-family:var(--font-mono);font-size:0.75rem;text-align:left;line-height:1.6;border:1px solid var(--line);">
+           <div>&gt; Problem: Fragmented Google Forms cause drop-offs.</div>
+           <div>&gt; Proposed: Unified Evently mobile companion with 1-tap QR ticket.</div>
+           <div style="color:#10b981;margin-top:4px;">✓ Validated across 1,200+ student survey respondents.</div>
+         </div>
+       </div>`,
+      // 02: Prototype
+      `<div class="preview-metric" style="width:100%;">
+         <span class="mono-label" style="color:var(--accent-secondary);font-size:0.75rem;letter-spacing:0.08em;">FIGMA TOKEN ARCHITECTURE</span>
+         <h4 style="margin:8px 0 12px;font-size:1.15rem;">Optical Glass &amp; Kinetic Micro-interactions</h4>
+         <div style="display:flex;gap:8px;justify-content:center;margin:12px 0;">
+           <div style="padding:6px 12px;background:rgba(121,91,255,0.2);border:1px solid rgba(121,91,255,0.4);border-radius:16px;font-family:var(--font-mono);font-size:0.72rem;color:#c4b5fd;">--blur: 24px</div>
+           <div style="padding:6px 12px;background:rgba(56,189,248,0.2);border:1px solid rgba(56,189,248,0.4);border-radius:16px;font-family:var(--font-mono);font-size:0.72rem;color:#7dd3fc;">--spring: 400ms</div>
+           <div style="padding:6px 12px;background:rgba(16,185,129,0.2);border:1px solid rgba(16,185,129,0.4);border-radius:16px;font-family:var(--font-mono);font-size:0.72rem;color:#6ee7b7;">--fps: 120hz</div>
+         </div>
+         <div style="font-size:0.78rem;color:var(--muted);">Tactile haptic presets &amp; contrast-tested AA/AAA accessibility.</div>
+       </div>`,
+      // 03: Collaborate
+      `<div class="preview-metric" style="width:100%;">
+         <span class="mono-label" style="color:#f59e0b;font-size:0.75rem;letter-spacing:0.08em;">GIT SWARM WORKFLOW</span>
+         <h4 style="margin:8px 0 12px;font-size:1.15rem;">Peer Review &amp; Trunk-based CI</h4>
+         <div style="background:rgba(0,0,0,0.45);padding:14px;border-radius:10px;font-family:var(--font-mono);font-size:0.75rem;text-align:left;line-height:1.6;border:1px solid var(--line);">
+           <div><span style="color:#f59e0b;">PR #42:</span> feat(ar): camera occlusion filter</div>
+           <div><span style="color:#10b981;">✓ Reviewer 1:</span> Clean state lifecycle management.</div>
+           <div><span style="color:#10b981;">✓ Reviewer 2:</span> Memory leak checks passed (0 leaks).</div>
+           <div style="color:#38bdf8;margin-top:4px;">→ Merged into main via squashed commit.</div>
+         </div>
+       </div>`,
+      // 04: Build
+      `<div class="preview-metric" style="width:100%;">
+         <span class="mono-label" style="color:#10b981;font-size:0.75rem;letter-spacing:0.08em;">HIGH-PERFORMANCE RUNTIME</span>
+         <h4 style="margin:8px 0 12px;font-size:1.15rem;">Flutter 3 + On-Device CoreML</h4>
+         <div style="background:rgba(0,0,0,0.55);padding:14px;border-radius:10px;font-family:var(--font-mono);font-size:0.72rem;text-align:left;line-height:1.55;border:1px solid var(--line);">
+           <div style="color:#10b981;">$ flutter run --release -d device-pixel8</div>
+           <div>⚡ Compilation: 1.4s (Ahead-of-Time native ARM64)</div>
+           <div>📊 Frame telemetry: 120.0 fps (0 frame drops)</div>
+           <div style="color:#38bdf8;">🧠 Local TFLite inference: 8.2ms latency</div>
+         </div>
+       </div>`,
+      // 05: Ship
+      `<div class="preview-metric" style="width:100%;">
+         <span class="mono-label" style="color:#ec4899;font-size:0.75rem;letter-spacing:0.08em;">PRODUCTION DEPLOYMENT</span>
+         <h4 style="margin:8px 0 12px;font-size:1.15rem;">Play Store &amp; App Store Ingest</h4>
+         <div style="background:rgba(236,72,153,0.12);border:1px solid rgba(236,72,153,0.3);padding:14px;border-radius:10px;font-family:var(--font-mono);font-size:0.75rem;text-align:left;line-height:1.6;">
+           <div>🚀 Fastlane automated release #104</div>
+           <div>📱 iOS TestFlight: Passed Apple notarization</div>
+           <div>🤖 Google Play Console: Production 100% rollout</div>
+           <div style="color:#10b981;margin-top:4px;">📈 Active installs: 1,400+ campus builders</div>
+         </div>
+       </div>`
+    ];
+
+    if (previewBox) previewBox.innerHTML = stagePreviews[0];
+
+    stepperBtns.forEach((btn, idx) => {
+      btn.onclick = () => {
+        stepperBtns.forEach(b => {
+          b.classList.remove("active");
+          b.setAttribute("aria-selected", "false");
+        });
+        btn.classList.add("active");
+        btn.setAttribute("aria-selected", "true");
+
+        const p = pipeline[idx];
+        if (p) {
+          if (stageName) stageName.textContent = `${p.step}. ${p.name}`;
+          if (stageTag) stageTag.textContent = p.tag;
+          if (stageDesc) stageDesc.textContent = p.desc;
+        }
+        if (previewBox && stagePreviews[idx]) {
+          previewBox.innerHTML = stagePreviews[idx];
+        }
+        sound.playTone(420 + idx * 70, 0.05);
+      };
+    });
   }
 
   // --- Team Page Controller ---
@@ -1355,19 +1836,37 @@
           </div>
         </section>
 
-        <!-- Learning Pipeline -->
+        <!-- Learning Pipeline Workbench -->
         <section class="wrap">
           <p class="eyebrow">The 5-Phase Pipeline</p>
           <h2>How students evolve in MAD</h2>
-          <div class="pipeline-grid">
-            ${(site.learning_pipeline || []).map(p => `
-              <div class="pipeline-card reveal">
-                <div class="p-step">${esc(p.step)}</div>
-                <span class="p-tag">${esc(p.tag)}</span>
-                <h4>${esc(p.name)}</h4>
-                <p>${esc(p.desc)}</p>
+          <div class="pipeline-workbench reveal">
+            <div class="pipeline-stepper" role="tablist" aria-label="Learning Pipeline Phases">
+              ${(site.learning_pipeline || []).map((p, idx) => `
+                <button type="button" class="pipeline-step-btn ${idx === 0 ? "active" : ""}" role="tab" aria-selected="${idx === 0 ? "true" : "false"}" data-step="${esc(p.step)}">
+                  Phase ${esc(p.step)}: ${esc(p.name)}
+                </button>
+              `).join("")}
+            </div>
+            <div class="pipeline-stage-view">
+              <div class="pipeline-stage-info">
+                <span id="pipeline-active-tag" class="mono-label" style="color:var(--accent-secondary);font-size:0.85rem;">${esc(site.learning_pipeline?.[0]?.tag || "Ideation & Market")}</span>
+                <h3 id="pipeline-active-name" style="font-size:clamp(1.5rem, 2.5vw, 2rem);margin:10px 0 16px;">
+                  01. ${esc(site.learning_pipeline?.[0]?.name || "Discover")}
+                </h3>
+                <p id="pipeline-active-desc" class="lead" style="font-size:1.05rem;line-height:1.65;color:var(--muted-bright);">
+                  ${esc(site.learning_pipeline?.[0]?.desc || "")}
+                </p>
+                <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;">
+                  <span class="chip" style="font-size:0.75rem;">Verified Syllabus</span>
+                  <span class="chip" style="font-size:0.75rem;">Sprint-Based</span>
+                  <span class="chip" style="font-size:0.75rem;">Industry Mentors</span>
+                </div>
               </div>
-            `).join("")}
+              <div class="screen-preview" id="pipeline-preview-content">
+                <!-- Injected dynamically by wireAboutPage -->
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1641,14 +2140,16 @@
       `;
     }
   };
+  pages.index = pages.home;
 
   // --- Shell Setup (NavGlass & DockGlass) ---
   function shell(site, events) {
     const years = [...new Set(events.map(e => semYear(e.semester)).filter(Boolean))].sort().reverse();
-    const cur = location.pathname.split("/").pop() || "index.html";
+    const cur = location.pathname.split("/").filter(Boolean).pop() || "index.html";
+    const curRoute = normalizeRoute(cur);
 
     const navLinksHtml = NAV.map(([h, t]) => {
-      const isCur = h === cur || (cur === "" && h === "index.html");
+      const isCur = normalizeRoute(h) === curRoute;
       return `<li><a href="${h}"${isCur ? ' aria-current="page"' : ""}>${t}</a></li>`;
     }).join("");
 
@@ -1664,7 +2165,7 @@
        <header class="nav">
          <div class="wrap">
            <a class="brand" href="index.html">
-             <span class="logo-orb" aria-hidden="true"></span>
+             <img class="brand-emblem-svg" src="assets/brand/mad-emblem.svg" alt="MAD Emblem" width="32" height="32">
              <span>${esc(site.name)}</span>
              <small>${esc(site.college_short)}</small>
            </a>
@@ -2070,8 +2571,8 @@
       shell(site, events);
       syncThemeColor();
 
-      const curUrl = location.pathname.split("/").pop() || "index.html";
-      const pageName = curUrl.replace(".html", "") || "home";
+      const curUrl = location.pathname.split("/").filter(Boolean).pop() || "index.html";
+      const pageName = normalizeRoute(curUrl);
       document.body.dataset.page = pageName;
 
       const renderer = pages[pageName] || pages.notfound;
@@ -2132,12 +2633,14 @@
       wireDock(site);
       TransitionDirector.init(site, events);
 
-      if (pageName === "home" || pageName === "index") {
+      if (pageName === "home") {
         wireLivingPhone(events);
         wireCollaborativeSwarm();
         wireTheFoundry(events);
       } else if (pageName === "events") {
         wireEventsArena();
+      } else if (pageName === "about") {
+        wireAboutPage(site);
       } else if (pageName === "team") {
         wireTeamPage();
       } else if (pageName === "contact") {
