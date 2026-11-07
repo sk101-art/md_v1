@@ -12,7 +12,7 @@ function person(p, extra = "", { holo = false } = {}) {
     isRealProfile(p.linkedin) ? `<a href="${esc(p.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ""
   ].filter(Boolean).join("");
   // the current team: every card the same size, portrait on top, projected by the builders
-  const attrs = holo ? `class="person card holo-wait" data-holo` : `class="person card" data-sw="box"`;
+  const attrs = holo ? `class="person card holo-wait" data-holo${p.holo_node ? ` data-holo-node="${esc(p.holo_node)}"` : ""}` : `class="person card" data-sw="box"`;
   return `
     <article ${attrs} data-comm="${esc((p.committee || "").toLowerCase())}">
       ${holo

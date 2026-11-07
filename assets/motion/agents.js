@@ -9,6 +9,14 @@ export const ROLES = [
   { id: "ship", name: "Ship", color: "var(--agent-ship)", hex: "#C9A23F", speed: 1.05 }
 ];
 
+// One builder in the crew wears deep satin violet instead of a repeated role colour. It is the
+// builder that projects Sathvikha's card on the Team page, and its hologram is violet too.
+export const SATIN = {
+  id: "satin", name: "Satin", color: "#7B45B8", hex: "#7B45B8", speed: 0.96,
+  holo: { main: [123, 69, 184], text: [150, 98, 214], line: [170, 120, 232], streak: [190, 150, 240], hot: [242, 230, 255], scan: [212, 186, 250] }
+};
+export const SATIN_INDEX = 10; // replaces the third Design-blue builder
+
 // The visitor's pointer in page coordinates; agents near it are nudged aside.
 export const visitor = { x: -1e5, y: -1e5 };
 const YIELD_R = 90, YIELD_PUSH = 34;

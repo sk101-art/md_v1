@@ -8,6 +8,8 @@ import { pageRect, lineRects } from "../motion/selection-geometry.js";
 import { motion, isSmall, $$, clamp } from "../core/util.js";
 
 const COBALT = [88, 120, 216], SEA = [79, 165, 157];
+// default hologram palette (cobalt); a builder's role may carry its own (the satin violet one)
+const BLUE = { main: COBALT, text: SEA, line: [120, 160, 255], streak: [143, 176, 255], hot: [234, 241, 255], scan: [200, 218, 255] };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
@@ -23,7 +25,7 @@ function perimeterPts(w, h, r, step) {
 
 // Sobel edges of an image drawn "object-fit: cover" into a w x h box. Returns sampled edge
 // points (local to the box) and an edge layer canvas tinted in hologram blue.
-function edgesOf(img, w, h, count) {
+function edgesOf(img, w, h, count, tint = BLUE.line) {
   const k = Math.min(1, 380 / w);                // analyse at <= 380px wide, then scale up
   const W = Math.max(8, Math.round(w * k)), H = Math.max(8, Math.round(h * k));
   const c = document.createElement("canvas");
@@ -55,7 +57,7 @@ function edgesOf(img, w, h, count) {
   for (let i = 0; i < W * H; i++) {
     const v = Math.min(1, (mag[i] / max) * 2.6);
     const a = v < 0.12 ? 0 : v;
-    out.data[i * 4] = 120; out.data[i * 4 + 1] = 160; out.data[i * 4 + 2] = 255; out.data[i * 4 + 3] = Math.round(a * 255);
+    out.data[i * 4] = tint[0]; out.data[i * 4 + 1] = tint[1]; out.data[i * 4 + 2] = tint[2]; out.data[i * 4 + 3] = Math.round(a * 255);
     if (v > 0.32) cand.push(i);
   }
   lx.putImageData(out, 0, 0);
@@ -73,6 +75,7 @@ export class HoloProjector {
     this.scope = scope;
     this.d = director;
     this.jobs = new Set();
+    this.reserved = new Set(); // builder roles promised to a particular card
     this.raf = 0;
     scope.add(() => { this.jobs.forEach(j => j.kill()); cancelAnimationFrame(this.raf); });
   }
@@ -82,6 +85,7 @@ export class HoloProjector {
   /** Cards wait (empty containers) until they are on screen, then get a projection. */
   watch(cards) {
     if (!this.enabled) { cards.forEach(c => c.classList.remove("holo-wait")); return; }
+    cards.forEach(c => c.dataset.holoNode && this.reserved.add(c.dataset.holoNode));
     const io = new IntersectionObserver(es => {
       es.forEach(e => {
         if (!e.isIntersecting) return;
@@ -101,9 +105,24 @@ export class HoloProjector {
     const t0 = performance.now();
     while (this.d.crew.available < 1 && performance.now() - t0 < 6000 && this.scope.alive) await sleep(90);
     if (!this.scope.alive) return;
+    // a card can ask for one particular builder (Sathvikha's card is projected by the satin
+    // violet one); that builder is kept for it, and every other card uses the rest of the crew
+    const want = card.dataset.holoNode || "";
+    const crew = this.d.crew;
+    const mine = a => a.role.id === want;
+    const reserved = a => this.reserved.has(a.role.id) && a.role.id !== want;
+    if (want) {
+      const t1 = performance.now();
+      while (!crew.agents.some(a => mine(a) && crew.free.has(a)) && performance.now() - t1 < 8000 && this.scope.alive) await sleep(90);
+      if (!this.scope.alive) return;
+    }
     const R = pageRect(card);
-    const [lead] = this.d._claim(1, { x: R.x + R.w / 2, y: R.y + R.h / 2 });
+    const near = { x: R.x + R.w / 2, y: R.y + R.h / 2 };
+    let [lead] = want ? this.d._claim(1, near, { only: mine }) : this.d._claim(1, near, { exclude: reserved });
+    if (!lead && want) [lead] = this.d._claim(1, near);
+    if (want) this.reserved.delete(want);
     if (!lead) { card.classList.remove("holo-wait"); return; }
+    if (lead.role.holo) card.style.setProperty("--holo-tint", `rgb(${lead.role.holo.main})`);
     const job = new Job(this, card, lead);
     this.jobs.add(job);
     try { await job.run(); } catch (e) { console.warn("[holo]", e); job.reveal(true); }
@@ -124,6 +143,7 @@ export class HoloProjector {
 class Job {
   constructor(owner, card, lead) {
     this.o = owner; this.card = card; this.lead = lead;
+    this.pal = (lead.role && lead.role.holo) || BLUE;
     this.nodes = [lead];
     this.alive = true;
     this.p = [];        // particles
@@ -195,7 +215,7 @@ class Job {
     if (photo) {
       const box = local(photo.closest(".portrait") || photo);
       perimeterPts(box.w, box.h, 14, 5).forEach(p => add(box.x + p.x, box.y + p.y, "edge"));
-      const e = edgesOf(photo, box.w, box.h, isSmall() ? 1100 : 1800);
+      const e = edgesOf(photo, box.w, box.h, isSmall() ? 1100 : 1800, this.pal.line);
       e.pts.forEach(p => add(box.x + p.x, box.y + p.y, "img"));
       this.edgeLayer = e.layer; this.edgeBox = box;
     } else {
@@ -261,7 +281,7 @@ class Job {
 
   paint(now) {
     if (!this.cv || !this.alive) return;
-    const { ctx, dpr, R } = this;
+    const { ctx, dpr, R, pal } = this;
     const W = R.w, H = R.h;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
@@ -272,8 +292,8 @@ class Job {
       const y = Math.min(H, this.scan);
       this.corners.forEach((c, i) => {
         const g = ctx.createLinearGradient(c.x, c.y, W / 2, y);
-        g.addColorStop(0, `rgba(${COBALT},${0.22 * this.beams})`);
-        g.addColorStop(1, `rgba(${COBALT},0)`);
+        g.addColorStop(0, `rgba(${pal.main},${0.22 * this.beams})`);
+        g.addColorStop(1, `rgba(${pal.main},0)`);
         ctx.fillStyle = g;
         ctx.beginPath();
         ctx.moveTo(c.x, c.y);
@@ -304,22 +324,22 @@ class Job {
       const x = p.sx + (p.tx - p.sx) * e, y = p.sy + (p.ty - p.sy) * e;
       if (t < 1) {
         const e2 = ease(Math.max(0, t - 0.12));
-        ctx.strokeStyle = `rgba(143,176,255,${0.5 * this.fade})`;
+        ctx.strokeStyle = `rgba(${pal.streak},${0.5 * this.fade})`;
         ctx.lineWidth = 0.7;
         ctx.beginPath();
         ctx.moveTo(p.sx + (p.tx - p.sx) * e2, p.sy + (p.ty - p.sy) * e2);
         ctx.lineTo(x, y);
         ctx.stroke();
       }
-      const col = p.kind === "text" ? SEA : COBALT;
-      ctx.fillStyle = t < 1 ? "rgba(234,241,255,0.95)" : `rgba(${col},${p.kind === "img" ? 0.75 : 0.9})`;
+      const col = p.kind === "text" ? pal.text : pal.main;
+      ctx.fillStyle = t < 1 ? `rgba(${pal.hot},0.95)` : `rgba(${col},${p.kind === "img" ? 0.75 : 0.9})`;
       ctx.fillRect(x - p.s / 2, y - p.s / 2, p.s, p.s);
     }
 
     // the scanline itself
     if (this.scan >= 0 && this.scan < H && this.beams > 0.05) {
       const g = ctx.createLinearGradient(0, 0, W, 0);
-      g.addColorStop(0, "rgba(143,176,255,0)"); g.addColorStop(0.5, `rgba(200,218,255,${0.9 * this.beams})`); g.addColorStop(1, "rgba(143,176,255,0)");
+      g.addColorStop(0, `rgba(${pal.streak},0)`); g.addColorStop(0.5, `rgba(${pal.scan},${0.9 * this.beams})`); g.addColorStop(1, `rgba(${pal.streak},0)`);
       ctx.fillStyle = g;
       ctx.fillRect(0, this.scan - 1, W, 2);
     }

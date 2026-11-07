@@ -387,3 +387,7 @@ main { display: block; min-height: 70vh; }
 .facts div:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .lb-bar > span:last-child { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 @media (max-width: 560px) { .lb-bar { flex-direction: column; align-items: stretch; } .lb-bar > span:last-child { justify-content: space-between; } }
+/* Sathvikha's card is projected by the satin violet builder, so its hologram is violet */
+.person[data-holo-node="satin"].holo-colour .portrait img, .person[data-holo-node="satin"].holo-colour .avatar { filter: grayscale(1) sepia(0.55) hue-rotate(228deg) saturate(2.4) brightness(1.02) contrast(1.06); }
+.person[data-holo-node="satin"].holo-colour.holo-true .portrait img, .person[data-holo-node="satin"].holo-colour.holo-true .avatar { filter: none; }
+.person[data-holo-node="satin"].holo-colour::before { background: repeating-linear-gradient(0deg, rgba(123, 69, 184, 0.12) 0 1px, transparent 1px 3px); }

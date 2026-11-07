@@ -120,9 +120,9 @@ export class SwarmDirector {
   }
 
   // take builders from the crew ring; fall back to temporary agents if all are busy
-  _claim(n, near) {
+  _claim(n, near, pick) {
     if (!this.enabled) return [];
-    const got = this.crew.claim(n, near);
+    const got = this.crew.claim(n, near, pick);
     for (let i = got.length; i < Math.min(n, 1); i++) {
       const a = new Agent(this.layer, ROLES[i % ROLES.length], 60 + i);
       a.setMode("cursor");

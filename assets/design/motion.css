@@ -337,4 +337,4 @@ html.booting #nav, html.booting #main, html.booting footer.foot, html.booting .t
 /* hologram projector nodes + canvas */
 .holo-cv { position: absolute; z-index: 2; pointer-events: none; }
 .sw-agent.holo-node .sw-dotc { animation: none; }
-.sw-agent.holo-node.projecting .sw-dotc { transform: scale(1.35); box-shadow: 0 0 0 2.5px rgba(255, 255, 255, 0.9), 0 0 16px 4px rgba(127, 166, 255, 0.85); }
+.sw-agent.holo-node.projecting .sw-dotc { transform: scale(1.35); box-shadow: 0 0 0 2.5px rgba(255, 255, 255, 0.9), 0 0 16px 4px color-mix(in srgb, var(--c) 80%, white 20%); }

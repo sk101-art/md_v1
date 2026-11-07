@@ -1,7 +1,7 @@
 // The Crew: exactly 11 builders (one for each core team role). They assemble in a ring on a
 // blank screen ("Assigning builders"), become cursors to build the site, and between jobs they
 // orbit the visitor's pointer as small particles until the swarm needs them again.
-import { Agent, ROLES, visitor } from "./agents.js";
+import { Agent, ROLES, SATIN, SATIN_INDEX, visitor } from "./agents.js";
 import { isSmall } from "../core/util.js";
 import { makeSvg, powerNetwork, logoBody } from "../graphics/power-fx.js";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -28,7 +28,7 @@ export class Crew {
   ensure() {
     if (this.agents.length) return;
     for (let i = 0; i < CREW_SIZE; i++) {
-      const a = new Agent(this.layer, ROLES[i % ROLES.length], i);
+      const a = new Agent(this.layer, i === SATIN_INDEX ? SATIN : ROLES[i % ROLES.length], i);
       a.crew = true;
       a.setMode("dot");
       a.el.style.opacity = "0";
@@ -183,9 +183,11 @@ export class Crew {
   }
 
   /** Take n builders off the ring, nearest to `near` first. They become cursors. */
-  claim(n, near) {
+  claim(n, near, { only = null, exclude = null } = {}) {
     this.ensure();
-    const pool = [...this.free];
+    let pool = [...this.free];
+    if (only) pool = pool.filter(only);
+    if (exclude) pool = pool.filter(a => !exclude(a));
     if (near) pool.sort((a, b) => Math.hypot(a.x - near.x, a.y - near.y) - Math.hypot(b.x - near.x, b.y - near.y));
     const out = pool.slice(0, n);
     out.forEach(a => { this.free.delete(a); a.oc = null; a.setMode("cursor"); a.el.style.opacity = "1"; });

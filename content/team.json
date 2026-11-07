@@ -1,5 +1,5 @@
 {
-  "current_year": "2025-26",
+  "current_year": "2026-27",
   "current": [
     {
       "name": "Sujay K",
@@ -41,7 +41,8 @@
       ],
       "github": "",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/sathvikha-m.jpg"
+      "portrait": "photos/team/sathvikha-m.jpg",
+      "holo_node": "satin"
     },
     {
       "name": "Marylin Nithika",
