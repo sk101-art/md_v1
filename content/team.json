@@ -13,7 +13,9 @@
       ],
       "github": "https://github.com/sk101-art",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/sujay-k.jpg"
+      "portrait": "photos/team/sujay-k.jpg",
+      "holo_node": "sujay",
+      "quote": "For a reason beyond the road"
     },
     {
       "name": "Manushree M",
@@ -27,7 +29,9 @@
       ],
       "github": "",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/manushree-m.jpg"
+      "portrait": "photos/team/manushree-m.jpg",
+      "holo_node": "manushree",
+      "quote": "Might as well do it"
     },
     {
       "name": "Sathvikha Manish",
@@ -42,7 +46,8 @@
       "github": "",
       "linkedin": "https://linkedin.com",
       "portrait": "photos/team/sathvikha-m.jpg",
-      "holo_node": "satin"
+      "holo_node": "satin",
+      "quote": "Many minds, one mission"
     },
     {
       "name": "Marylin Nithika",
@@ -56,7 +61,9 @@
       ],
       "github": "",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/marylin.jpg"
+      "portrait": "photos/team/marylin.jpg",
+      "holo_node": "marylin",
+      "quote": "We rise by lifting others"
     },
     {
       "name": "Hari Prasad S",
@@ -70,7 +77,9 @@
       ],
       "github": "https://github.com",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/hari-prasad-s.jpg"
+      "portrait": "photos/team/hari-prasad-s.jpg",
+      "holo_node": "hari",
+      "quote": "Whatever it takes, trying to do better"
     },
     {
       "name": "Prajna R",
@@ -84,7 +93,9 @@
       ],
       "github": "",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/prajna-r.jpg"
+      "portrait": "photos/team/prajna-r.jpg",
+      "holo_node": "prajna",
+      "quote": "Make your own luck"
     },
     {
       "name": "Poojitha Subramanyam",
@@ -98,7 +109,9 @@
       ],
       "github": "https://github.com",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/poojitha-s.jpg"
+      "portrait": "photos/team/poojitha-s.jpg",
+      "holo_node": "poojitha",
+      "quote": "Stop dreaming, start doing."
     },
     {
       "name": "Rajeev Sharma",
@@ -112,7 +125,9 @@
       ],
       "github": "https://github.com",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/rajeev-sharma.jpg"
+      "portrait": "photos/team/rajeev-sharma.jpg",
+      "holo_node": "rajeev",
+      "quote": "All you get is one life"
     },
     {
       "name": "Mohammed Faidh",
@@ -126,7 +141,9 @@
       ],
       "github": "",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/mohammed-faidh.jpg"
+      "portrait": "photos/team/mohammed-faidh.jpg",
+      "holo_node": "faidh",
+      "quote": "Never lose hope, time will tell"
     },
     {
       "name": "Mrinal Satheesh",
@@ -140,7 +157,9 @@
       ],
       "github": "",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/mrinal-s.jpg"
+      "portrait": "photos/team/mrinal-s.jpg",
+      "holo_node": "mrinal",
+      "quote": "Do it for the plot!"
     },
     {
       "name": "Sanjay Padmaraj",
@@ -154,21 +173,12 @@
       ],
       "github": "https://github.com/123sanjaypadmaraj",
       "linkedin": "https://linkedin.com",
-      "portrait": "photos/team/sanjay-padmaraj.jpg"
+      "portrait": "photos/team/sanjay-padmaraj.jpg",
+      "holo_node": "sanjay",
+      "quote": "Built on effort, driven by purpose"
     }
   ],
   "earlier": [
-    {
-      "name": "Likitha K",
-      "role": "President 2025-26 · Vice President 2024-25",
-      "year": "",
-      "committee": "Alumni",
-      "bio": "",
-      "specialties": [],
-      "github": "",
-      "linkedin": "",
-      "portrait": ""
-    },
     {
       "name": "Rahul Mahesh",
       "role": "Vice President",
@@ -184,17 +194,6 @@
       "name": "Darshan Infanto R",
       "role": "Treasurer",
       "year": "2025-26",
-      "committee": "Alumni",
-      "bio": "",
-      "specialties": [],
-      "github": "",
-      "linkedin": "",
-      "portrait": ""
-    },
-    {
-      "name": "Chiranjeevi",
-      "role": "President",
-      "year": "2024-25",
       "committee": "Alumni",
       "bio": "",
       "specialties": [],

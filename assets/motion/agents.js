@@ -9,13 +9,31 @@ export const ROLES = [
   { id: "ship", name: "Ship", color: "var(--agent-ship)", hex: "#C9A23F", speed: 1.05 }
 ];
 
-// One builder in the crew wears deep satin violet instead of a repeated role colour. It is the
-// builder that projects Sathvikha's card on the Team page, and its hologram is violet too.
-export const SATIN = {
-  id: "satin", name: "Satin", color: "#7B45B8", hex: "#7B45B8", speed: 0.96,
-  holo: { main: [123, 69, 184], text: [150, 98, 214], line: [170, 120, 232], streak: [190, 150, 240], hot: [242, 230, 255], scan: [212, 186, 250] }
+// The crew: 11 builders, one per member of the core team, each in a colour of its own. On the
+// Team page every builder projects its own member's card, in its own colour: gold for the
+// President, satin violet for the Secretary, and a distinct hue for everyone else.
+const mix = (rgb, k) => rgb.map(v => Math.round(v + (255 - v) * k));
+const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const builder = (id, name, hex, speed = 1) => {
+  const c = hexRgb(hex);
+  return { id, name, color: hex, hex, speed,
+    holo: { main: c, text: mix(c, 0.18), line: mix(c, 0.32), streak: mix(c, 0.45), hot: mix(c, 0.9), scan: mix(c, 0.7) } };
 };
-export const SATIN_INDEX = 10; // replaces the third Design-blue builder
+// role labels keep the swarm's vocabulary; the colour is what identifies each builder
+export const CREW_ROLES = [
+  builder("sujay", "Design", "#D4A62A", 1.0),      // gold
+  builder("manushree", "Build", "#E8609E", 1.12),  // rose
+  builder("satin", "Motion", "#7B45B8", 0.96),     // satin violet
+  builder("marylin", "Review", "#19B4CF", 0.86),   // cyan
+  builder("hari", "Ship", "#2F8CEB", 1.05),        // azure
+  builder("prajna", "Design", "#F07C2E", 1.0),     // tangerine
+  builder("poojitha", "Build", "#1FA77F", 1.1),    // emerald
+  builder("rajeev", "Motion", "#4F5BE0", 0.94),    // indigo
+  builder("faidh", "Review", "#84B832", 0.9),      // lime
+  builder("mrinal", "Ship", "#C04BC9", 1.04),      // magenta
+  builder("sanjay", "Design", "#E0444F", 1.0)      // crimson
+];
+export const SATIN = CREW_ROLES[2];
 
 // The visitor's pointer in page coordinates; agents near it are nudged aside.
 export const visitor = { x: -1e5, y: -1e5 };

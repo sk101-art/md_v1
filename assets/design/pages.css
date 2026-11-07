@@ -342,11 +342,11 @@ main { display: block; min-height: 70vh; }
 .person.holo-wait { opacity: 0; }
 /* the projection taking on colour: blue hologram tint + scanlines, then true colour */
 .person.holo-colour { animation: holoIn 700ms var(--ease-out) both; }
-.person.holo-colour .portrait img, .person.holo-colour .avatar { filter: grayscale(1) sepia(0.5) hue-rotate(175deg) saturate(2.6) brightness(1.08) contrast(1.05); transition: filter 1400ms var(--ease-io); }
+.person.holo-colour .portrait img, .person.holo-colour .avatar { filter: grayscale(1) sepia(0.5) hue-rotate(var(--holo-hr, 175deg)) saturate(2.6) brightness(1.08) contrast(1.05); transition: filter 1400ms var(--ease-io); }
 .person.holo-colour.holo-true .portrait img, .person.holo-colour.holo-true .avatar { filter: none; }
 .person.holo-colour::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: 4; pointer-events: none;
-  background: repeating-linear-gradient(0deg, rgba(88, 120, 216, 0.10) 0 1px, transparent 1px 3px);
+  background: repeating-linear-gradient(0deg, rgba(var(--holo-rgb, 88, 120, 216), 0.11) 0 1px, transparent 1px 3px);
   transition: opacity 1200ms var(--ease-io); opacity: 1;
 }
 .person.holo-colour.holo-true::before { opacity: 0; }
@@ -387,7 +387,7 @@ main { display: block; min-height: 70vh; }
 .facts div:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .lb-bar > span:last-child { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 @media (max-width: 560px) { .lb-bar { flex-direction: column; align-items: stretch; } .lb-bar > span:last-child { justify-content: space-between; } }
-/* Sathvikha's card is projected by the satin violet builder, so its hologram is violet */
-.person[data-holo-node="satin"].holo-colour .portrait img, .person[data-holo-node="satin"].holo-colour .avatar { filter: grayscale(1) sepia(0.55) hue-rotate(228deg) saturate(2.4) brightness(1.02) contrast(1.06); }
-.person[data-holo-node="satin"].holo-colour.holo-true .portrait img, .person[data-holo-node="satin"].holo-colour.holo-true .avatar { filter: none; }
-.person[data-holo-node="satin"].holo-colour::before { background: repeating-linear-gradient(0deg, rgba(123, 69, 184, 0.12) 0 1px, transparent 1px 3px); }
+/* each member's own words from their poster, set under their role */
+.person .quote { margin: 12px 0 0; padding: 10px 0 0 14px; border-top: 1px solid var(--line); position: relative;
+  font: italic 400 1.08rem/1.35 var(--font-serif); color: var(--text); }
+.person .quote::before { content: ""; position: absolute; left: 0; top: 13px; bottom: 3px; width: 2px; border-radius: 2px; background: var(--node, var(--accent)); opacity: .85; }

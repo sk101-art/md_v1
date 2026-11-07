@@ -3,6 +3,9 @@ import { pageHead } from "./common.js";
 import { loadData } from "../core/content.js";
 import { wireSeg } from "../core/seg.js";
 import { HoloProjector } from "../experiences/holo-projector.js";
+import { CREW_ROLES } from "../motion/agents.js";
+
+const nodeColour = id => (CREW_ROLES.find(r => r.id === id) || {}).hex || "";
 
 const initials = n => n.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
 
@@ -12,7 +15,7 @@ function person(p, extra = "", { holo = false } = {}) {
     isRealProfile(p.linkedin) ? `<a href="${esc(p.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ""
   ].filter(Boolean).join("");
   // the current team: every card the same size, portrait on top, projected by the builders
-  const attrs = holo ? `class="person card holo-wait" data-holo${p.holo_node ? ` data-holo-node="${esc(p.holo_node)}"` : ""}` : `class="person card" data-sw="box"`;
+  const attrs = holo ? `class="person card holo-wait" data-holo${p.holo_node ? ` data-holo-node="${esc(p.holo_node)}"` : ""}${p.holo_node ? ` style="--node:${esc(nodeColour(p.holo_node))}"` : ""}` : `class="person card" data-sw="box"`;
   return `
     <article ${attrs} data-comm="${esc((p.committee || "").toLowerCase())}">
       ${holo
@@ -23,6 +26,7 @@ function person(p, extra = "", { holo = false } = {}) {
       <h4>${esc(p.name)}</h4>
       <span class="role">${esc(p.role)}${extra}</span>
       ${p.bio ? `<p>${esc(p.bio)}</p>` : ""}
+      ${p.quote ? `<blockquote class="quote">&ldquo;${esc(p.quote)}&rdquo;</blockquote>` : ""}
       ${links ? `<div class="links">${links}</div>` : ""}
     </article>`;
 }

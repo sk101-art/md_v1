@@ -1,7 +1,7 @@
 // The Crew: exactly 11 builders (one for each core team role). They assemble in a ring on a
 // blank screen ("Assigning builders"), become cursors to build the site, and between jobs they
 // orbit the visitor's pointer as small particles until the swarm needs them again.
-import { Agent, ROLES, SATIN, SATIN_INDEX, visitor } from "./agents.js";
+import { Agent, CREW_ROLES, visitor } from "./agents.js";
 import { isSmall } from "../core/util.js";
 import { makeSvg, powerNetwork, logoBody } from "../graphics/power-fx.js";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -28,7 +28,7 @@ export class Crew {
   ensure() {
     if (this.agents.length) return;
     for (let i = 0; i < CREW_SIZE; i++) {
-      const a = new Agent(this.layer, i === SATIN_INDEX ? SATIN : ROLES[i % ROLES.length], i);
+      const a = new Agent(this.layer, CREW_ROLES[i], i);
       a.crew = true;
       a.setMode("dot");
       a.el.style.opacity = "0";

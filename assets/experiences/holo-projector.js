@@ -122,7 +122,16 @@ export class HoloProjector {
     if (!lead && want) [lead] = this.d._claim(1, near);
     if (want) this.reserved.delete(want);
     if (!lead) { card.classList.remove("holo-wait"); return; }
-    if (lead.role.holo) card.style.setProperty("--holo-tint", `rgb(${lead.role.holo.main})`);
+    card.dataset.holoBy = lead.role.id;
+    if (lead.role.holo) {
+      // the card's colour pass takes the builder's hue (sepia sits near 38deg, so rotate from there)
+      const [r, g, b] = lead.role.holo.main;
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn || 1;
+      let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      h = (h * 60 + 360) % 360;
+      card.style.setProperty("--holo-hr", `${Math.round(h - 38)}deg`);
+      card.style.setProperty("--holo-rgb", `${r}, ${g}, ${b}`);
+    }
     const job = new Job(this, card, lead);
     this.jobs.add(job);
     try { await job.run(); } catch (e) { console.warn("[holo]", e); job.reveal(true); }
@@ -222,7 +231,7 @@ class Job {
       const av = card.querySelector(".portrait, .avatar");
       if (av) { const b = local(av); perimeterPts(b.w, b.h, 16, 3).forEach(p => add(b.x + p.x, b.y + p.y, "edge")); for (let i = 0; i < 70; i++) add(b.x + b.w * (0.28 + Math.random() * 0.44), b.y + b.h * (0.32 + Math.random() * 0.36), "img"); }
     }
-    $$("h3, h4, .role, p, .links a, .chips span", card).forEach(t => {
+    $$("h3, h4, .role, p, .quote, .links a, .chips span", card).forEach(t => {
       lineRects(t, 8).forEach(l => {
         const lx = l.x - R.x, ly = l.y - R.y;
         for (let x = 0; x < l.w; x += big ? 2.6 : 3.2) add(lx + x, ly + l.h * (0.2 + Math.random() * 0.6), "text");
