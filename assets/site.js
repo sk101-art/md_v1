@@ -501,70 +501,133 @@
       }
     },
 
+    screenToWorld(clientX, clientY, targetZ = 0) {
+      if (!this.useWebGL || !this.camera || !this.renderer) return new THREE.Vector3(0, 0, 0);
+      const rect = this.canvas.getBoundingClientRect();
+      const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
+      const v = new THREE.Vector3(ndcX, ndcY, 0.5);
+      v.unproject(this.camera);
+      const dir = v.sub(this.camera.position).normalize();
+      const dist = (targetZ - this.camera.position.z) / dir.z;
+      return this.camera.position.clone().add(dir.multiplyScalar(dist));
+    },
+
     startChoreography() {
-      if (reduced) {
-        this.morph.progress = 3;
-        const phone = $(".phone");
-        if (phone) phone.style.opacity = "1";
-        return;
+      // Keeps particles in ambient cosmic haze on load (phone stage is initially empty)
+      this.state = "ambient";
+      this.morph.progress = 0;
+    },
+
+    emitFromElements(elements, targetRect) {
+      if (!this.useWebGL || !this.geometry || !elements.length) return;
+      this.state = "collecting";
+
+      const targetWorld = this.screenToWorld(
+        targetRect.left + targetRect.width / 2,
+        targetRect.top + targetRect.height / 2,
+        0
+      );
+
+      const pos = this.geometry.attributes.position.array;
+      const workerCount = Math.floor(this.count * 0.7);
+
+      for (let i = 0; i < workerCount; i++) {
+        const i3 = i * 3;
+        const el = elements[i % elements.length];
+        const r = el.getBoundingClientRect();
+
+        const ex = r.left + Math.random() * r.width;
+        const ey = r.top + Math.random() * r.height;
+        const sourceWorld = this.screenToWorld(ex, ey, (Math.random() - 0.5) * 30);
+
+        pos[i3] = sourceWorld.x;
+        pos[i3 + 1] = sourceWorld.y;
+        pos[i3 + 2] = sourceWorld.z;
+
+        // Animate toward stage arrival targets
+        this.targets[0][i3] = targetWorld.x + (Math.random() - 0.5) * 140;
+        this.targets[0][i3 + 1] = targetWorld.y + (Math.random() - 0.5) * 220;
+        this.targets[0][i3 + 2] = (Math.random() - 0.5) * 60;
       }
 
+      this.geometry.attributes.position.needsUpdate = true;
+    },
+
+    formChassisWireframe() {
+      if (!this.useWebGL) return;
+      this.state = "chassis";
       if (typeof gsap !== "undefined") {
-        const tl = gsap.timeline();
-
-        // Stage 0 -> 1: Cosmic Haze to MAD Emblem (0.6s - 2.0s)
-        tl.to(this.morph, {
-          progress: 1,
-          duration: 1.5,
-          delay: 0.5,
-          ease: "power2.inOut",
-          onStart: () => {
-            this.state = "emblem";
-            sound.playTone(320, 0.08, "triangle");
-          }
-        });
-
-        // Stage 1 Specular reveal & 3D tilt (2.0s - 3.0s)
-        if (this.points) {
-          tl.to(this.points.rotation, {
-            y: 0.25,
-            duration: 0.55,
-            ease: "power1.inOut"
-          }, "+=0.1");
-          tl.to(this.points.rotation, {
-            y: 0,
-            duration: 0.55,
-            ease: "power1.inOut"
-          });
-        }
-
-        // Stage 1 -> 3: Morph to Smartphone Chassis & App Grid (3.2s - 4.6s)
-        tl.to(this.morph, {
-          progress: 3,
-          duration: 1.4,
-          ease: "power3.inOut",
-          onStart: () => {
-            this.state = "chassis";
-            sound.playTone(480, 0.08, "triangle");
-          },
-          onComplete: () => {
-            this.state = "living";
-            const phone = $(".phone");
-            if (phone) {
-              phone.style.opacity = "1";
-              phone.style.filter = "drop-shadow(0 0 32px var(--glow))";
-              setTimeout(() => { phone.style.filter = ""; }, 900);
-            }
-            sound.playTone(720, 0.14, "sine");
-          }
+        gsap.to(this.morph, {
+          progress: 2,
+          duration: 1.25,
+          ease: "power2.out"
         });
       } else {
-        setTimeout(() => { this.morph.progress = 1; }, 600);
-        setTimeout(() => {
-          this.morph.progress = 3;
-          const p = $(".phone");
-          if (p) p.style.opacity = "1";
-        }, 3400);
+        this.morph.progress = 2;
+      }
+    },
+
+    formInternalContainers() {
+      if (!this.useWebGL) return;
+      this.state = "containers";
+      if (typeof gsap !== "undefined") {
+        gsap.to(this.morph, {
+          progress: 3,
+          duration: 1.1,
+          ease: "power2.inOut"
+        });
+      } else {
+        this.morph.progress = 3;
+      }
+    },
+
+    shootNavigationBeam(targetEl) {
+      if (!this.useWebGL || !targetEl) return;
+      const r = targetEl.getBoundingClientRect();
+      const dest = this.screenToWorld(r.left + r.width / 2, r.top + r.height / 2, 20);
+      const pos = this.geometry.attributes.position.array;
+
+      for (let i = 0; i < 40; i++) {
+        const i3 = i * 3;
+        pos[i3] = dest.x + (Math.random() - 0.5) * 30;
+        pos[i3 + 1] = dest.y + (Math.random() - 0.5) * 16;
+        pos[i3 + 2] = 20 + (Math.random() - 0.5) * 10;
+      }
+      this.geometry.attributes.position.needsUpdate = true;
+      sound.playTone(620, 0.05, "sine");
+    },
+
+    emitBeamToElement(sourceEl, targetEl) {
+      if (!this.useWebGL || !sourceEl || !targetEl) return;
+      const sr = sourceEl.getBoundingClientRect();
+      const tr = targetEl.getBoundingClientRect();
+      const startW = this.screenToWorld(sr.left + sr.width / 2, sr.top + sr.height / 2, 10);
+      const endW = this.screenToWorld(tr.left + tr.width / 2, tr.top + tr.height / 2, 10);
+
+      const pos = this.geometry.attributes.position.array;
+      const beamCount = 60;
+      for (let i = 0; i < beamCount; i++) {
+        const i3 = (i + 120) * 3;
+        const t = i / beamCount;
+        pos[i3] = startW.x + (endW.x - startW.x) * t + (Math.random() - 0.5) * 15;
+        pos[i3 + 1] = startW.y + (endW.y - startW.y) * t + Math.sin(t * Math.PI) * 30;
+        pos[i3 + 2] = 20;
+      }
+      this.geometry.attributes.position.needsUpdate = true;
+      sound.playTone(720, 0.06, "triangle");
+    },
+
+    resetToAmbient() {
+      this.state = "ambient";
+      if (typeof gsap !== "undefined") {
+        gsap.to(this.morph, {
+          progress: 0,
+          duration: 1.2,
+          ease: "power2.out"
+        });
+      } else {
+        this.morph.progress = 0;
       }
     },
 
@@ -738,6 +801,7 @@
         // Only handle internal HTML page transitions
         if (href.endsWith(".html") || href.includes(".html?")) {
           e.preventDefault();
+          particleEngine.shootNavigationBeam(link);
           this.navigateTo(href, site, events);
         }
       });
@@ -806,6 +870,8 @@
         wireLivingPhone(events);
         wireCollaborativeSwarm();
         wireTheFoundry(events);
+        PhoneBuilder.init(events);
+        ContainerTracer.initHomepageTraces();
       } else if (pageName === "events") {
         wireEventsArena();
       } else if (pageName === "about") {
@@ -818,6 +884,393 @@
 
       activateCountersAndReveals();
       syncThemeColor();
+    }
+  };
+
+  // --- Container-Tracing Engine (Part 2) ---
+  // On homepage load, main UI containers become visible through animated edge tracing.
+  // Thin luminous traces travel along actual container boundaries, illuminating corners
+  // before the container surface materializes into optical glass.
+  const ContainerTracer = {
+    trace(el, delay = 0, duration = 0.85, onComplete = null) {
+      if (!el || reduced) {
+        el?.classList.add("traced");
+        if (onComplete) onComplete();
+        return;
+      }
+
+      el.classList.add("is-tracing");
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      const radius = parseFloat(style.borderRadius) || 12;
+      const width = Math.max(24, Math.round(rect.width));
+      const height = Math.max(24, Math.round(rect.height));
+      const perimeter = Math.max(30, Math.round(2 * (width + height) - 8 * radius + 2 * Math.PI * radius));
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "container-trace-svg");
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.style.position = "absolute";
+      svg.style.inset = "0";
+      svg.style.width = "100%";
+      svg.style.height = "100%";
+      svg.style.pointerEvents = "none";
+      svg.style.overflow = "visible";
+      svg.style.zIndex = "8";
+
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      path.setAttribute("x", "1");
+      path.setAttribute("y", "1");
+      path.setAttribute("width", String(width - 2));
+      path.setAttribute("height", String(height - 2));
+      path.setAttribute("rx", String(radius));
+      path.setAttribute("ry", String(radius));
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", "url(#trace-grad)");
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-dasharray", `${perimeter}`);
+      path.setAttribute("stroke-dashoffset", `${perimeter}`);
+
+      svg.appendChild(path);
+      if (style.position === "static") el.style.position = "relative";
+      el.appendChild(svg);
+
+      if (typeof gsap !== "undefined") {
+        gsap.to(path, {
+          strokeDashoffset: 0,
+          duration: duration,
+          delay: delay,
+          ease: "power2.inOut",
+          onComplete: () => {
+            el.classList.remove("is-tracing");
+            el.classList.add("traced");
+            sound.playTone(520, 0.03, "sine");
+            gsap.to(svg, {
+              opacity: 0,
+              duration: 0.4,
+              onComplete: () => svg.remove()
+            });
+            if (onComplete) onComplete();
+          }
+        });
+      } else {
+        setTimeout(() => {
+          el.classList.remove("is-tracing");
+          el.classList.add("traced");
+          svg.remove();
+          if (onComplete) onComplete();
+        }, (delay + duration) * 1000);
+      }
+    },
+
+    initHomepageTraces() {
+      const targets = [
+        { sel: "header.nav", delay: 0.1, dur: 0.8 },
+        { sel: ".hero-badge", delay: 0.3, dur: 0.5 },
+        { sel: ".hero-copy", delay: 0.45, dur: 0.9 },
+        { sel: ".build-dock", delay: 0.7, dur: 0.7 },
+        { sel: ".stage-blueprint", delay: 0.85, dur: 1.0 },
+        { sel: ".hero-actions a", delay: 1.0, dur: 0.6 }
+      ];
+
+      targets.forEach(t => {
+        const el = $(t.sel);
+        if (el) this.trace(el, t.delay, t.dur);
+      });
+    }
+  };
+
+  // --- PhoneBuilder: State Machine & 7-Stage Assembly Orchestrator (Parts 3 & 4) ---
+  const PhoneBuilder = {
+    state: "IDLE",
+    isBusy: false,
+
+    init(events) {
+      this.state = "READY_TO_BUILD";
+      this.isBusy = false;
+
+      const buildBtn = $("#btn-build-phone");
+      const phone = $(".phone");
+      const blueprint = $("#stage-blueprint");
+
+      // Phone stage starts strictly EMPTY
+      if (phone) {
+        phone.classList.add("is-hidden");
+        phone.classList.remove("is-materializing", "is-live");
+      }
+      if (blueprint) {
+        blueprint.classList.remove("is-faded");
+      }
+
+      if (buildBtn) {
+        buildBtn.onclick = () => {
+          if (this.isBusy) return;
+          if (this.state === "COMPLETE") {
+            this.rebuild(events);
+          } else {
+            this.startBuild(events);
+          }
+        };
+      }
+    },
+
+    updateTicker(phaseText, progressPct) {
+      const ticker = $("#build-phase-ticker");
+      const fill = $(".build-progress-bar .bp-fill");
+      if (ticker) ticker.textContent = phaseText;
+      if (fill) fill.style.width = `${progressPct}%`;
+    },
+
+    async startBuild(events) {
+      if (this.isBusy) return;
+      this.isBusy = true;
+      this.state = "ACTIVATING";
+
+      const buildBtn = $("#btn-build-phone");
+      const phone = $(".phone");
+      const blueprint = $("#stage-blueprint");
+      const stage = $(".stage");
+
+      if (buildBtn) buildBtn.classList.add("is-active");
+      sound.playTone(280, 0.15, "triangle");
+
+      // STAGE 1: Global Activation
+      this.updateTicker("STAGE 1/7: ACTIVATING GLOBAL ENERGY BUS...", 15);
+      const donorSelectors = [
+        "header.nav",
+        ".brand-emblem-svg",
+        ".links a",
+        ".hero-title",
+        ".hero-badge",
+        ".hero-actions a",
+        ".code-badge",
+        ".btn-build"
+      ];
+      $$(donorSelectors.join(",")).forEach((el, idx) => {
+        setTimeout(() => el.classList.add("pulse-donor"), idx * 60);
+      });
+
+      await new Promise(r => setTimeout(r, 650));
+
+      // STAGE 2: Particle Emission from Real UI Modules
+      this.state = "COLLECTING_PARTICLES";
+      this.updateTicker("STAGE 2/7: EXTRACTING PARTICLES FROM UI MODULES...", 35);
+      sound.playTone(420, 0.2, "sawtooth");
+
+      const donorElements = [
+        $(".brand-emblem-svg"),
+        ...$$(".links a"),
+        $(".hero-title"),
+        $(".code-badge"),
+        $(".btn-build")
+      ].filter(Boolean);
+
+      if (particleEngine.emitFromElements && stage) {
+        particleEngine.emitFromElements(donorElements, stage.getBoundingClientRect());
+      }
+
+      await new Promise(r => setTimeout(r, 1200));
+
+      // STAGE 3: Construct Device Chassis Wireframe
+      this.state = "BUILDING_CHASSIS";
+      this.updateTicker("STAGE 3/7: FORGING TITANIUM DEVICE SKELETON...", 55);
+      sound.playTone(520, 0.25, "triangle");
+
+      if (particleEngine.formChassisWireframe) {
+        particleEngine.formChassisWireframe();
+      }
+
+      await new Promise(r => setTimeout(r, 1300));
+
+      // STAGE 4: Internal Screen Container Assembly
+      this.state = "ASSEMBLING_CONTAINERS";
+      this.updateTicker("STAGE 4/7: SYNTHESIZING SCREEN CONTAINERS...", 75);
+      sound.playTone(660, 0.2, "sine");
+
+      if (particleEngine.formInternalContainers) {
+        particleEngine.formInternalContainers();
+      }
+
+      await new Promise(r => setTimeout(r, 1100));
+
+      // STAGE 5: Materialization into Physical Device
+      this.state = "MATERIALIZING";
+      this.updateTicker("STAGE 5/7: MATERIALIZING TITANIUM & OPTICAL GLASS...", 88);
+
+      if (blueprint) blueprint.classList.add("is-faded");
+      if (phone) {
+        phone.classList.remove("is-hidden");
+        phone.classList.add("is-materializing");
+      }
+      sound.playTone(740, 0.3, "sine");
+
+      await new Promise(r => setTimeout(r, 950));
+
+      // STAGE 6: MAD Emblem Ignition Flight
+      this.state = "LOGO_APPROACH";
+      this.updateTicker("STAGE 6/7: COUPLING MAD CORE IGNITION EMBLEM...", 95);
+
+      const brandLogo = $(".brand-emblem-svg");
+      const phoneScreen = $(".screen", phone);
+      if (brandLogo && phoneScreen) {
+        await this.animateTravelingEmblem(brandLogo, phoneScreen);
+      }
+
+      // STAGE 7: Power-up & Boot Screen
+      this.state = "POWERING_UP";
+      this.updateTicker("STAGE 7/7: MAD OS ONLINE · SYSTEM SYNCHRONIZED", 100);
+      sound.playTone(880, 0.35, "triangle");
+
+      const bootScreen = $("#phone-boot-screen", phone);
+      if (bootScreen) {
+        bootScreen.classList.remove("is-off");
+        await new Promise(r => setTimeout(r, 900));
+        bootScreen.classList.add("is-off");
+      }
+
+      // COMPLETE STATE
+      this.state = "COMPLETE";
+      this.isBusy = false;
+      if (phone) {
+        phone.classList.remove("is-materializing");
+        phone.classList.add("is-live");
+      }
+
+      // Update button UI to Rebuild / Reset options
+      const buildDock = $("#build-dock");
+      if (buildDock) {
+        buildDock.innerHTML = `
+          <div class="build-complete-actions">
+            <button class="btn-build is-rebuild" id="btn-rebuild-phone" type="button">
+              <div class="btn-build-surface">
+                <div class="btn-build-icon">✦</div>
+                <div class="btn-build-meta">
+                  <span class="btn-build-primary">REBUILD EXPERIENCE</span>
+                  <span class="btn-build-secondary">Re-ignite site-wide particle synthesis</span>
+                </div>
+              </div>
+            </button>
+            <button class="btn-reset" id="btn-reset-stage" type="button">Reset Stage</button>
+          </div>
+          <div class="build-phase-ticker" id="build-phase-ticker">ASSEMBLY COMPLETE · EXPLORE MAD OS INTERFACE</div>
+        `;
+        const newRebuild = $("#btn-rebuild-phone");
+        const newReset = $("#btn-reset-stage");
+        if (newRebuild) newRebuild.onclick = () => this.rebuild(events);
+        if (newReset) newReset.onclick = () => this.reset(events);
+      }
+
+      wireLivingPhone(events);
+      sound.playTone(1040, 0.4, "sine");
+    },
+
+    async animateTravelingEmblem(fromEl, toEl) {
+      const fromRect = fromEl.getBoundingClientRect();
+      const toRect = toEl.getBoundingClientRect();
+
+      const proxy = document.createElement("img");
+      proxy.src = "assets/brand/mad-emblem.svg";
+      proxy.className = "traveling-emblem-proxy";
+      proxy.style.left = `${fromRect.left}px`;
+      proxy.style.top = `${fromRect.top}px`;
+      proxy.style.width = `${fromRect.width}px`;
+      proxy.style.height = `${fromRect.height}px`;
+      document.body.appendChild(proxy);
+
+      sound.playTone(600, 0.25, "sawtooth");
+
+      if (typeof gsap !== "undefined") {
+        await new Promise(resolve => {
+          gsap.to(proxy, {
+            left: toRect.left + toRect.width / 2 - 24,
+            top: toRect.top + toRect.height / 2 - 24,
+            width: 48,
+            height: 48,
+            scale: 1.4,
+            rotation: 360,
+            duration: 1.1,
+            ease: "power3.inOut",
+            onComplete: () => {
+              gsap.to(proxy, {
+                scale: 0.2,
+                opacity: 0,
+                duration: 0.35,
+                onComplete: () => {
+                  proxy.remove();
+                  resolve();
+                }
+              });
+            }
+          });
+        });
+      } else {
+        proxy.remove();
+      }
+    },
+
+    async reset(events) {
+      if (this.isBusy) return;
+      this.isBusy = true;
+      this.state = "RESETTING";
+
+      const phone = $(".phone");
+      const blueprint = $("#stage-blueprint");
+      sound.playTone(320, 0.15, "triangle");
+
+      if (phone) {
+        phone.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+        phone.style.opacity = "0";
+        phone.style.transform = "scale(0.92)";
+        await new Promise(r => setTimeout(r, 520));
+        phone.classList.add("is-hidden");
+        phone.classList.remove("is-live", "is-materializing");
+        phone.style.opacity = "";
+        phone.style.transform = "";
+      }
+
+      if (blueprint) {
+        blueprint.classList.remove("is-faded");
+      }
+
+      if (particleEngine.resetToAmbient) {
+        particleEngine.resetToAmbient();
+      }
+
+      // Restore initial Build Dock
+      const buildDock = $("#build-dock");
+      if (buildDock) {
+        buildDock.innerHTML = `
+          <button class="btn-build" id="btn-build-phone" type="button" aria-label="Initialize Build">
+            <div class="btn-build-surface">
+              <div class="btn-build-icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="btn-build-meta">
+                <span class="btn-build-primary">INITIALIZE BUILD</span>
+                <span class="btn-build-secondary">Your interface is waiting to be assembled</span>
+              </div>
+              <span class="btn-build-arrow">✦</span>
+            </div>
+          </button>
+          <div class="build-progress-bar"><div class="bp-fill"></div></div>
+          <div class="build-phase-ticker" id="build-phase-ticker">SYSTEM READY · 0 / 7 STAGES</div>
+        `;
+        const newBtn = $("#btn-build-phone");
+        if (newBtn) newBtn.onclick = () => this.startBuild(events);
+      }
+
+      this.state = "READY_TO_BUILD";
+      this.isBusy = false;
+    },
+
+    rebuild(events) {
+      this.reset(events).then(() => {
+        setTimeout(() => this.startBuild(events), 300);
+      });
     }
   };
 
@@ -881,6 +1334,66 @@
       }
     }
     startPhoneCycle();
+
+    // Wire phone mini form with real async submission
+    const miniForm = $("#phone-mini-form", phone);
+    if (miniForm) {
+      miniForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const submitBtn = $("#pm-submit", miniForm);
+        const feedback = $("#pm-feedback", miniForm);
+        const nameInput = $("#pm-name", miniForm);
+        const emailInput = $("#pm-email", miniForm);
+
+        if (!nameInput || !emailInput) return;
+        const nameVal = nameInput.value.trim();
+        const emailVal = emailInput.value.trim();
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Transmitting...";
+        }
+
+        try {
+          const resp = await fetch("https://formspree.io/f/xbjvlqwe", {
+            method: "POST",
+            headers: {
+              "Accept": "application/json",
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              name: nameVal,
+              email: emailVal,
+              source: "MAD OS Smartphone Mini Fast-Track",
+              submittedAt: new Date().toISOString()
+            })
+          });
+
+          if (resp.ok) {
+            miniForm.innerHTML = `
+              <div style="padding:10px 8px;border-radius:10px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.4);text-align:center;">
+                <b style="color:#34d399;font-size:0.8rem;display:block;margin-bottom:4px;">✦ Request Confirmed!</b>
+                <p style="font-size:0.72rem;color:var(--text);margin:0;line-height:1.4;">Welcome aboard, ${esc(nameVal)}. Our core team will reach out via student email shortly.</p>
+              </div>
+            `;
+            sound.playTone(880, 0.08);
+          } else {
+            throw new Error("Server status " + resp.status);
+          }
+        } catch (err) {
+          console.warn("Phone mini-form submit error:", err);
+          if (feedback) {
+            feedback.style.display = "block";
+            feedback.style.color = "#fbbf24";
+            feedback.innerHTML = `⚠️ Direct transmit offline. Please DM us on <a href="https://instagram.com/mad_club_nhce" target="_blank" style="color:var(--accent-text);text-decoration:underline;">Instagram</a> to join!`;
+          }
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Retry Request";
+          }
+        }
+      };
+    }
 
     // Bounded gyroscopic inertial tilt
     if (isFinePointer && !reduced) {
@@ -1218,6 +1731,7 @@
         }
         if (previewBox && stagePreviews[idx]) {
           previewBox.innerHTML = stagePreviews[idx];
+          particleEngine.emitBeamToElement(btn, previewBox);
         }
         sound.playTone(420 + idx * 70, 0.05);
       };
@@ -1410,11 +1924,57 @@
               <a class="btn primary" href="events.html">${esc(site.hero_cta_primary || "Explore Events")}</a>
               <a class="btn" href="contact.html">${esc(site.hero_cta_secondary || "Join the Guild")}</a>
             </div>
+
+            <!-- Interactive Assembly Dock (Prompt Part 3: The Build Phone Experience) -->
+            <div class="build-dock reveal">
+              <div class="build-dock-header">
+                <span class="mono-label" style="font-size:0.75rem;letter-spacing:0.12em;color:var(--accent-text);">INTERACTIVE PROTOTYPE FABRICATOR</span>
+                <span class="badge" style="font-size:0.68rem;padding:2px 8px;">ZERO-G STAGE</span>
+              </div>
+              <p style="font-size:0.85rem;color:var(--muted);margin:6px 0 12px;line-height:1.45;">
+                Watch the website deconstruct and channel its energy to assemble the MAD OS smartphone flagship in real time.
+              </p>
+              <div class="build-action-row">
+                <button type="button" class="btn-build" id="btn-build-phone">
+                  <span class="btn-build-surface">
+                    <span class="build-icon">⚡</span>
+                    <span class="build-text">INITIALIZE BUILD</span>
+                  </span>
+                </button>
+                <div class="build-phase-ticker" id="build-phase-ticker">
+                  <span class="ticker-dot"></span>
+                  <span class="ticker-text" id="ticker-text">STAGE READY // CLICK TO COMMENCE</span>
+                </div>
+              </div>
+              <div class="build-progress-bar" id="build-progress-bar">
+                <div class="build-progress-fill" id="build-progress-fill"></div>
+              </div>
+              <div class="build-complete-actions" id="build-complete-actions" style="display:none;">
+                <button type="button" class="btn sm" id="btn-rebuild-phone">Rebuild Experience</button>
+                <button type="button" class="btn sm" id="btn-reset-stage">Reset Stage</button>
+              </div>
+            </div>
           </div>
 
-          <!-- Scene B: The Living Phone (Titanium Chassis & Screen Router) -->
+          <!-- Scene B: The Living Phone Stage (Initially Empty Blueprint until user triggers Build) -->
           <div class="stage" aria-label="Interactive Product Experience">
-            <div class="phone">
+            <!-- Stage Blueprint (Empty State with Coordinate Grid & Radar Sweep) -->
+            <div class="stage-blueprint" id="stage-blueprint">
+              <div class="blueprint-grid"></div>
+              <div class="blueprint-radar"></div>
+              <div class="blueprint-crosshairs"></div>
+              <div class="blueprint-beacon">
+                <span class="beacon-pulse"></span>
+                <span class="beacon-label">STAGE // ZERO-G FABRICATOR - AWAITING ASSEMBLY INITIATION</span>
+              </div>
+              <div class="blueprint-coords">
+                <span>SYS.FAB // 44.02° N</span>
+                <span>CHASSIS // VACANT</span>
+              </div>
+            </div>
+
+            <!-- Smartphone Chassis (Starts is-hidden, materializes during Phase 5) -->
+            <div class="phone is-hidden" id="hero-phone">
               <span class="phone-vol-up"></span>
               <span class="phone-vol-down"></span>
               <span class="phone-power"></span>
@@ -1423,6 +1983,17 @@
                 <span class="camera"></span>
               </div>
               <div class="screen">
+                <!-- Boot Screen Overlay for Power-up Sequence -->
+                <div class="phone-boot-screen is-off" id="phone-boot-screen">
+                  <div class="boot-emblem-wrap">
+                    <img src="assets/brand/mad-emblem.svg" class="boot-emblem" alt="MAD Emblem">
+                  </div>
+                  <span class="boot-status" id="boot-status">MAD OS // INITIALIZING...</span>
+                  <div class="boot-bar">
+                    <div class="boot-progress" id="boot-progress"></div>
+                  </div>
+                </div>
+
                 <div class="phone-header">
                   <span class="s-brand">MAD / OS</span>
                   <span class="s-status">Live</span>
@@ -1461,13 +2032,14 @@
                     <span>450+ Active Handshakes</span>
                   </div>
                 </div>
-                <!-- View 3: Join Mini -->
+                <!-- View 3: Join Mini (Verified Real Async Submission) -->
                 <div class="phone-view">
                   <p style="font-size:0.75rem;color:var(--muted);margin-bottom:8px;">Fast-track membership interest:</p>
-                  <form class="phone-mini-form" onsubmit="event.preventDefault(); this.innerHTML='<span style=\\'color:#34d399;font-size:0.75rem;\\'>✓ Transmitted to Guild Desk</span>';">
-                    <input type="text" placeholder="Your Name" required>
-                    <input type="email" placeholder="Student Email" required>
-                    <button type="submit">Submit Request</button>
+                  <form class="phone-mini-form" id="phone-mini-form">
+                    <input type="text" id="pm-name" name="name" placeholder="Your Name" required>
+                    <input type="email" id="pm-email" name="email" placeholder="Student Email" required>
+                    <button type="submit" id="pm-submit">Submit Request</button>
+                    <div class="pm-feedback" id="pm-feedback" style="display:none;font-size:0.75rem;margin-top:6px;"></div>
                   </form>
                 </div>
               </div>
@@ -2162,6 +2734,15 @@
       `<a class="skip" href="#main">Skip to content</a>
        <div class="progress" id="progress"></div>
        <canvas class="particle-canvas" id="particles" aria-hidden="true"></canvas>
+       <svg style="position:absolute;width:0;height:0;overflow:hidden;" aria-hidden="true">
+         <defs>
+           <linearGradient id="trace-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+             <stop offset="0%" stop-color="#38bdf8" />
+             <stop offset="50%" stop-color="#818cf8" />
+             <stop offset="100%" stop-color="#c084fc" />
+           </linearGradient>
+         </defs>
+       </svg>
        <header class="nav">
          <div class="wrap">
            <a class="brand" href="index.html">
@@ -2637,6 +3218,8 @@
         wireLivingPhone(events);
         wireCollaborativeSwarm();
         wireTheFoundry(events);
+        PhoneBuilder.init(events);
+        ContainerTracer.initHomepageTraces();
       } else if (pageName === "events") {
         wireEventsArena();
       } else if (pageName === "about") {
