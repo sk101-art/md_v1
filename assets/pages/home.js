@@ -135,7 +135,8 @@ export function wire(ctx) {
   const os = new MadOS({
     root: screen, site, events, scope,
     onRebuild: async () => { await full.close(); await builder.reset(); builder.build(); },
-    onFullscreen: () => full.open()
+    onFullscreen: () => full.open(),
+    swarm: director
   });
   builder = new PhoneBuilder({ scope, director, os, onLive: () => liveHover(scope) });
   if (window.__mad) window.__mad.os = os; // inspectable from the console, like the director

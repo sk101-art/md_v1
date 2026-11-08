@@ -50,7 +50,7 @@ export function osMarkup(site, events) {
   const flags = events.filter(e => e.flagship).length;
   const photos = events.reduce((n, e) => n + (e.photos || []).length, 0);
   return `
-  <div class="os" data-screen="off" data-app="">
+  <div class="os" data-screen="off" data-app="" data-sw-off data-sw-clip>
     <div class="os-status" aria-hidden="true">
       <span class="os-time">${clock()}</span>
       <span class="os-sys">${ICON.signal}${ICON.wifi}${ICON.battery}</span>
@@ -86,8 +86,17 @@ export function osMarkup(site, events) {
   </div>`;
 }
 
+// What the builders build inside the phone, and how (same kinds as the website's layers)
+const LAYERS = [
+  ["box", ".os-widget, .os-dock, .lk-note, .ap-card, .ap-row, .ap-group, .ap-banner"],
+  ["text", ".w-k, .w-big, .w-row, .w-latest, .lk-date, .lk-time, .ap-title, .ap-sub, .ap-h, .ap-text, .ap-quote, .ap-hero p"],
+  ["block", ".os-grid > .ic, .os-dock > .ic, .os-dots, .ap-bar, .ap-chips, .ap-cta, .lk-unlock"],
+  ["media", ".ap-grid > button, .ap-strip > button, .ap-hero img, .ap-viewer img"]
+];
+
 export class MadOS {
-  constructor({ root, site, events, scope, onRebuild, onFullscreen }) {
+  constructor({ root, site, events, scope, onRebuild, onFullscreen, swarm = null }) {
+    this.swarm = swarm;
     this.root = root;
     this.site = site;
     this.events = [...events].sort((a, b) => semKey(b.semester) - semKey(a.semester));
@@ -123,19 +132,42 @@ export class MadOS {
 
   set(screen) { this.os.dataset.screen = screen; }
 
+  // ---------- the swarm builds the phone's interface, like every page of the website ----------
+  // Mark an interface's layers (containers, text, controls, media) and hide them before they paint.
+  prep(root) {
+    if (!this.swarm || !this.swarm.enabled || this.os.closest(".os-full")) return [];
+    const out = new Set();
+    for (const [kind, sel] of LAYERS) {
+      if (root.matches && root.matches(sel)) { root.dataset.sw ||= kind; out.add(root); }
+      root.querySelectorAll(sel).forEach(el => { el.dataset.sw ||= kind; out.add(el); });
+    }
+    const els = [...out].filter(el => !el.closest("[hidden]"));
+    this.swarm.holdEls(els);
+    return els;
+  }
+  // Builders come in and build them (what is on screen now; the rest as it scrolls into view)
+  build(els) {
+    if (!els || !els.length || !this.swarm) return Promise.resolve();
+    return this.swarm.buildEls(els);
+  }
+
   // ---------- boot sequence ----------
   async boot({ fast = false } = {}) {
     const t = fast || motion.reduced ? 0 : 1;
     this.set("boot");
     await this.wait(650 * t);
+    const lock = this.prep($(".os-lock", this.os));
     this.set("lock");
-    await this.wait(1100 * t);
+    if (lock.length) { await this.build(lock); await this.wait(500 * t); }
+    else await this.wait(1100 * t);
     await this.unlock();
   }
   async unlock() {
     if (this.os.dataset.screen !== "lock") return;
+    const home = this.prep($(".os-home", this.os));
     this.set("home");
     buzz(8);
+    if (home.length) { await this.build(home); return; }
     if (!motion.reduced) {
       const items = [$(".os-widget", this.os), ...$$(".os-grid .ic, .os-dock .ic", this.os)];
       await Promise.all(items.map((el, i) => el.animate(
@@ -185,7 +217,9 @@ export class MadOS {
     this.current = id;
     this.os.dataset.app = id;
     this.stack.innerHTML = "";
-    this.stack.append(this.page(id));
+    const pg = this.page(id);
+    this.stack.append(pg);
+    const layers = this.prep(pg);
     const splash = $(".app-splash", this.app);
     const a = APPS[id];
     splash.style.background = a.img ? "#fff" : a.tint;
@@ -204,6 +238,7 @@ export class MadOS {
     splash.style.opacity = "0";
     this.island(false);
     this.busy = false;
+    this.build(layers);
     this._drain();
   }
   async home(quick = false) {
@@ -246,9 +281,10 @@ export class MadOS {
     if (this.navBusy) { (this._navQ ||= []).push(() => this.push(pageEl)); return; }
     const prev = this.stack.lastElementChild;
     this.stack.append(pageEl);
+    const layers = this.prep(pageEl);
     if (motion.reduced) { prev && (prev.hidden = true); return; }
     this.navBusy = true;
-    pageEl.animate([{ transform: "translateX(100%)" }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(.2,.9,.2,1)" }).finished.catch(() => {}).then(() => { this.navBusy = false; this._navNext(); });
+    pageEl.animate([{ transform: "translateX(100%)" }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(.2,.9,.2,1)" }).finished.catch(() => {}).then(() => { this.navBusy = false; this.build(layers); this._navNext(); });
     prev && prev.animate([{ transform: "none" }, { transform: "translateX(-28%)", opacity: 0.6 }], { duration: 420, easing: "cubic-bezier(.2,.9,.2,1)", fill: "forwards" });
   }
   async pop() {
@@ -331,7 +367,7 @@ export class MadOS {
     p.innerHTML = `
       <header class="ap-bar">${back ? `<button type="button" class="ap-back" data-back aria-label="Back">${ICON.back}<span>Back</span></button>` : "<span></span>"}
         ${large ? "" : `<b class="ap-mini">${esc(title)}</b>`}<span></span></header>
-      <div class="ap-scroll">${large ? `<h2 class="ap-title">${esc(title)}</h2>${sub ? `<p class="ap-sub">${sub}</p>` : ""}` : ""}${body}</div>`;
+      <div class="ap-scroll" data-sw-clip>${large ? `<h2 class="ap-title">${esc(title)}</h2>${sub ? `<p class="ap-sub">${sub}</p>` : ""}` : ""}${body}</div>`;
     return p;
   }
   page(id) {
@@ -353,6 +389,10 @@ export class MadOS {
         if (!box) return;
         const ini = n => n.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
         box.innerHTML = `<p class="ap-sub">Core team ${esc(t.current_year)}</p>` + (t.current || []).map(m => `<div class="ap-row"><span class="ap-av">${esc(ini(m.name))}</span><span><b>${esc(m.name)}</b><small>${esc(m.role)}</small></span></div>`).join("");
+        // the roster arrives after the app opened: the builders build it as it lands
+        const rows = this.prep(box);
+        const go = () => (this.busy ? this.scope.timeout(go, 120) : this.build(rows));
+        go();
       }).catch(() => {});
       return p;
     }
@@ -401,7 +441,7 @@ export class MadOS {
       <p class="ap-sub">${esc(e.semester)} · ${esc(e.category || "Event")} · Completed</p>
       <p class="ap-text">${esc(e.description)}</p>
       ${(e.rounds || []).length ? `<h3 class="ap-h">Rounds</h3><div class="ap-list">${e.rounds.map(r => `<div class="ap-row"><span class="ap-av n">${esc(r.round)}</span><span><b>${esc(r.title)}</b>${r.summary ? `<small>${esc(r.summary)}</small>` : ""}</span></div>`).join("")}</div>` : ""}
-      ${(e.photos || []).length > 1 ? `<h3 class="ap-h">Photos</h3><div class="ap-strip">${e.photos.slice(0, 8).map((ph, k) => `<button type="button" data-photo="${k}" aria-label="${esc(e.name)} photo ${k + 1}"><img src="${esc(photoSrc(ph))}" alt="${esc(e.name)}" loading="lazy"></button>`).join("")}</div>` : ""}
+      ${(e.photos || []).length > 1 ? `<h3 class="ap-h">Photos</h3><div class="ap-strip" data-sw-clip>${e.photos.slice(0, 8).map((ph, k) => `<button type="button" data-photo="${k}" aria-label="${esc(e.name)} photo ${k + 1}"><img src="${esc(photoSrc(ph))}" alt="${esc(e.name)}" loading="lazy"></button>`).join("")}</div>` : ""}
       <a class="ap-cta" href="event.html?e=${encodeURIComponent(e.slug)}">Open the full event page</a>`, { back: true, large: false });
     return p;
   }
@@ -411,6 +451,8 @@ export class MadOS {
     v.className = "ap-viewer";
     v.innerHTML = `<img src="${img.src}" alt="${esc(img.alt)}"><button type="button" aria-label="Close photo">Done</button>`;
     this.app.append(v);
+    const pv = this.prep(v);
+    if (pv.length) this.scope.timeout(() => this.build(pv), 380);
     if (!motion.reduced) {
       const r = this.rectIn(from);
       v.animate([{ clipPath: this.insetFor(r, 8), background: "rgba(0,0,0,0)" }, { clipPath: "inset(0 0 0 0 round 0px)", background: "rgba(0,0,0,1)" }], { duration: 360, easing: "cubic-bezier(.2,.9,.2,1)" });
@@ -433,11 +475,16 @@ export class MadOS {
       const page = el.closest(".app-page");
       $$("[data-act=year]", page).forEach(b => b.setAttribute("aria-pressed", String(b === el)));
       const y = el.dataset.y;
+      const shown = [];
       $$(".ap-card", page).forEach(c => {
         const show = y === "All" || c.dataset.y === y;
-        if (show && c.hidden && !motion.reduced) c.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 300 });
+        if (show && c.hidden) shown.push(c);
         c.hidden = !show;
       });
+      const sc = $(".ap-scroll", page); if (sc) sc.scrollTop = 0;
+      const fresh = shown.flatMap(c => this.prep(c));
+      if (fresh.length) this.build(fresh);
+      else shown.forEach(c => !motion.reduced && c.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 300 }));
       buzz(5);
     }
   }

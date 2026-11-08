@@ -46,6 +46,19 @@ class Run {
 }
 
 function kindOf(el) { return el.dataset.sw || "block"; }
+// Really on screen: inside the viewport, inside any clipping container it lives in (a phone
+// screen, an app's scroll area), and not on a hidden screen.
+function visibleIn(el, pad = 0) {
+  if (!el.isConnected) return false;
+  const r = el.getBoundingClientRect();
+  if (r.width < 1 || r.height < 1) return false;
+  if (r.bottom < pad || r.top > innerHeight - pad || r.right < 0 || r.left > innerWidth) return false;
+  for (let c = el.parentElement && el.parentElement.closest("[data-sw-clip]"); c; c = c.parentElement && c.parentElement.closest("[data-sw-clip]")) {
+    const q = c.getBoundingClientRect();
+    if (r.bottom < q.top + 4 || r.top > q.bottom - 4 || r.right < q.left || r.left > q.right) return false;
+  }
+  return getComputedStyle(el).visibility !== "hidden";
+}
 function groupOf(el) {
   if (el.dataset.swG != null) return +el.dataset.swG;
   return kindOf(el) === "box" ? 0 : 1;
@@ -111,7 +124,8 @@ export class SwarmDirector {
     // Sweep: anything held and on screen that no build has claimed is handed to the swarm.
     setInterval(() => {
       if (this.busy || this.introActive || !this.held.size || document.hidden) return;
-      const late = [...this.held].filter(el => !this.inFlight.has(el) && inViewport(el, -24));
+      for (const el of this.held) if (!el.isConnected) { this.held.delete(el); this.inFlight.delete(el); }
+      const late = [...this.held].filter(el => !this.inFlight.has(el) && inViewport(el, -24) && visibleIn(el));
       if (late.length) this._sectionConstruct(late);
     }, 1000);
     document.addEventListener("keydown", e => {
@@ -695,6 +709,27 @@ export class SwarmDirector {
     if (ag.length) this.crew.release(ag); // they turn back into particles and rejoin the ring
   }
 
+  // ---------- building content that appears on demand (e.g. inside the phone) ----------
+  /** Hide these layers now, before they paint. */
+  holdEls(els) {
+    if (!this.enabled) return;
+    els.forEach(el => { if (el && el.isConnected) { el.classList.add("sw-hold"); this.held.add(el); } });
+  }
+  /** Build them: what is on screen now is built straight away by a team of builders, the rest
+   *  as it scrolls into view (or as its screen is shown), exactly like the website's pages. */
+  async buildEls(els) {
+    els = els.filter(el => el && el.isConnected);
+    if (!this.enabled) { els.forEach(el => this._release(el)); return; }
+    this.holdEls(els);
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); // layout settles
+    const now = els.filter(el => this.held.has(el) && !this.inFlight.has(el) && visibleIn(el));
+    const later = els.filter(el => this.held.has(el) && !now.includes(el));
+    if (later.length) this._deferUntilVisible(later);
+    if (!now.length) return;
+    now.forEach(el => this.inFlight.add(el));
+    await this._sectionConstruct(now);
+  }
+
   // ---------- section-scoped constructs as content scrolls in ----------
   // Every held element is observed on its own: whatever scrolls into view (vertically or
   // inside a horizontal rail) is built by the swarm right there, batched per frame.
@@ -706,6 +741,7 @@ export class SwarmDirector {
         if (!e.isIntersecting) continue;
         io.unobserve(e.target);
         if (!this.held.has(e.target) || this.inFlight.has(e.target)) continue;
+        if (!visibleIn(e.target)) { io.observe(e.target); continue; } // clipped or on a hidden screen: wait
         this.inFlight.add(e.target);
         batch.push(e.target);
       }

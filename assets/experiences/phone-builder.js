@@ -268,6 +268,8 @@ export class PhoneBuilder {
     if (landed) landed.remove();
     if (seat) seat.remove();
     this.pulse(bootImg);
+    // powered: the watching builders go straight to work on the interface as MAD OS boots
+    this.crewStop();
     if (this.os) await this.os.boot();
     if (!alive()) return;
 
