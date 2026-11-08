@@ -1,6 +1,6 @@
 import { esc, $, $$, photoSrc, semKey, icons } from "../core/util.js";
 import { coverOf, statusLabel, posterArt } from "./common.js";
-import { passHtml, wirePass, wireStory, gitGraphHtml, wireGitGraph, bowlHtml, wireBowl } from "./event-features.js";
+import { passHtml, wirePass, wireStory, bowlHtml, wireBowl } from "./event-features.js";
 
 export function render(site, events) {
   const slug = new URLSearchParams(location.search).get("e");
@@ -65,7 +65,7 @@ export function render(site, events) {
       <div><h4>${esc(r.title)}</h4>${r.summary ? `<p>${esc(r.summary)}</p>` : ""}</div></div>`).join("")}</div>
     ${chips("Genres drawn", ev.genres)}${chips("Judged on", ev.judging)}
   </section>` : ""}
-  ${ev.feature === "git-graph" ? gitGraphHtml(ev) : ""}${ev.feature === "genre-bowl" ? bowlHtml(ev) : ""}
+  ${ev.feature === "genre-bowl" ? bowlHtml(ev) : ""}
 
   ${(ev.prizes || []).length ? `
   <section class="section wrap">
@@ -102,7 +102,7 @@ export function render(site, events) {
 
 export function wire({ scope, events }) {
   const ev = events.find(x => x.slug === new URLSearchParams(location.search).get("e"));
-  if (ev) { wirePass(scope); wireStory(ev, scope); wireGitGraph(scope); wireBowl(ev, scope); }
+  if (ev) { wirePass(scope); wireStory(ev, scope); wireBowl(ev, scope); }
   const share = $("#share");
   share && scope.on(share, "click", async () => {
     try {

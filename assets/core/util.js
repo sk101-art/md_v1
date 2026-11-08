@@ -6,13 +6,21 @@ export const wait = ms => new Promise(r => setTimeout(r, ms));
 export const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export const lerp = (a, b, t) => a + (b - a) * t;
 
+// Settings survive in browser storage when it is allowed, and in memory when it is blocked
+// (private windows, sandboxed previews), so every switch still works for the visit.
+const mem = {};
+export const store = {
+  get(k) { try { const v = localStorage.getItem(k); if (v !== null) return v; } catch {} return k in mem ? mem[k] : null; },
+  set(k, v) { if (v == null || v === "") { delete mem[k]; try { localStorage.removeItem(k); } catch {} } else { mem[k] = String(v); try { localStorage.setItem(k, String(v)); } catch {} } }
+};
+
 const rm = window.matchMedia("(prefers-reduced-motion: reduce)");
 // The device's reduced-motion setting is honoured by default; a visitor can explicitly
 // opt back in (Settings app, the notice chip, Ctrl+K, or ?motion in the URL).
 export const motion = {
   get osReduced() { return rm.matches; },
-  get override() { try { return localStorage.getItem("mad_motion") || ""; } catch { return ""; } },
-  set override(v) { try { v ? localStorage.setItem("mad_motion", v) : localStorage.removeItem("mad_motion"); } catch {} },
+  get override() { return store.get("mad_motion") || ""; },
+  set override(v) { store.set("mad_motion", v || null); },
   get reduced() {
     try {
       const q = new URLSearchParams(location.search);
@@ -35,9 +43,9 @@ export const visit = {
 // solid panels instead of frosted glass). Chosen by the visitor, or automatically when the
 // device is slow (measured frame rate during the first seconds, or very little memory).
 export const perf = {
-  get choice() { try { return localStorage.getItem("mad_perf") || ""; } catch { return ""; } },
-  set choice(v) { try { v ? localStorage.setItem("mad_perf", v) : localStorage.removeItem("mad_perf"); } catch {} this.apply(); },
-  get auto() { try { return localStorage.getItem("mad_perf_auto") === "lite"; } catch { return false; } },
+  get choice() { return store.get("mad_perf") || ""; },
+  set choice(v) { store.set("mad_perf", v || null); this.apply(); },
+  get auto() { return store.get("mad_perf_auto") === "lite"; },
   get lite() {
     try { const q = new URLSearchParams(location.search); if (q.has("lite")) return true; if (q.has("full")) return false; } catch {}
     if (this.choice) return this.choice === "lite";
@@ -60,7 +68,7 @@ export const perf = {
   async measure() {
     if (this.choice || document.hidden) return;
     const { fps } = await this.probe();
-    if (fps < 40) { try { localStorage.setItem("mad_perf_auto", "lite"); } catch {} this.apply(); }
+    if (fps < 40) { store.set("mad_perf_auto", "lite"); this.apply(); }
   }
 };
 // particle and trace budgets scale with the tier

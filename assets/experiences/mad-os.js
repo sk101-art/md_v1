@@ -276,7 +276,9 @@ export class MadOS {
     const b = $(".os-banner", this.os);
     b.innerHTML = `<img src="assets/brand/mad-app-icon.svg" alt=""><span>${text}</span>`;
     b.classList.add("on");
-    this.scope.timeout(() => b.classList.remove("on"), 2600);
+    clearTimeout(this._bannerT); // a newer notice gets its full time on screen
+    this._bannerT = setTimeout(() => b.classList.remove("on"), 2600);
+    this.scope.add(() => clearTimeout(this._bannerT));
   }
 
   // ---------- navigation inside an app ----------
@@ -478,11 +480,12 @@ export class MadOS {
     if (act === "motion") {
       motion.override = el.checked ? "on" : "off";
       window.__mad?.director?.crew.hideAll(!el.checked);
+      this.banner(el.checked ? "Animations on" : "Animations off");
       if (el.checked) playMotion();
     }
     if (act === "full") this.onFullscreen && this.onFullscreen();
-    if (act === "lite") { perf.choice = el.checked ? "lite" : "full"; buzz(5); }
-    if (act === "sound") { sound.on = el.checked; }
+    if (act === "lite") { perf.choice = el.checked ? "lite" : "full"; buzz(5); this.banner(el.checked ? "Lite effects on: solid panels, fewer particles" : "Full effects on"); }
+    if (act === "sound") { sound.on = el.checked; this.banner(el.checked ? "Builder sounds on: you'll hear each builder click" : "Builder sounds off"); }
     if (act === "year") {
       const page = el.closest(".app-page");
       $$("[data-act=year]", page).forEach(b => b.setAttribute("aria-pressed", String(b === el)));

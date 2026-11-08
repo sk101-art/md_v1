@@ -1,4 +1,4 @@
-// Event features: the event pass, story mode, Git Out's commit graph and Game Design's genre bowl.
+// Event features: the event pass, story mode and Game Design's genre bowl.
 // Everything shown comes from the event's own data (content/events.json).
 import { esc, $, $$, photoSrc, motion } from "../core/util.js";
 
@@ -115,62 +115,6 @@ export function wireStory(ev, scope) {
   };
   d.addEventListener("pointerup", up);
   d.addEventListener("pointercancel", up);
-}
-
-/* ------------------------------------------------------------------ Git Out: the day as a git log */
-// Drawn from the event's rounds: round 1 is a branch where teams fight through Git in the
-// escape room; round 2 branches off with the cloned problem statement; both merge into the pitch.
-export function gitGraphHtml(ev) {
-  const r1 = (ev.rounds || [])[0] || {}, r2 = (ev.rounds || [])[1] || {};
-  const rows = [
-    { lane: 0, msg: "init: teams check in", ref: "main" },
-    { lane: 1, msg: `checkout -b round-1/${slug(r1.title)}`, from: 0, ref: r1.title },
-    { lane: 1, msg: "resolve merge conflicts" },
-    { lane: 1, msg: "untangle messy commit histories" },
-    { lane: 1, msg: "advanced git unlocks the clues" },
-    { lane: 1, msg: "escape: problem statement found in a repository" },
-    { lane: 0, msg: "merge round-1: escaped", merge: 1 },
-    { lane: 2, msg: `checkout -b round-2/${slug(r2.title)}`, from: 0, ref: r2.title },
-    { lane: 2, msg: "git clone the problem statement" },
-    { lane: 2, msg: "build from scratch on branches" },
-    { lane: 2, msg: "end-to-end app" },
-    { lane: 0, msg: "merge round-2: pitch architecture, codebase, scalability", merge: 2, ref: "HEAD" }
-  ];
-  const X = l => 22 + l * 30, Y = k => 26 + k * 46, H = Y(rows.length - 1) + 26;
-  const colour = ["var(--text)", "var(--git-a)", "var(--git-b)"];
-  const paths = [];
-  // main runs the whole way; each branch leaves main, runs its lane and curves back in
-  paths.push(`<path class="gg-line" style="--c:${colour[0]}" d="M${X(0)} ${Y(0)}V${Y(rows.length - 1)}"/>`);
-  [1, 2].forEach(l => {
-    const ks = rows.map((r, k) => (r.lane === l ? k : -1)).filter(k => k >= 0);
-    const start = ks[0], end = ks[ks.length - 1], merge = rows.findIndex(r => r.merge === l);
-    paths.push(`<path class="gg-line" style="--c:${colour[l]}" d="M${X(0)} ${Y(start - 1)}C${X(0)} ${Y(start) - 14} ${X(l)} ${Y(start) - 30} ${X(l)} ${Y(start)}V${Y(end)}C${X(l)} ${Y(end) + 30} ${X(0)} ${Y(merge) - 14} ${X(0)} ${Y(merge)}"/>`);
-  });
-  const sha = m => (hash(ev.slug + m) >>> 0).toString(16).padStart(8, "0").slice(0, 7);
-  return `
-  <section class="section wrap" aria-labelledby="gg-h">
-    <div class="section-head"><div><p class="eyebrow" data-sw="text">The day, as a git log</p><h2 id="gg-h" data-sw="text">git log --graph ${esc(ev.name)}</h2></div></div>
-    <div class="gitgraph glass" data-sw="box">
-      <svg class="gg-svg" viewBox="0 0 ${X(2) + 22} ${H}" style="height:${H}px" aria-hidden="true">${paths.join("")}
-        ${rows.map((r, k) => `<circle class="gg-dot${r.merge ? " merge" : ""}" style="--c:${colour[r.lane]};--k:${k}" cx="${X(r.lane)}" cy="${Y(k)}" r="${r.merge ? 6 : 5}"/>`).join("")}
-      </svg>
-      <ol class="gg-rows">${rows.map((r, k) => `<li style="--k:${k};height:46px"><code>${sha(r.msg)}</code><span>${esc(r.msg)}</span>${r.ref ? `<em style="--c:${colour[r.lane]}">${esc(r.ref)}</em>` : ""}</li>`).join("")}</ol>
-    </div>
-  </section>`;
-}
-const slug = s => String(s || "round").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-export function wireGitGraph(scope) {
-  const g = $(".gitgraph");
-  if (!g) return;
-  if (motion.reduced) { g.classList.add("drawn"); return; }
-  $$(".gg-line", g).forEach(p => { const L = p.getTotalLength(); p.style.strokeDasharray = L; p.style.strokeDashoffset = L; });
-  const io = new IntersectionObserver(es => {
-    if (!es.some(e => e.isIntersecting)) return;
-    io.disconnect();
-    g.classList.add("drawn");
-  }, { threshold: 0.35 });
-  io.observe(g);
-  scope.add(() => io.disconnect());
 }
 
 /* ------------------------------------------------------------------ Game Design: the genre bowl */

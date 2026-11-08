@@ -1,10 +1,11 @@
 // Optional sound: a soft synthesized tick when a builder clicks (off by default, no audio files).
 // Each role ticks at its own pitch, so a busy build sounds like a small team at work.
+import { store } from "../core/util.js";
 let ctx = null, last = 0;
 const KEY = "mad_sound";
 export const sound = {
-  get on() { try { return localStorage.getItem(KEY) === "on"; } catch { return false; } },
-  set on(v) { try { v ? localStorage.setItem(KEY, "on") : localStorage.removeItem(KEY); } catch {} if (v) this.tick(0, 0.5); },
+  get on() { return store.get(KEY) === "on"; },
+  set on(v) { store.set(KEY, v ? "on" : null); if (v) { last = 0; this.tick(3, 0.25); } },
   tick(i = 0, gain = 0.06) {
     if (!this.on || document.hidden) return;
     const now = performance.now();
