@@ -80,8 +80,8 @@ export class PhoneBuilder {
     const scale = R.w / 300;
     const small = isSmall();
     const k = (small ? 1.4 : 1) * (perf.lite ? 1.8 : 1); // sparser sampling on small screens / lite
-    const T = { chassis: [], containers: [], detail: [], meta: { R, scale } };
-    const push = (arr, pts, color, size) => pts.forEach(p => arr.push({ ...p, color, size }));
+    const T = { chassis: [], flood: [], containers: [], detail: [], meta: { R, scale } };
+    const push = (arr, pts, color, size, alpha) => pts.forEach(p => arr.push({ ...p, color, size, alpha }));
 
     // CHASSIS: rounded perimeter (outer + inner rail), side buttons, camera island
     push(T.chassis, perimeter(R, 4.2 * k, 50 * scale), "#3E4A5C", 1.5);
@@ -91,20 +91,40 @@ export class PhoneBuilder {
     const island = $(".phone-island", ph);
     if (island) push(T.chassis, perimeter(rectOfEl(island), 3.2, 14 * scale), "#18212F", 1.3);
 
-    // CONTAINERS: screen and every real interface region on it
+    // FLOOD: the whole screen fills with an even, finely spaced field of particles, rippling in
+    // from the top. It is the canvas; the interface is then traced over it in brighter colours.
     const screen = $(".phone-screen", ph);
-    if (screen) push(T.containers, perimeter(rectOfEl(screen), 5.5 * k, 40 * scale), "#5878D8", 1.25);
+    if (screen) {
+      const s = rectOfEl(screen), rad = 40 * scale;
+      const sp = (small ? 7 : 6.2) * scale * (perf.lite ? 1.7 : 1);
+      const inside = (x, y) => {
+        const cx = Math.min(Math.max(x, s.x + rad), s.x + s.w - rad), cy = Math.min(Math.max(y, s.y + rad), s.y + s.h - rad);
+        return Math.hypot(x - cx, y - cy) <= rad - sp * 0.4;
+      };
+      let row = 0;
+      for (let y = s.y + sp * 0.6; y < s.y + s.h - sp * 0.3; y += sp, row++) {
+        for (let x = s.x + sp * (row % 2 ? 0.6 : 1.1); x < s.x + s.w - sp * 0.3; x += sp) {
+          const jx = x + (Math.random() - 0.5) * sp * 0.22, jy = y + (Math.random() - 0.5) * sp * 0.22;
+          if (inside(jx, jy)) T.flood.push({ x: jx, y: jy, order: (jy - s.y) / s.h * 0.85 + Math.random() * 0.15, color: "#9AA6B8", size: 0.85, alpha: 0.62 });
+        }
+      }
+    }
+
+    // CONTAINERS: screen and every real interface region on it, traced over the flood in a
+    // brighter, larger particle so the interface stands out
+
+    if (screen) push(T.containers, perimeter(rectOfEl(screen), 4.5 * k, 40 * scale), "#3D63E0", 1.45);
     const regions = [".os-widget", ".os-grid .ic-tile", ".os-dock", ".os-dock .ic-tile", ".os-ind i"];
     regions.forEach(sel => $$(sel, ph).forEach(el => {
       const r = rectOfEl(el);
       if (r.w < 2) return;
-      push(T.containers, perimeter(r, 5 * k, radiusPx(el, scale)), "#5878D8", 1.05);
+      push(T.containers, perimeter(r, 3.6 * k, radiusPx(el, scale)), "#3D63E0", 1.3);
     }));
     // DETAIL: sparse fill marks inside regions (text rows, tab labels)
     $$(".os-time, .os-sys, .w-k, .w-big, .w-row, .w-latest, .os-grid .ic-label", ph).forEach(el => {
       const r = rectOfEl(el);
       if (r.w < 2) return;
-      push(T.detail, fill({ x: r.x, y: r.y + r.h * 0.3, w: r.w * 0.9, h: r.h * 0.4 }, Math.round(clamp(r.w / (small ? 14 : 8), 3, 22))), "#4FA59D", 0.95);
+      push(T.detail, fill({ x: r.x, y: r.y + r.h * 0.3, w: r.w * 0.9, h: r.h * 0.4 }, Math.round(clamp(r.w / (small ? 9 : 5.5), 4, 34))), "#1FA79A", 1.15);
     });
     return T;
   }
@@ -159,14 +179,15 @@ export class PhoneBuilder {
         // grouped, staggered arrival: perimeter order drives the delay so outlines draw around
         t0: now + startAt + (t.order ?? Math.random()) * spread + Math.random() * 120,
         dur: dur * (0.85 + Math.random() * 0.3),
-        size: t.size, color: t.color, group, seed: Math.random() * 6.28, alpha: 1
+        size: t.size, color: t.color, group, seed: Math.random() * 6.28, alpha: t.alpha ?? 1
       };
     });
     const flight = isSmall() ? 1050 : 1250;
     const chassis = assign(T.chassis, 0, 0, 650, flight);
-    const containers = assign(T.containers, 1, 1650, 700, flight);
-    const detail = assign(T.detail, 2, 2400, 500, flight * 0.9);
-    const all = [...chassis, ...containers, ...detail];
+    const flood = assign(T.flood, 3, 900, 1100, flight);           // the screen floods, top to bottom
+    const containers = assign(T.containers, 1, 2250, 700, flight);  // then the interface is traced over it
+    const detail = assign(T.detail, 2, 2900, 500, flight * 0.9);
+    const all = [...chassis, ...flood, ...containers, ...detail];
     this.field.add(all);
     this.set("EMITTING", 10);
     this.field.start();
@@ -209,7 +230,7 @@ export class PhoneBuilder {
     this.crewStart("trace");
     const screen = $(".phone-screen", this.phone);
     if (screen) { const s = rectOfEl(screen); this.field.outlines.push({ ...s, r: 40 * scale, color: "#5878D8", alpha: 0.4, t0: performance.now() }); }
-    await until(() => arrived(containers) > 0.99 && arrived(detail) > 0.97);
+    await until(() => arrived(containers) > 0.99 && arrived(detail) > 0.97 && arrived(flood) > 0.97);
     if (!alive()) return;
     await wait(520);
     if (!alive()) return;
