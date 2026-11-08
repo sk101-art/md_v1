@@ -1,16 +1,209 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MAD Club | NHCE</title>
-<meta name="description" content="Mobile App Development Club at New Horizon College of Engineering. Code..Fun..Repeat.">
-<meta property="og:title" content="MAD Club | NHCE"><meta property="og:description" content="Mobile App Development Club at New Horizon College of Engineering. Code..Fun..Repeat."><link rel="canonical" href="https://sk101-art.github.io/md_v1/"><meta property="og:url" content="https://sk101-art.github.io/md_v1/"><meta property="og:type" content="website">
-<link rel="icon" href="favicon.svg" type="image/svg+xml"><meta name="theme-color" content="#0b0f1a"><meta name="color-scheme" content="dark"><meta name="twitter:card" content="summary"><link rel="manifest" href="manifest.webmanifest">
+<meta name="description" content="Mobile App Development Club at New Horizon College of Engineering. Hackathons, build challenges and design events since 2023.">
+<meta property="og:title" content="MAD Club | NHCE"><meta property="og:description" content="Mobile App Development Club at New Horizon College of Engineering. Hackathons, build challenges and design events since 2023."><link rel="canonical" href="https://sk101-art.github.io/md_v1/"><meta property="og:url" content="https://sk101-art.github.io/md_v1/"><meta property="og:type" content="website"><meta property="og:site_name" content="MAD Club NHCE"><meta property="og:image" content="https://sk101-art.github.io/md_v1/assets/og/home.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<link rel="icon" href="favicon.svg" type="image/svg+xml"><meta name="theme-color" content="#F7F8FA"><meta name="color-scheme" content="light dark"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://sk101-art.github.io/md_v1/assets/og/home.jpg"><link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css">
-<script>try{var k=localStorage.getItem("skin");document.documentElement.dataset.skin=/^(nebula|ocean|aurora|solar)$/.test(k)?k:"nebula"}catch(e){}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/design/tokens.css">
+<link rel="stylesheet" href="assets/design/base.css">
+<link rel="stylesheet" href="assets/design/components.css">
+<link rel="stylesheet" href="assets/design/pages.css">
+<link rel="stylesheet" href="assets/design/motion.css">
+<link rel="stylesheet" href="assets/design/os.css">
+<script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("mad_theme");document.documentElement.dataset.theme=t==="dark"?"dark":"light"}catch(e){document.documentElement.dataset.theme="light"}</script>
 </head><body data-page="home">
-<main id="main"><noscript><div class="wrap page-head"><h1>MAD Club</h1><p class="lead">This site needs JavaScript to show its content.</p></div></noscript></main>
-<script src="assets/three.min.js"></script>
+<main id="main"><div class="pre"><nav class="pre-nav wrap" aria-label="Pages"><a href="index.html">Home</a> · <a href="events.html">Events</a> · <a href="about.html">About</a> · <a href="achievements.html">Achievements</a> · <a href="team.html">Team</a> · <a href="gallery.html">Gallery</a> · <a href="contact.html">Contact</a></nav>
+  <section class="hero wrap" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <p class="eyebrow">MOBILE APP DEVELOPMENT CLUB · NHCE</p>
+      <h1 class="hero-title" id="hero-title" tabindex="-1">Don't just use the future. <em class="serif">Build it.</em></h1>
+      <p class="lead">The Mobile App Development Club at New Horizon College of Engineering. We design, build and ship apps together, through hackathons, workshops and team projects.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="events.html">Explore Events <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn" href="contact.html">Join the club</a>
+      </div>
+      
+      <p class="build-tip">
+        <span class="tip-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"></circle><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path></svg></span>
+        <span class="tip-txt">The phone runs this website. Build it, then open its <b>Settings</b> app to switch dark mode, animations, lite effects and builder sounds.</span>
+        <button type="button" class="tip-btn" id="open-settings" hidden="">Open Settings</button>
+      </p>
+    </div>
+
+    
+  </section>
+
+  <section class="wrap" aria-label="Club at a glance">
+    <div class="stats">
+      <div class="stat"><b data-count="">2023</b><span>the year the club started</span></div><div class="stat"><b data-count="">9</b><span>events run, from Mindspark'23 to Git Out'26</span></div><div class="stat"><b data-count="">180</b><span>participants across our last three events</span></div><div class="stat"><b data-count="">11</b><span>core team roles for 2026-27</span></div>
+    </div>
+  </section>
+
+  <section class="section wrap" aria-labelledby="flagships">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Flagship events</p>
+        <h2 id="flagships">What we have built together</h2>
+      </div>
+      <a class="btn" href="events.html">All 9 events <span class="arrow" aria-hidden="true">→</span></a>
+    </div>
+    <div class="posters rail" id="flag-rail">
+      
+    <a class="poster wide" href="event.html?e=gitout26" data-slug="gitout26">
+      <div class="poster-media">
+        <img src="photos/gitout26/1.jpg" alt="Git Out'26" loading="lazy" decoding="async" data-shared="gitout26">
+        <span class="tag completed">Completed</span>
+      </div>
+      <div class="poster-body">
+        <div class="poster-meta"><span>25-26 Even Sem</span><span>Escape Room + Hackathon</span></div>
+        <h3>Git Out'26</h3>
+        <p>A Git-themed escape room that unlocks a hackathon. Teams escaped with Git, cloned the problem statement they had unlocked, built a full-stack app from scratch, and pitched it.</p>
+        <span class="poster-cta">Recap and 5 photos <span class="arrow" aria-hidden="true">→</span></span>
+      </div>
+    </a>
+    <a class="poster" href="event.html?e=game-design26" data-slug="game-design26">
+      <div class="poster-media">
+        <img src="photos/game-design26/1.jpg" alt="Game Design'26" loading="lazy" decoding="async" data-shared="game-design26">
+        <span class="tag completed">Completed</span>
+      </div>
+      <div class="poster-body">
+        <div class="poster-meta"><span>25-26 Even Sem</span><span>Talk + Game Dev Challenge</span></div>
+        <h3>Game Design'26</h3>
+        <p>An expert talk on how games are really made, then a build challenge: every participant drew a genre from a bowl and built a game of their own in it.</p>
+        <span class="poster-cta">Recap and 4 photos <span class="arrow" aria-hidden="true">→</span></span>
+      </div>
+    </a>
+    <a class="poster" href="event.html?e=appsylum25" data-slug="appsylum25">
+      <div class="poster-media">
+        <img src="photos/appsylum25/1.jpg" alt="Appsylum'25" loading="lazy" decoding="async" data-shared="appsylum25">
+        <span class="tag completed">Completed</span>
+      </div>
+      <div class="poster-body">
+        <div class="poster-meta"><span>25-26 Odd Sem</span><span>Useless App Competition</span></div>
+        <h3>Appsylum'25</h3>
+        <p>The Useless App Competition. Teams pitched gloriously impractical app ideas: ideation over code, humour over polish, in three fast phases.</p>
+        <span class="poster-cta">Recap and 5 photos <span class="arrow" aria-hidden="true">→</span></span>
+      </div>
+    </a>
+    <a class="poster" href="event.html?e=connect24" data-slug="connect24">
+      <div class="poster-media">
+        <img src="photos/connect24/1.jpg" alt="Connect'24" loading="lazy" decoding="async" data-shared="connect24">
+        <span class="tag completed">Completed</span>
+      </div>
+      <div class="poster-body">
+        <div class="poster-meta"><span>23-24 Even Sem</span><span>Summit &amp; Demo Day</span></div>
+        <h3>Connect'24</h3>
+        <p>A showcase and networking day for the club's developers and designers.</p>
+        <span class="poster-cta">Recap and 4 photos <span class="arrow" aria-hidden="true">→</span></span>
+      </div>
+    </a>
+    <a class="poster" href="event.html?e=techsync24" data-slug="techsync24">
+      <div class="poster-media">
+        <img src="photos/techsync24/1.jpg" alt="TechSync'24" loading="lazy" decoding="async" data-shared="techsync24">
+        <span class="tag completed">Completed</span>
+      </div>
+      <div class="poster-body">
+        <div class="poster-meta"><span>23-24 Even Sem</span><span>Multi-Club Arena</span></div>
+        <h3>TechSync'24</h3>
+        <p>A cross-club event with Visual Recall, Car Racing and Construction rounds.</p>
+        <span class="poster-cta">Recap and 10 photos <span class="arrow" aria-hidden="true">→</span></span>
+      </div>
+    </a>
+    <a class="poster" href="event.html?e=innowave24" data-slug="innowave24">
+      <div class="poster-media">
+        <img src="photos/innowave24/1.jpeg" alt="InnoWave'24" loading="lazy" decoding="async" data-shared="innowave24">
+        <span class="tag completed">Completed</span>
+      </div>
+      <div class="poster-body">
+        <div class="poster-meta"><span>23-24 Odd Sem</span><span>Hackathon &amp; Pitch</span></div>
+        <h3>InnoWave'24</h3>
+        <p>Two rounds, Trivia Battle and PitchPoint, built around mobile ideas and pitching them.</p>
+        <span class="poster-cta">Recap and 3 photos <span class="arrow" aria-hidden="true">→</span></span>
+      </div>
+    </a>
+    <a class="poster" href="event.html?e=mindspark23" data-slug="mindspark23">
+      <div class="poster-media">
+        <img src="photos/mindspark23/1.jpeg" alt="Mindspark'23" loading="lazy" decoding="async" data-shared="mindspark23">
+        <span class="tag completed">Completed</span>
+      </div>
+      <div class="poster-body">
+        <div class="poster-meta"><span>23-24 Odd Sem</span><span>Flagship Challenge</span></div>
+        <h3>Mindspark'23</h3>
+        <p>The club's first flagship: three rounds, WikiWhiz, UI Clash and CodeMaze.</p>
+        <span class="poster-cta">Recap and 16 photos <span class="arrow" aria-hidden="true">→</span></span>
+      </div>
+    </a>
+    </div>
+    <div class="rail-dots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </section>
+
+  
+  <section class="section wrap" aria-labelledby="journey-h">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">How we run an event</p>
+        <h2 id="journey-h">From first idea to finished event</h2>
+      </div>
+      <p>Five stages every MAD event moves through. Select a stage to see what it involves.</p>
+    </div>
+    <div class="journey">
+      <div class="journey-steps" role="tablist" aria-label="Journey stages" aria-orientation="vertical">
+        <svg class="journey-svg" aria-hidden="true"></svg>
+        
+          <button class="journey-step" role="tab" id="js-0" aria-controls="journey-panel" aria-selected="true" tabindex="0">
+            <span class="n">01</span><b>Discover</b><small>Ideation &amp; Market</small>
+          </button>
+          <button class="journey-step" role="tab" id="js-1" aria-controls="journey-panel" aria-selected="false" tabindex="-1">
+            <span class="n">02</span><b>Prototype</b><small>Event Plan &amp; Proposal</small>
+          </button>
+          <button class="journey-step" role="tab" id="js-2" aria-controls="journey-panel" aria-selected="false" tabindex="-1">
+            <span class="n">03</span><b>Collaborate</b><small>Faculty, Students &amp; Campaign</small>
+          </button>
+          <button class="journey-step" role="tab" id="js-3" aria-controls="journey-panel" aria-selected="false" tabindex="-1">
+            <span class="n">04</span><b>Build</b><small>Hosting the Event</small>
+          </button>
+          <button class="journey-step" role="tab" id="js-4" aria-controls="journey-panel" aria-selected="false" tabindex="-1">
+            <span class="n">05</span><b>Ship</b><small>Learning Outcomes</small>
+          </button>
+      </div>
+      <div class="journey-panel glass" id="journey-panel" role="tabpanel" aria-live="polite">
+        <p class="eyebrow" id="jp-tag">Ideation &amp; Market</p>
+        <h3 id="jp-name">01. Discover</h3>
+        <p id="jp-desc">Deconstruct real user friction, identify campus bottlenecks, and validate viable product hypotheses before writing a line of code.</p>
+      </div>
+    </div>
+  </section>
+
+  
+  <section class="section wrap" aria-labelledby="how-h">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">How we work</p>
+        <h2 id="how-h">Principles</h2>
+      </div>
+    </div>
+    <div class="principles">
+      
+        <article class="card">
+          <span class="idx">01 · Events</span>
+          <h3>Formats nobody else runs</h3>
+          <p>A Git escape room that unlocks a hackathon. A competition for useless apps. Game genres drawn from a bowl. We design events people remember.</p>
+        </article>
+        <article class="card">
+          <span class="idx">02 · Every event</span>
+          <h3>Build, then pitch</h3>
+          <p>Most of our events end the same way: you build something real under time pressure, then stand up and explain it.</p>
+        </article>
+        <article class="card">
+          <span class="idx">03 · Core team</span>
+          <h3>Run by students</h3>
+          <p>Eleven students across leadership, program, project, marketing and review run every event end to end.</p>
+        </article>
+    </div>
+  </section></div></main>
 <script src="assets/gsap.min.js"></script>
-<script src="assets/site.js"></script>
+<script type="module" src="assets/core/app.js"></script>
+<script nomodule>document.getElementById("main").innerHTML='<div class="wrap page-head"><h1>Please update your browser</h1><p class="lead">This site needs a modern browser.</p></div>'</script>
 </body></html>

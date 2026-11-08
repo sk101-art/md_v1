@@ -6,9 +6,17 @@
   "scripts": {
     "start": "node scripts/serve.js",
     "serve": "node scripts/serve.js",
-    "check": "node scripts/check-content.mjs"
+    "check": "node scripts/check-content.mjs",
+    "static": "node scripts/publish-static.mjs"
   },
-  "keywords": ["mad-club", "nhce", "mobile-app-development", "flutter", "android", "ios"],
+  "keywords": [
+    "mad-club",
+    "nhce",
+    "mobile-app-development",
+    "flutter",
+    "android",
+    "ios"
+  ],
   "author": "MAD Club NHCE",
   "license": "MIT"
 }

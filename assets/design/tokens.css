@@ -1,0 +1,116 @@
+/* MAD Club / Glass Atelier — design tokens
+   Light porcelain-and-optical-glass is the primary art direction.
+   "Graphite" (data-theme="dark") is an optional secondary appearance. */
+
+:root {
+  color-scheme: light;
+
+  /* Palette (from the implementation brief) */
+  --porcelain: #F7F8FA;
+  --frost: #E9EDF2;
+  --crystal: #FFFFFF;
+  --graphite: #18212F;
+  --cobalt: #5878D8;
+  --sea-glass: #A6D8D4;
+  --silver: #C7D1DD;
+  --champagne: #E7D9BD;
+
+  /* Accessible derivatives */
+  --cobalt-ink: #3D5BBF;          /* links / primary button: 5.6:1 on white */
+  --cobalt-wash: rgba(88, 120, 216, 0.10);
+  --sea-ink: #2F7F78;
+  --graphite-2: #2A3445;
+  --muted: #5B6472;               /* 5.9:1 on porcelain */
+  --faint: #8A93A1;
+
+  /* Semantic roles */
+  --bg: var(--porcelain);
+  --bg-2: var(--frost);
+  --surface: var(--crystal);
+  --text: var(--graphite);
+  --text-2: var(--muted);
+  --line: rgba(24, 33, 47, 0.09);
+  --line-2: rgba(24, 33, 47, 0.16);
+  --edge: var(--silver);
+  --accent: var(--cobalt);
+  --accent-ink: var(--cobalt-ink);
+  --on-accent: #FFFFFF;
+  --ok: #2F7F5F;
+  --warn: #9A6A12;
+  --err: #B4442F;
+
+  /* Glass material */
+  --glass: rgba(255, 255, 255, 0.64);
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-edge: rgba(199, 209, 221, 0.85);
+  --glass-hi: rgba(255, 255, 255, 0.95);
+  --glass-blur: 18px;
+  --sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 38%);
+
+  /* Depth */
+  --shadow-1: 0 1px 2px rgba(24, 33, 47, 0.05);
+  --shadow-2: 0 1px 2px rgba(24, 33, 47, 0.04), 0 10px 30px -14px rgba(24, 33, 47, 0.16);
+  --shadow-3: 0 2px 6px rgba(24, 33, 47, 0.05), 0 30px 60px -28px rgba(24, 33, 47, 0.28);
+
+  /* Swarm agents: restrained identities */
+  --agent-design: #5878D8;
+  --agent-build: #C8664A;
+  --agent-motion: #9A8CCB;
+  --agent-review: #4FA59D;
+  --agent-ship: #C9A23F;
+  --select: #5878D8;
+  --guide: #D9674F;
+  --skeleton: rgba(205, 213, 224, 0.72);
+
+  /* Type */
+  --font-display: "Inter Tight", "Inter Display", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Shape */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+  --r-pill: 999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --t-fast: 160ms;
+  --t-mid: 280ms;
+  --t-slow: 520ms;
+
+  /* Layout */
+  --wrap: 1240px;
+  --gutter: clamp(16px, 4vw, 40px);
+  --nav-h: 64px;
+}
+
+/* Optional Graphite appearance */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F141C;
+  --bg-2: #151C27;
+  --surface: #182130;
+  --text: #E9EDF2;
+  --text-2: #A3ADBB;
+  --muted: #A3ADBB;
+  --faint: #7A8494;
+  --line: rgba(233, 237, 242, 0.08);
+  --line-2: rgba(233, 237, 242, 0.16);
+  --edge: #334054;
+  --accent-ink: #8EA5EE;
+  --cobalt-wash: rgba(88, 120, 216, 0.16);
+  --glass: rgba(30, 40, 56, 0.58);
+  --glass-strong: rgba(30, 40, 56, 0.82);
+  --glass-edge: rgba(120, 138, 162, 0.32);
+  --glass-hi: rgba(255, 255, 255, 0.10);
+  --sheen: linear-gradient(160deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 40%);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 30px -14px rgba(0, 0, 0, 0.6);
+  --shadow-3: 0 2px 6px rgba(0, 0, 0, 0.3), 0 30px 60px -28px rgba(0, 0, 0, 0.7);
+  --skeleton: rgba(60, 74, 94, 0.7);
+}

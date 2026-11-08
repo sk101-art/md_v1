@@ -1,16 +1,115 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Events | MAD Club</title>
-<meta name="description" content="Mobile App Development Club at New Horizon College of Engineering. Every event we have run, newest first.">
-<meta property="og:title" content="Events | MAD Club"><meta property="og:description" content="Mobile App Development Club at New Horizon College of Engineering. Every event we have run, newest first."><link rel="canonical" href="https://sk101-art.github.io/md_v1/events.html"><meta property="og:url" content="https://sk101-art.github.io/md_v1/events.html"><meta property="og:type" content="website">
-<link rel="icon" href="favicon.svg" type="image/svg+xml"><meta name="theme-color" content="#0b0f1a"><meta name="color-scheme" content="dark"><meta name="twitter:card" content="summary"><link rel="manifest" href="manifest.webmanifest">
+<meta name="description" content="All 9 MAD Club events: Git Out'26, Game Design'26, Appsylum'25 and more, with rounds and photos.">
+<meta property="og:title" content="Events | MAD Club"><meta property="og:description" content="All 9 MAD Club events: Git Out'26, Game Design'26, Appsylum'25 and more, with rounds and photos."><link rel="canonical" href="https://sk101-art.github.io/md_v1/events.html"><meta property="og:url" content="https://sk101-art.github.io/md_v1/events.html"><meta property="og:type" content="website"><meta property="og:site_name" content="MAD Club NHCE"><meta property="og:image" content="https://sk101-art.github.io/md_v1/assets/og/events.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<link rel="icon" href="favicon.svg" type="image/svg+xml"><meta name="theme-color" content="#F7F8FA"><meta name="color-scheme" content="light dark"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://sk101-art.github.io/md_v1/assets/og/events.jpg"><link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css">
-<script>try{var k=localStorage.getItem("skin");document.documentElement.dataset.skin=/^(nebula|ocean|aurora|solar)$/.test(k)?k:"nebula"}catch(e){}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/design/tokens.css">
+<link rel="stylesheet" href="assets/design/base.css">
+<link rel="stylesheet" href="assets/design/components.css">
+<link rel="stylesheet" href="assets/design/pages.css">
+<link rel="stylesheet" href="assets/design/motion.css">
+<link rel="stylesheet" href="assets/design/os.css">
+<script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("mad_theme");document.documentElement.dataset.theme=t==="dark"?"dark":"light"}catch(e){document.documentElement.dataset.theme="light"}</script>
 </head><body data-page="events">
-<main id="main"><noscript><div class="wrap page-head"><h1>Events</h1><p class="lead">This site needs JavaScript to show its content.</p></div></noscript></main>
-<script src="assets/three.min.js"></script>
+<main id="main"><div class="pre"><nav class="pre-nav wrap" aria-label="Pages"><a href="index.html">Home</a> · <a href="events.html">Events</a> · <a href="about.html">About</a> · <a href="achievements.html">Achievements</a> · <a href="team.html">Team</a> · <a href="gallery.html">Gallery</a> · <a href="contact.html">Contact</a></nav>
+  
+    <header class="page-head wrap">
+      <p class="eyebrow">Events</p>
+      <h1 tabindex="-1">Hackathons, design sprints <em class="serif">and arenas.</em></h1>
+      <p class="lead">All 9 MAD events since 2023: what ran, who it was for, and the photos.</p>
+    </header>
+  <section class="wrap" aria-label="Filter events">
+    <div class="tools">
+      <div class="tools-row">
+        <label class="search"><span class="sr">Search events</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input id="q" type="search" placeholder="Search by name, topic or semester" autocomplete="off"></label>
+        <span class="count" id="count" aria-live="polite">9 of 9 events</span>
+      </div>
+      <div class="tools-row">
+        <div class="seg" id="f-kind" role="group" aria-label="Type"><span class="seg-frame" aria-hidden="true" style="width: 44.7649px; height: 38.0815px; transform: translate(4.00866px, 4.00866px);"></span>
+          <button type="button" data-v="all" aria-pressed="true">All</button>
+          <button type="button" data-v="flagship" aria-pressed="false">Flagships</button>
+          <button type="button" data-v="photos" aria-pressed="false">With photos</button>
+        </div>
+        <div class="seg" id="f-year" role="group" aria-label="Academic year"><span class="seg-frame" aria-hidden="true" style="width: 85.2395px; height: 37.9901px; transform: translate(3.99664px, 3.99664px);"></span>
+          <button type="button" data-v="all" aria-pressed="true">All years</button>
+          <button type="button" data-v="25-26" aria-pressed="false">2025–2026</button><button type="button" data-v="24-25" aria-pressed="false">2024–2025</button><button type="button" data-v="23-24" aria-pressed="false">2023–2024</button>
+        </div>
+      </div>
+    </div>
+    <div id="grid" class="posters">
+    <a class="poster" href="event.html?e=gitout26" data-slug="gitout26">
+      <div class="poster-media">
+        <img src="photos/gitout26/1.jpg" alt="Git Out'26" loading="lazy" decoding="async" data-shared="gitout26">
+        <span class="tag completed">Completed</span>
+      </div>
+      <div class="poster-body">
+        <div class="poster-meta"><span>25-26 Even Sem</span><span>Escape Room + Hackathon</span></div>
+        <h3>Git Out'26</h3>
+        <p>A Git-themed escape room that unlocks a hackathon. Teams escaped with Git, cloned the problem statement they had unlocked, built a full-stack app from scratch, and pitched it.</p>
+        <span class="poster-cta">Recap and 5 photos <span class="arrow" aria-hidden="true">→</span></span>
+      </div>
+    </a>
+    <a class="poster" href="event.html?e=game-design26" data-slug="game-design26">
+      <div class="poster-media">
+        <img src="photos/game-design26/1.jpg" alt="Game Design'26" loading="lazy" decoding="async" data-shared="game-design26">
+        <span class="tag completed">Completed</span>
+      </div>
+      <div class="poster-body">
+        <div class="poster-meta"><span>25-26 Even Sem</span><span>Talk + Game Dev Challenge</span></div>
+        <h3>Game Design'26</h3>
+        <p>An expert talk on how games are really made, then a build challenge: every participant drew a genre from a bowl and built a game of their own in it.</p>
+        <span class="poster-cta">Recap and 4 photos <span class="arrow" aria-hidden="true">→</span></span>
+      </div>
+    </a>
+    <a class="poster" href="event.html?e=appsylum25" data-slug="appsylum25">
+      <div class="poster-media">
+        <img src="photos/appsylum25/1.jpg" alt="Appsylum'25" loading="lazy" decoding="async" data-shared="appsylum25">
+        <span class="tag completed">Completed</span>
+      </div>
+      <div class="poster-body">
+        <div class="poster-meta"><span>25-26 Odd Sem</span><span>Useless App Competition</span></div>
+        <h3>Appsylum'25</h3>
+        <p>The Useless App Competition. Teams pitched gloriously impractical app ideas: ideation over code, humour over polish, in three fast phases.</p>
+        <span class="poster-cta">Recap and 5 photos <span class="arrow" aria-hidden="true">→</span></span>
+      </div>
+    </a></div>
+    <div class="archive" id="archive"><h2 class="archive-h">The early years <span>6 events, 2023 to 2025</span></h2>
+      <ol class="archive-list"><li class="arc">
+        <span class="arc-sem">24-25 Even Sem</span>
+        <span class="arc-main"><b>Codathon</b><small>A coding marathon for building mobile features from scratch.</small>
+          </span>
+        <a class="btn sm ghost" href="gallery.html?e=codathon">1 photos</a>
+      </li><li class="arc">
+        <span class="arc-sem">24-25 Odd Sem</span>
+        <span class="arc-main"><b>Pixel Pursuit'24</b><small>A pixel-themed UI design sprint.</small>
+          </span>
+        <a class="btn sm ghost" href="gallery.html?e=pixel-pursuit24">1 photos</a>
+      </li><li class="arc">
+        <span class="arc-sem">23-24 Even Sem</span>
+        <span class="arc-main"><b>Connect'24</b><small>A showcase and networking day for the club's developers and designers.</small>
+          </span>
+        <a class="btn sm ghost" href="gallery.html?e=connect24">4 photos</a>
+      </li><li class="arc">
+        <span class="arc-sem">23-24 Even Sem</span>
+        <span class="arc-main"><b>TechSync'24</b><small>A cross-club event with Visual Recall, Car Racing and Construction rounds.</small>
+          <span class="arc-rounds"><i>Visual Recall</i><i>Car Racing</i><i>Construction</i></span></span>
+        <a class="btn sm ghost" href="gallery.html?e=techsync24">10 photos</a>
+      </li><li class="arc">
+        <span class="arc-sem">23-24 Odd Sem</span>
+        <span class="arc-main"><b>InnoWave'24</b><small>Two rounds, Trivia Battle and PitchPoint, built around mobile ideas and pitching them.</small>
+          <span class="arc-rounds"><i>Trivia Battle</i><i>PitchPoint</i></span></span>
+        <a class="btn sm ghost" href="gallery.html?e=innowave24">3 photos</a>
+      </li><li class="arc">
+        <span class="arc-sem">23-24 Odd Sem</span>
+        <span class="arc-main"><b>Mindspark'23</b><small>The club's first flagship: three rounds, WikiWhiz, UI Clash and CodeMaze.</small>
+          <span class="arc-rounds"><i>WikiWhiz</i><i>UI Clash</i><i>CodeMaze</i></span></span>
+        <a class="btn sm ghost" href="gallery.html?e=mindspark23">16 photos</a>
+      </li></ol></div>
+  </section></div></main>
 <script src="assets/gsap.min.js"></script>
-<script src="assets/site.js"></script>
+<script type="module" src="assets/core/app.js"></script>
+<script nomodule>document.getElementById("main").innerHTML='<div class="wrap page-head"><h1>Please update your browser</h1><p class="lead">This site needs a modern browser.</p></div>'</script>
 </body></html>

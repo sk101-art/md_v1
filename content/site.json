@@ -10,14 +10,26 @@
   "github": "https://github.com/sk101-art/md_v1",
   "hero_badge": "MOBILE APP DEVELOPMENT CLUB · NHCE",
   "hero_title": "Don't just use the future. Build it.",
-  "hero_lead": "The elite mobile development guild at New Horizon College of Engineering. We forge native iOS, Android, Flutter and on-device AI apps through high-tempo hackathons, collaborative sprints and production deployments.",
+  "hero_lead": "The Mobile App Development Club at New Horizon College of Engineering. We design, build and ship apps together, through hackathons, workshops and team projects.",
   "hero_cta_primary": "Explore Events",
-  "hero_cta_secondary": "Join the Guild",
+  "hero_cta_secondary": "Join the club",
   "stats": [
-    { "value": "150+", "label": "builders at every flagship event" },
-    { "value": "4", "label": "major flagships shipped end-to-end" },
-    { "value": "11", "label": "core architectural committee leads" },
-    { "value": "2023", "label": "founded to redefine student engineering" }
+    {
+      "value": "2023",
+      "label": "the year the club started"
+    },
+    {
+      "value": "9",
+      "label": "events run, from Mindspark'23 to Git Out'26"
+    },
+    {
+      "value": "180",
+      "label": "participants across our last three events"
+    },
+    {
+      "value": "11",
+      "label": "core team roles for 2026-27"
+    }
   ],
   "learning_pipeline": [
     {
@@ -29,92 +41,92 @@
     {
       "step": "02",
       "name": "Prototype",
-      "tag": "Figma & Interaction",
-      "desc": "Craft high-fidelity design systems with tactile micro-interactions, dark mode tokens, and fluid component hierarchies."
+      "tag": "Event Plan & Proposal",
+      "desc": "Turn the idea into a plan: the format, rounds, timeline and venue, written up as a proposal for the faculty and the college."
     },
     {
       "step": "03",
       "name": "Collaborate",
-      "tag": "Multi-role Swarms",
-      "desc": "Pair program in agile squads where Flutter engineers, UI designers, and QA testers coordinate in real time."
+      "tag": "Faculty, Students & Campaign",
+      "desc": "Work with faculty coordinators and student volunteers, and run the campaign on Instagram and across campus to bring participants in."
     },
     {
       "step": "04",
       "name": "Build",
-      "tag": "Native & Cross-Platform",
-      "desc": "Engineered with Flutter, Kotlin, Swift, SQLite, Supabase and WebSocket streams, prioritizing 60fps responsiveness."
+      "tag": "Hosting the Event",
+      "desc": "Run the day: set up the venue, run every round, support the participants and judge what they make."
     },
     {
       "step": "05",
       "name": "Ship",
-      "tag": "Continuous Deployment",
-      "desc": "Automated build pipelines, APK distributions, TestFlight releases, and verified campus rollouts."
+      "tag": "Learning Outcomes",
+      "desc": "Close it out: capture what participants learned, share the results and photos, and mark the event complete."
     }
   ],
   "highlights": [
     {
-      "title": "Tactile Production Engineering",
-      "tag": "Real Software",
-      "text": "We do not write toy code. From internal event engines to campus navigation systems, every build solves verified student needs with production-grade craft."
+      "title": "Formats nobody else runs",
+      "tag": "Events",
+      "text": "A Git escape room that unlocks a hackathon. A competition for useless apps. Game genres drawn from a bowl. We design events people remember."
     },
     {
-      "title": "Cross-Disciplinary Swarms",
-      "tag": "Agile Teams",
-      "text": "Engineers, UX designers, product thinkers, and QA strategists collaborate directly, mimicking high-growth Silicon Valley product studios."
+      "title": "Build, then pitch",
+      "tag": "Every event",
+      "text": "Most of our events end the same way: you build something real under time pressure, then stand up and explain it."
     },
     {
-      "title": "Unmatched Event Atmosphere",
-      "tag": "150+ Strong",
-      "text": "Every semester we launch high-octane coding arenas, design clashes, and multi-club invitationals that pack campus halls."
+      "title": "Run by students",
+      "tag": "Core team",
+      "text": "Eleven students across leadership, program, project, marketing and review run every event end to end."
     }
   ],
   "why_title": "Why join MAD Club",
-  "why_lead": "Whether you are writing your first line of Dart or optimizing GPU shaders, MAD provides the runway, the hardware, and the crew to ship world-class software.",
+  "why_lead": "Whether you are writing your first line of code or already shipping apps, MAD gives you the events, the projects and the people to build with.",
   "why": [
     {
-      "title": "Portfolio of Deployed Apps",
-      "text": "Graduate with actual app links on Google Play, TestFlight and GitHub, not just tutorial certificates."
+      "title": "Ship things",
+      "text": "Hackathons, build challenges and club projects where the output is a working app, not a certificate."
     },
     {
-      "title": "Production Tech Stacks",
-      "text": "Master Flutter, Kotlin Jetpack Compose, SwiftUI, Firebase, Supabase, SQLite, and WebSockets."
+      "title": "Learn the real tools",
+      "text": "Git, Flutter, Unity, Figma and AI-assisted development, used under real deadlines."
     },
     {
-      "title": "Elite Engineering Culture",
-      "text": "Learn strict PR code reviews, semantic commits, automated linting, and continuous integration."
+      "title": "Run events",
+      "text": "Join a committee and help design, market and run events like Appsylum and Git Out."
     },
     {
-      "title": "Direct Industry Runway",
-      "text": "Connect with startup founders, tech leads, and alumni engineers who mentor our flagship hackathons."
+      "title": "Find your crew",
+      "text": "Meet designers, developers and organisers from across NHCE who like building as much as you do."
     }
   ],
   "cta_title": "Ready to craft apps that matter?",
-  "cta_text": "Join over 150 student builders, participate in our upcoming hackathons, and turn your wildest product ideas into installed APKs.",
+  "cta_text": "Follow us on Instagram for the next event, or reach the core team directly.",
   "about": {
-    "manifesto_quote": "Software is no longer just logic on a server—it is the tactile surface through which billions of humans experience reality. We exist to master that surface.",
-    "who": "MAD Club (Mobile App Development Club) is the premier student-led digital product studio and engineering community at New Horizon College of Engineering, Bengaluru. Established in 2023, we empower students to transform raw ideas into launch-ready iOS, Android, and cross-platform applications.",
-    "objective": "Bridge the gap between academic computer science and modern software craftsmanship. We provide hands-on sandboxes, production mentors, and high-stakes arenas for mobile programming, design systems, and product thinking.",
-    "outcomes": "Mastery of industry-standard toolchains (Flutter, Dart, Jetpack Compose, SwiftUI, Figma, Git), verified open-source contributions, portfolio-ready product launches, and deep collaborative competence.",
+    "manifesto_quote": "Don't just use the future. Build it.",
+    "who": "MAD Club (Mobile App Development Club) is a student-led club at New Horizon College of Engineering, Bengaluru. Started in 2023, it runs hackathons, build challenges and design events, and brings together students who want to make apps.",
+    "objective": "Give students hands-on practice beyond the syllabus: building apps, working in teams, using real tools like Git, and pitching what they made.",
+    "outcomes": "Practical experience with industry tools (Git, Flutter, Unity, Figma), projects worth showing, and the confidence to pitch your work.",
     "timeline": [
       {
         "year": "2023",
-        "title": "Genesis & Mindspark'23",
-        "desc": "Founded with a mission to bring true mobile product craft to NHCE. Launched Mindspark'23 with 150+ participants across 3 competitive rounds."
+        "title": "Founded · Mindspark'23",
+        "desc": "The club starts with its first flagship: WikiWhiz, UI Clash and CodeMaze."
       },
       {
         "year": "2024",
         "title": "InnoWave, TechSync & Connect'24",
-        "desc": "Expanded into hackathons and multi-club invitationals. Engineered TechSync'24 with 4 tech societies and rolled out member-built beta apps."
+        "desc": "Pitch rounds, a cross-club event and a showcase day for the club's builders."
       },
       {
         "year": "2025",
-        "title": "Codathon & Systems Evolution",
-        "desc": "Ran 8-hour continuous mobile coding marathons, launched the open-source component library, and initiated Appsylum preparations."
+        "title": "Codathon, Pixel Pursuit & Appsylum",
+        "desc": "A coding marathon, a UI sprint, and Appsylum: the Useless App Competition, in December."
       },
       {
         "year": "2026",
-        "title": "The Next Frontier",
-        "desc": "Deploying on-device AI models, advanced physical computing interfaces, and expanding inter-college hackathon circuits."
+        "title": "Game Design & Git Out",
+        "desc": "A game-dev challenge with genres drawn from a bowl, and a Git escape room that unlocks a hackathon."
       }
     ],
     "committees": [
@@ -131,7 +143,7 @@
       {
         "name": "Marketing Committee",
         "role": "Branding & Community Outreach",
-        "desc": "Crafts visual brand identity, motion teasers, Instagram campaigns, and engages with 1,000+ student followers across departments."
+        "desc": "Crafts visual brand identity, motion teasers, Instagram campaigns, and runs the club's Instagram."
       },
       {
         "name": "Review Committee",
@@ -144,7 +156,12 @@
     "coordinators": "Sujay K (President) & M Manushree (Vice President)",
     "faculty_advisor": "Department of Computer Science & Engineering, NHCE",
     "location": "New Horizon College of Engineering, Bellandur Outer Ring Road, Bengaluru - 560103",
-    "email": "madclub.nhce@gmail.com",
-    "form_endpoint": "https://formspree.io/f/xbjvlqwe"
+    "email": "madclub.nhce@gmail.com"
+  },
+  "recruitment": {
+    "open": false,
+    "headline": "Recruitment is open",
+    "detail": "Applications for the next batch are open. DM us on Instagram to join.",
+    "url": ""
   }
 }

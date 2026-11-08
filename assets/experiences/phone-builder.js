@@ -1,0 +1,580 @@
+// Particle Build: user-triggered phone construction from real UI donors.
+// IDLE -> READY -> ACTIVATING -> EMITTING -> CONVERGING -> CHASSIS -> CONTAINERS ->
+// MATERIALIZING -> LOGO_APPROACH -> POWERING_UP -> COMPLETE -> RESETTING
+import { ParticleField } from "../graphics/particle-field.js";
+import { perimeter, fill, rectOfEl, radiusPx } from "../graphics/geometry-sampling.js";
+import { $, $$, motion, isSmall, clamp, wait, perf, budget } from "../core/util.js";
+import { makeSvg, evenEndpoints, powerNetwork, logoBody } from "../graphics/power-fx.js";
+import { pageRect } from "../motion/selection-geometry.js";
+
+const COPY = {
+  READY: ["Stage is empty", "Press Build to assemble the phone"],
+  ACTIVATING: ["Gathering parts", "Selecting donor components"],
+  EMITTING: ["Releasing particles", "Only from the site's tabs"],
+  CONVERGING: ["In flight", "Particles converging on the stage"],
+  CHASSIS: ["Chassis formed", "Rails, corners, buttons, camera"],
+  CONTAINERS: ["Tracing the interface", "Screen, header, tabs, cards"],
+  MATERIALIZING: ["Materializing", "Satin body and glass screen"],
+  LOGO_APPROACH: ["Club logo incoming", "The logo powers the phone"],
+  POWERING_UP: ["Powering up", "Booting MAD OS"],
+  INSTALLING: ["Installing MAD", "The club logo becomes an app"],
+  COMPLETE: ["Live", "Tap apps · drag beside the phone to spin it"],
+  RESETTING: ["Clearing the stage", ""]
+};
+
+export class PhoneBuilder {
+  constructor({ scope, director, os, onLive }) {
+    this.scope = scope;
+    this.os = os;
+    this.director = director;
+    this.onLive = onLive;
+    this.stage = $(".stage");
+    this.phone = $("#phone");
+    this.btn = $("#build-btn");
+    this.panel = $(".build-panel");
+    this.field = null;
+    this.state = "IDLE";
+    this.token = 0;
+    if (!this.stage || !this.phone || !this.btn) return;
+
+    this.set("READY");
+    scope.on(this.btn, "click", async () => {
+      if (this.busy) return this.skip();
+      if (this.state === "COMPLETE") await this.reset();
+      this.build();
+    });
+    const reset = $("#build-reset");
+    reset && scope.on(reset, "click", () => this.reset());
+    scope.add(() => this.destroy());
+  }
+
+  get busy() { return !["IDLE", "READY", "COMPLETE"].includes(this.state); }
+
+  set(state, progress) {
+    this.state = state;
+    this.stage.dataset.phase = state.toLowerCase();
+    const c = COPY[state];
+    if (c) {
+      const b = $("#build-status b"), s = $("#build-status span");
+      if (b) b.textContent = c[0];
+      if (s) s.textContent = c[1];
+    }
+    if (progress != null) { const bar = $(".build-progress i"); if (bar) bar.style.width = `${progress}%`; }
+    const label = $(".build-btn .label");
+    if (label) label.textContent = this.busy ? "Skip build" : state === "COMPLETE" ? "Rebuild" : "Build the phone";
+    this.panel && this.panel.classList.toggle("done", state === "COMPLETE");
+    document.dispatchEvent(new CustomEvent("mad:build", { detail: { state } }));
+  }
+
+  // The phone is made only from the website's own tabs: Home, Events, About, Achievements,
+  // Team, Contact (or the bottom tab bar on phones). Everything the club is, becomes the device.
+  donors() {
+    const vis = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+    const top = $$(".nav-links a").filter(vis);
+    return top.length ? top : $$(".tabbar a").filter(vis);
+  }
+
+  targets() {
+    const ph = this.phone;
+    const R = rectOfEl(ph);
+    const scale = R.w / 300;
+    const small = isSmall();
+    const k = (small ? 1.4 : 1) * (perf.lite ? 1.8 : 1); // sparser sampling on small screens / lite
+    const T = { chassis: [], flood: [], containers: [], detail: [], meta: { R, scale } };
+    const push = (arr, pts, color, size, alpha) => pts.forEach(p => arr.push({ ...p, color, size, alpha }));
+
+    // CHASSIS: rounded perimeter (outer + inner rail), side buttons, camera island
+    push(T.chassis, perimeter(R, 4.2 * k, 50 * scale), "#3E4A5C", 1.5);
+    const inner = { x: R.x + 5 * scale, y: R.y + 5 * scale, w: R.w - 10 * scale, h: R.h - 10 * scale };
+    push(T.chassis, perimeter(inner, 7 * k, 45 * scale), "#8C98AA", 1.1);
+    $$(".phone-btn", ph).forEach(b => push(T.chassis, perimeter(rectOfEl(b), 3, 1), "#3E4A5C", 1.3));
+    const island = $(".phone-island", ph);
+    if (island) push(T.chassis, perimeter(rectOfEl(island), 3.2, 14 * scale), "#18212F", 1.3);
+
+    // FLOOD: the whole screen fills with an even, finely spaced field of particles, rippling in
+    // from the top. It is the canvas; the interface is then traced over it in brighter colours.
+    const screen = $(".phone-screen", ph);
+    if (screen) {
+      const s = rectOfEl(screen), rad = 40 * scale;
+      const sp = (small ? 7 : 6.2) * scale * (perf.lite ? 1.7 : 1);
+      const inside = (x, y) => {
+        const cx = Math.min(Math.max(x, s.x + rad), s.x + s.w - rad), cy = Math.min(Math.max(y, s.y + rad), s.y + s.h - rad);
+        return Math.hypot(x - cx, y - cy) <= rad - sp * 0.4;
+      };
+      let row = 0;
+      for (let y = s.y + sp * 0.6; y < s.y + s.h - sp * 0.3; y += sp, row++) {
+        for (let x = s.x + sp * (row % 2 ? 0.6 : 1.1); x < s.x + s.w - sp * 0.3; x += sp) {
+          const jx = x + (Math.random() - 0.5) * sp * 0.22, jy = y + (Math.random() - 0.5) * sp * 0.22;
+          if (inside(jx, jy)) T.flood.push({ x: jx, y: jy, order: (jy - s.y) / s.h * 0.85 + Math.random() * 0.15, color: "#9AA6B8", size: 0.85, alpha: 0.62 });
+        }
+      }
+    }
+
+    // CONTAINERS: screen and every real interface region on it, traced over the flood in a
+    // brighter, larger particle so the interface stands out
+
+    if (screen) push(T.containers, perimeter(rectOfEl(screen), 4.5 * k, 40 * scale), "#3D63E0", 1.45);
+    const regions = [".os-widget", ".os-grid .ic-tile", ".os-dock", ".os-dock .ic-tile", ".os-ind i"];
+    regions.forEach(sel => $$(sel, ph).forEach(el => {
+      const r = rectOfEl(el);
+      if (r.w < 2) return;
+      push(T.containers, perimeter(r, 3.6 * k, radiusPx(el, scale)), "#3D63E0", 1.3);
+    }));
+    // DETAIL: sparse fill marks inside regions (text rows, tab labels)
+    $$(".os-time, .os-sys, .w-k, .w-big, .w-row, .w-latest, .os-grid .ic-label", ph).forEach(el => {
+      const r = rectOfEl(el);
+      if (r.w < 2) return;
+      push(T.detail, fill({ x: r.x, y: r.y + r.h * 0.3, w: r.w * 0.9, h: r.h * 0.4 }, Math.round(clamp(r.w / (small ? 9 : 5.5), 4, 34))), "#1FA79A", 1.15);
+    });
+    return T;
+  }
+
+  async build() {
+    if (this.busy) return;
+    const my = ++this.token;
+    const alive = () => my === this.token && this.scope.alive;
+    if (motion.reduced) return this.finishInstant();
+
+    // on small screens the stage sits below the controls: bring it into view first
+    const sr = this.stage.getBoundingClientRect();
+    if (sr.bottom > window.innerHeight + 40 || sr.top < 0) {
+      const y = window.scrollY + sr.top - Math.max(70, (window.innerHeight - sr.height) / 2);
+      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+      await wait(550);
+      if (!alive()) return;
+    }
+
+    // ACTIVATING
+    this.btn.classList.add("pressed");
+    setTimeout(() => this.btn.classList.remove("pressed"), 180);
+    this.set("ACTIVATING", 4);
+    const donors = this.donors();
+    donors.forEach((d, i) => setTimeout(() => d.classList.add("donor-glow"), i * 60));
+    if (this.director && this.director.enabled) this.director.frameEls(donors, 900);
+    const names = donors.map(d => d.textContent.trim()).filter(Boolean);
+    const sub = $("#build-status span"); if (sub) sub.textContent = `Tabs: ${names.join(", ")}`;
+    this.stage.dataset.state = "building";
+    await wait(520);
+    if (!alive()) return;
+
+    // EMITTING
+    this.field = this.field || new ParticleField();
+    this.field.clear();
+    const T = this.targets();
+    const now = performance.now();
+    const donorRects = donors.map(rectOfEl);
+    const donorPts = donorRects.map((r, i) => perimeter(r, 6, radiusPx(donors[i])));
+    const assign = (list, group, startAt, spread, dur) => list.map((t, i) => {
+      const di = i % donorPts.length;
+      const pool = donorPts[di];
+      const o = pool[(i * 7 + group * 13) % pool.length] || { x: donorRects[di].x, y: donorRects[di].y };
+      const dx = t.x - o.x, dy = t.y - o.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const bend = (Math.random() < 0.5 ? -1 : 1) * (0.18 + Math.random() * 0.2) * d;
+      return {
+        sx: o.x, sy: o.y,
+        cx: o.x + dx * 0.5 + (-dy / d) * bend,
+        cy: o.y + dy * 0.5 + (dx / d) * bend - d * 0.12,
+        tx: t.x, ty: t.y,
+        // grouped, staggered arrival: perimeter order drives the delay so outlines draw around
+        t0: now + startAt + (t.order ?? Math.random()) * spread + Math.random() * 120,
+        dur: dur * (0.85 + Math.random() * 0.3),
+        size: t.size, color: t.color, group, seed: Math.random() * 6.28, alpha: t.alpha ?? 1
+      };
+    });
+    const flight = isSmall() ? 1050 : 1250;
+    const chassis = assign(T.chassis, 0, 0, 650, flight);
+    const flood = assign(T.flood, 3, 900, 1100, flight);           // the screen floods, top to bottom
+    const containers = assign(T.containers, 1, 2250, 700, flight);  // then the interface is traced over it
+    const detail = assign(T.detail, 2, 2900, 500, flight * 0.9);
+    const all = [...chassis, ...flood, ...containers, ...detail];
+    this.field.add(all);
+    this.set("EMITTING", 10);
+    this.field.start();
+    this.scope.add(() => this.field && this.field.stop());
+
+    const arrived = list => list.filter(p => p.t >= 1).length / list.length;
+    const until = (fn, timeout = 6000) => new Promise(res => {
+      const t0 = performance.now();
+      const step = () => {
+        if (!alive()) return res(false);
+        if (fn() || performance.now() - t0 > timeout) return res(true);
+        requestAnimationFrame(step);
+      };
+      step();
+    });
+
+    // CONVERGING: progress is tied to actual arrivals
+    await until(() => chassis.some(p => p.t > 0.3));
+    if (!alive()) return;
+    this.set("CONVERGING");
+    this.field.onFrame = () => {
+      const a = arrived(all);
+      const bar = $(".build-progress i");
+      if (bar) bar.style.width = `${10 + a * 60}%`;
+    };
+    donors.forEach(d => d.classList.remove("donor-glow"));
+
+    // CHASSIS formed: hold the recognizable outline
+    await until(() => arrived(chassis) > 0.985);
+    if (!alive()) return;
+    this.set("CHASSIS");
+    const { R, scale } = T.meta;
+    this.field.outlines.push({ x: R.x, y: R.y, w: R.w, h: R.h, r: 50 * scale, color: "#3E4A5C", alpha: 0.35, t0: performance.now() });
+
+    // CONTAINERS: perimeters first, detail afterwards, then hold
+    await until(() => arrived(containers) > 0.4);
+    if (!alive()) return;
+    this.set("CONTAINERS");
+    // the particles have drawn the outline: now the builders come back and work on it
+    this.crewStart("trace");
+    const screen = $(".phone-screen", this.phone);
+    if (screen) { const s = rectOfEl(screen); this.field.outlines.push({ ...s, r: 40 * scale, color: "#5878D8", alpha: 0.4, t0: performance.now() }); }
+    await until(() => arrived(containers) > 0.99 && arrived(detail) > 0.97 && arrived(flood) > 0.97);
+    if (!alive()) return;
+    await wait(520);
+    if (!alive()) return;
+
+    // MATERIALIZING: the DOM phone is revealed exactly where the particles stand
+    this.field.onFrame = null;
+    this.set("MATERIALIZING", 72);
+    await this.crewMode("scan");
+    this.stage.dataset.state = "materializing";
+    this.phone.classList.add("mat");
+    const scan = { p: 0 };
+    await new Promise(res => {
+      gsap.to(scan, {
+        p: 1, duration: 1.05, ease: "power2.inOut",
+        onUpdate: () => {
+          const top = 100 - scan.p * 100;
+          this.phone.style.setProperty("--clip-top", `${top}%`);
+          this.field.scan = { x: R.x, w: R.w, y: R.y + R.h * (top / 100) };
+          this.crewScan(top / 100);
+          const bar = $(".build-progress i"); if (bar) bar.style.width = `${72 + scan.p * 12}%`;
+        },
+        onComplete: res
+      });
+    });
+    if (!alive()) return;
+    this.field.scan = null;
+    this.field.outlines = [];
+    this.phone.classList.remove("mat");
+    this.phone.style.removeProperty("--clip-top");
+    this.field.p.forEach(p => (p.fade = Math.max(p.fade || 0, 0.01)));
+    setTimeout(() => { if (this.field) { this.field.p = []; } }, 500);
+
+    // LOGO_APPROACH: the club logo (a motion duplicate; the nav logo stays put) flies into
+    // the dark screen. Its arrival is what powers the phone on.
+    // the body is solid: builders fine-tune the details while the logo is on its way
+    this.crewMode("polish");
+    this.set("LOGO_APPROACH", 84);
+    this.stage.dataset.state = "logo";
+    const bootImg = $(".os-boot img", this.phone);
+    // the logo lands in a seat that lives inside the phone screen, dead centre, exactly where the
+    // boot logo will sit: it scrolls and scales with the phone, so it can never drift off-centre
+    const seat = this.logoSeat(bootImg);
+    const landed = await this.fly($(".nav .brand-mark"), seat, { morph: false, alive, dur: 1.15 });
+    if (!alive()) { seat && seat.remove(); return; }
+    if (seat) { seat.classList.add("on", "charging"); landed && landed.remove(); }
+
+    // POWERING_UP: the logo's outline is traced, then circuits leave its edges for every part of
+    // the interface it is about to power, and the phone boots
+    this.set("POWERING_UP", 90);
+    this.crewMode("watch");
+    this.stage.dataset.state = "powering";
+    if (!seat && landed) landed.classList.add("charging");
+    await this.powerUp(seat || bootImg, alive);
+    if (!alive()) { landed && landed.remove(); seat && seat.remove(); return; }
+    if (this.os) this.os.set("boot");
+    if (landed) landed.remove();
+    if (seat) seat.remove();
+    this.pulse(bootImg);
+    // powered: the watching builders go straight to work on the interface as MAD OS boots
+    this.crewStop();
+    if (this.os) await this.os.boot();
+    if (!alive()) return;
+
+    // INSTALLING: the same logo travels from where it booted into the dock and becomes the app
+    this.set("INSTALLING", 96);
+    const slot = this.os ? this.os.madSlot() : null;
+    if (slot) {
+      const ghost = await this.fly(bootImg && bootImg.offsetWidth ? bootImg : this.bootRect, slot, { morph: true, alive, dur: 0.9, arc: 40 });
+      if (!alive()) return;
+      this.os.installMad();
+      this.pulse(slot);
+      if (ghost) ghost.remove();
+    }
+    this.field.stop();
+    this.field.clear();
+    this.crewStop();
+    this.complete();
+    // ...and a builder comes over and taps it, opening the Events app
+    this.scope.timeout(() => this.tapApp(), 450);
+  }
+
+  async powerUp(logoEl, alive) {
+    const screen = $(".phone-screen", this.phone);
+    if (!screen || !logoEl) return;
+    const W = screen.offsetWidth, H = screen.offsetHeight;
+    const sr = screen.getBoundingClientRect(), k = sr.width / W || 1;
+    const lr = logoEl.getBoundingClientRect();
+    // the seat is centred in the screen by CSS, so its centre is the screen's centre
+    const seated = logoEl.classList.contains("pfx-logo");
+    const o = seated ? { x: W / 2, y: H / 2 } : { x: (lr.left - sr.left + lr.width / 2) / k, y: (lr.top - sr.top + lr.height / 2) / k };
+    const lw = seated ? logoEl.offsetWidth : lr.width / k, lh = seated ? logoEl.offsetHeight : lr.height / k;
+    const svg = makeSvg(screen, W, H, "phone-pfx");
+    const rate = this.director ? this.director.rate : 1;
+    // circuits fan out evenly in every direction from the logo's edge
+    const ends = evenEndpoints(o, W, H, isSmall() ? 18 : 24, 14);
+    let arrived = 0;
+    const net = powerNetwork(svg, o, ends, {
+      r0: Math.max(lw, lh) / 2 + 2, rate, body: logoBody(o, lw, lh),
+      lay: 800, flow: 1500, stagger: 55,
+      fine: budget(isSmall() ? 26 : 40), fineBox: { W, H, inset: 8 },
+      onArrive: () => { arrived++; if (arrived === 1) { try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(8); } catch {} } }
+    });
+    await net.done;
+    if (!alive()) { svg.remove(); return; }
+    // the glow that reached every endpoint washes inward and the interface forms out of it
+    const wash = document.createElement("div");
+    wash.className = "phone-wash";
+    wash.style.setProperty("--ox", `${(o.x / W) * 100}%`);
+    wash.style.setProperty("--oy", `${(o.y / H) * 100}%`);
+    screen.append(wash);
+    const w = wash.animate([{ opacity: 0 }, { opacity: 1, offset: 0.45 }, { opacity: 0 }], { duration: 900, easing: "ease-in-out", fill: "forwards" });
+    w.playbackRate = rate;
+    svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 700, delay: 250, fill: "forwards" }).finished.then(() => svg.remove()).catch(() => svg.remove());
+    setTimeout(() => wash.remove(), 1000 / rate);
+    await new Promise(r => setTimeout(r, 380 / rate));
+  }
+
+  // A builder from the crew flies over and taps the MAD app (the logo that powered the phone)
+  async tapApp() {
+    if (!this.os || this.state !== "COMPLETE") return;
+    const slot = this.os.madSlot();
+    const d = this.director;
+    if (!slot || !d || !d.enabled) return this.os.launch("mad");
+    const r = slot.getBoundingClientRect();
+    const at = { x: r.left + scrollX + r.width * 0.55, y: r.top + scrollY + r.height * 0.55 };
+    const [a, ...help] = d._claim(4, at);
+    if (!a) return this.os.launch("mad");
+    // three helpers gather round the icon while the lead taps it
+    help.forEach((h, i) => {
+      const ang = -Math.PI / 2 + (i - 1) * 0.9, R = r.width * 0.95;
+      const p = { x: h.x, y: h.y };
+      gsap.to(p, { x: at.x + Math.cos(ang) * R, y: at.y - r.height * 0.2 + Math.sin(ang) * R, duration: 0.6 + i * 0.08, ease: "back.out(1.2)", onUpdate: () => h.place(p.x, p.y) });
+    });
+    await new Promise(res => {
+      const p = { x: a.x, y: a.y };
+      gsap.to(p, { x: at.x, y: at.y, duration: 0.7, ease: "back.out(1.2)", onUpdate: () => a.place(p.x, p.y), onComplete: res });
+    });
+    if (this.state !== "COMPLETE") { d.crew.release([a, ...help]); return; }
+    d._click(a);
+    slot.animate([{ transform: "scale(1)" }, { transform: "scale(.86)" }, { transform: "scale(1)" }], { duration: 260 });
+    await this.os.launch("mad");
+    d.crew.release([a, ...help]);
+  }
+
+  /** Fly a duplicate of the logo from an element (or rect) to an element; optional logo->icon morph. */
+  /* ---------- the crew at work on the phone ----------
+   * trace:  each builder visits the interface regions the particles are outlining and clicks them in
+   * scan:   builders line up across the phone and ride the materialising scanline down the body
+   * polish: they go to the details (island, buttons, corners, dock) and tighten them
+   * watch:  they step back to the phone's edges while the logo powers it, then go home */
+  crewStart(mode) {
+    const d = this.director;
+    if (!d || !d.enabled || this.crewJob) return;
+    const n = Math.min(6, Math.max(4, d.crew.available));
+    const pr = pageRect(this.phone);
+    const ag = d._claim(n, { x: pr.x + pr.w / 2, y: pr.y + pr.h / 2 });
+    if (!ag.length) return;
+    const job = { ag, mode, on: true, tw: new Set() };
+    this.crewJob = job;
+    ag.forEach((a, i) => this.crewWork(job, a, i));
+  }
+  async crewMode(mode) {
+    const job = this.crewJob;
+    if (!job) return;
+    job.mode = mode;
+    job.tw.forEach(t => t.kill()); job.tw.clear();
+    if (mode === "scan") {
+      // line up across the top of the phone, ready to ride the scanline down
+      const pr = pageRect(this.phone);
+      await Promise.all(job.ag.map((a, i) => this.crewGo(job, a, pr.x + pr.w * ((i + 0.5) / job.ag.length), pr.y + 6, 0.32)));
+    }
+  }
+  crewScan(p) {
+    const job = this.crewJob;
+    if (!job || job.mode !== "scan") return;
+    const pr = pageRect(this.phone), t = performance.now() / 1000;
+    const y = pr.y + pr.h * (1 - p);
+    job.ag.forEach((a, i) => a.place(pr.x + pr.w * ((i + 0.5) / job.ag.length) + Math.sin(t * 3 + i) * 8, y - 4 + Math.cos(t * 4 + i * 2) * 3));
+  }
+  crewGo(job, a, x, y, dur) {
+    return new Promise(res => {
+      const p = { x: a.x, y: a.y };
+      const tw = gsap.to(p, { x, y, duration: dur, ease: "power2.inOut", onUpdate: () => job.on && a.place(p.x, p.y), onComplete: () => { job.tw.delete(tw); res(); }, onInterrupt: () => { job.tw.delete(tw); res(); } });
+      job.tw.add(tw);
+    });
+  }
+  crewSpot(job, i) {
+    const ph = this.phone, pick = list => list[(Math.random() * list.length) | 0];
+    const onEdge = r => { // a point on a region's outline, where the particles are drawing
+      const s = Math.random() * 2 * (r.w + r.h);
+      return s < r.w ? { x: r.x + s, y: r.y } : s < r.w + r.h ? { x: r.x + r.w, y: r.y + s - r.w } : s < 2 * r.w + r.h ? { x: r.x + 2 * r.w + r.h - s, y: r.y + r.h } : { x: r.x, y: r.y + 2 * (r.w + r.h) - s };
+    };
+    if (job.mode === "trace") {
+      const els = $$(".phone-screen, .os-widget, .os-dock, .os-grid .ic-tile, .os-dock .ic-tile", ph).filter(e => e.getBoundingClientRect().width);
+      return els.length ? onEdge(pageRect(pick(els))) : null;
+    }
+    if (job.mode === "polish") {
+      // the hardware that is actually visible now: island, side buttons and the frame's corners
+      const pr = pageRect(ph), c = 0.11;
+      const spots = [...$$(".phone-island, .phone-btn", ph).filter(e => e.getBoundingClientRect().width).map(e => pageRect(e)),
+        { x: pr.x + pr.w * 0.06, y: pr.y + pr.h * 0.03, w: pr.w * c, h: pr.h * 0.04 }, { x: pr.x + pr.w * 0.83, y: pr.y + pr.h * 0.03, w: pr.w * c, h: pr.h * 0.04 },
+        { x: pr.x + pr.w * 0.06, y: pr.y + pr.h * 0.93, w: pr.w * c, h: pr.h * 0.04 }, { x: pr.x + pr.w * 0.83, y: pr.y + pr.h * 0.93, w: pr.w * c, h: pr.h * 0.04 }];
+      const r = spots[(i * 2 + Math.floor(Math.random() * 3)) % spots.length];
+      return { x: r.x + r.w * (0.2 + Math.random() * 0.6), y: r.y + r.h * (0.3 + Math.random() * 0.4) };
+    }
+    if (job.mode === "watch") {
+      // stand back around the phone, evenly spaced, facing the screen
+      const pr = pageRect(ph), n = job.ag.length;
+      const side = i % 2 ? 1 : -1, k = Math.floor(i / 2) / Math.max(1, Math.ceil(n / 2) - 1);
+      const out = isSmall() ? -8 : 18; // on a phone there is no room beside it: they sit on the frame
+      return { x: pr.x + pr.w / 2 + side * (pr.w / 2 + out), y: pr.y + pr.h * (0.22 + k * 0.56) };
+    }
+    return null;
+  }
+  async crewWork(job, a, i) {
+    const d = this.director;
+    await wait(i * 90);
+    while (job.on) {
+      if (job.mode === "scan") {
+        if (Math.random() < 0.35) d._click(a);   // welding the body together as the scan passes
+        await wait(200 + Math.random() * 160);
+        continue;
+      }
+      const s = this.crewSpot(job, i);
+      if (!s) { await wait(200); continue; }
+      const mode = job.mode;
+      await this.crewGo(job, a, s.x, s.y, mode === "watch" ? 0.7 : 0.42 + Math.random() * 0.25);
+      if (!job.on) break;
+      if (mode !== job.mode) continue;
+      if (mode === "watch") { await wait(300); continue; }
+      d._click(a);
+      await wait(mode === "polish" ? 320 + Math.random() * 260 : 180 + Math.random() * 220);
+    }
+  }
+  crewStop() {
+    const job = this.crewJob;
+    if (!job) return;
+    this.crewJob = null;
+    job.on = false;
+    job.tw.forEach(t => t.kill());
+    if (this.director) this.director.crew.release(job.ag);
+  }
+
+  // An exact copy of the boot logo, positioned in the screen's centre (same size as the boot logo)
+  logoSeat(bootImg) {
+    const screen = $(".phone-screen", this.phone);
+    if (!screen) return null;
+    const seat = document.createElement("img");
+    seat.className = "pfx-logo";
+    seat.src = "assets/brand/mad-logo.svg";
+    seat.alt = "";
+    const w = (bootImg && parseFloat(getComputedStyle(bootImg).width)) || 64;
+    seat.style.width = `${w}px`;
+    seat.style.height = `${(w * 766) / 500}px`;
+    screen.append(seat);
+    return seat;
+  }
+
+  async fly(from, toEl, { morph = false, alive, dur = 1, arc = 120 } = {}) {
+    if (!from || !toEl) return null;
+    const a = from.getBoundingClientRect ? from.getBoundingClientRect() : from;
+    const clone = document.createElement("div");
+    clone.className = "emblem-flight";
+    clone.innerHTML = `<img class="ef-logo" src="assets/brand/mad-logo.svg" alt=""><img class="ef-icon" src="assets/brand/mad-app-icon.svg" alt="">`;
+    document.body.append(clone);
+    this.clone = clone;
+    const logo = $(".ef-logo", clone), icon = $(".ef-icon", clone);
+    const s = { t: 0 };
+    await new Promise(res => gsap.to(s, {
+      t: 1, duration: dur, ease: "power2.inOut",
+      onUpdate: () => {
+        const z = toEl.getBoundingClientRect(); // live target (handles scroll / tilt)
+        const t = s.t;
+        const w = a.width + (z.width - a.width) * t;
+        const h = a.height + (z.height - a.height) * t;
+        const x = a.left + (z.left - a.left) * t;
+        const y = a.top + (z.top - a.top) * t - Math.sin(t * Math.PI) * arc;
+        const grow = 1 + Math.sin(t * Math.PI) * (morph ? 0.5 : 0.9);
+        const rot = Math.sin(t * Math.PI) * -18;
+        clone.style.width = `${w}px`;
+        clone.style.height = `${h}px`;
+        clone.style.transform = `translate(${x}px, ${y}px) perspective(700px) rotateY(${rot}deg) scale(${grow})`;
+        const m = morph ? Math.min(1, Math.max(0, (t - 0.2) / 0.5)) : 0;
+        logo.style.opacity = String(1 - m);
+        icon.style.opacity = String(m);
+      },
+      onComplete: res
+    }));
+    this.clone = null;
+    if (alive && !alive()) { clone.remove(); return null; }
+    const r = toEl.getBoundingClientRect();
+    this.bootRect = { left: r.left, top: r.top, width: r.width, height: r.height };
+    return clone;
+  }
+
+  pulse(el) {
+    const ring = $(".power-ring", this.phone);
+    if (!ring) return;
+    if (el && el !== this.phone) {
+      const p = this.phone.getBoundingClientRect(), r = el.getBoundingClientRect();
+      const k = p.width / this.phone.offsetWidth || 1;
+      ring.style.left = `${(r.left - p.left + r.width / 2) / k}px`;
+      ring.style.top = `${(r.top - p.top + r.height / 2) / k}px`;
+    }
+    ring.classList.remove("go"); void ring.offsetWidth; ring.classList.add("go");
+  }
+
+  complete() {
+    this.stage.dataset.state = "live";
+    this.set("COMPLETE", 100);
+    this.onLive && this.onLive();
+  }
+
+  finishInstant() {
+    this.token++;
+    this.crewStop();
+    if (this.field) { this.field.stop(); this.field.clear(); }
+    if (this.clone) { this.clone.remove(); this.clone = null; }
+    $$(".donor-glow").forEach(d => d.classList.remove("donor-glow"));
+    this.phone.classList.remove("mat");
+    this.phone.style.removeProperty("--clip-top");
+    if (this.os) { this.os.set("home"); this.os.installMad(); }
+    this.complete();
+  }
+  skip() { this.finishInstant(); }
+
+  async reset() {
+    this.token++;
+    this.crewStop();
+    this.set("RESETTING", 0);
+    if (this.os) this.os.reset();
+    if (this.field) { this.field.stop(); this.field.clear(); }
+    if (!motion.reduced && this.stage.dataset.state === "live") {
+      await this.phone.animate([{ opacity: 1, transform: getComputedStyle(this.phone).transform }, { opacity: 0, transform: "scale(0.96)" }], { duration: 320, easing: "ease-in" }).finished.catch(() => {});
+    }
+    this.stage.dataset.state = "idle";
+    this.set("READY", 0);
+  }
+
+  destroy() {
+    this.token++;
+    this.crewStop();
+    if (this.field) { this.field.destroy(); this.field = null; }
+    if (this.clone) { this.clone.remove(); this.clone = null; }
+    $$(".donor-glow").forEach(d => d.classList.remove("donor-glow"));
+  }
+}

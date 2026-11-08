@@ -1,66 +1,71 @@
 {
   "stats": [
-    { "value": "150+", "label": "attendees at every flagship event over 4 semesters" },
-    { "value": "4", "label": "flagship events conceptualized and run end to end" },
-    { "value": "4", "label": "partner technology clubs collaborated for TechSync'24" },
-    { "value": "500+", "label": "hours of hands-on mobile coding logged across workshops" }
+    {
+      "value": "9",
+      "label": "events run since 2023"
+    },
+    {
+      "value": "180",
+      "label": "participants across Appsylum'25, Game Design'26 and Git Out'26"
+    },
+    {
+      "value": "82",
+      "label": "participants at Game Design'26, our largest documented event"
+    },
+    {
+      "value": "3",
+      "label": "build-and-pitch formats designed in-house"
+    }
   ],
   "apps": [
     {
       "name": "Evently",
-      "tagline": "The Unified Campus Event Discovery & Telemetry Hub",
-      "category": "Campus Utility",
-      "status": "Production Beta",
-      "text": "A comprehensive mobile companion for New Horizon students featuring real-time event schedules, interactive maps, seat availability counters, and push notification reminders.",
-      "tech": ["Flutter", "Firebase Cloud Messaging", "Riverpod", "FastAPI"],
-      "features": [
-        "Live QR ticket verification at auditorium gates",
-        "Personalized timetable integration with Google Calendar",
-        "Offline-first cached schedules with instant background sync",
-        "Real-time announcements from student committee chairs"
-      ],
-      "metrics": "Used by 450+ students during TechSync'24 with 99.8% uptime.",
+      "tagline": "Campus event companion",
+      "category": "App",
+      "status": "Member project",
+      "text": "A campus app for discovering events at NHCE: schedules, reminders and announcements in one place.",
+      "tech": [],
+      "features": [],
       "link": "https://github.com/sk101-art/md_v1",
       "mockup_type": "evently"
     },
     {
       "name": "Treasure-hunt App",
-      "tagline": "Augmented Reality & Geofenced Campus Quest Engine",
-      "category": "Interactive AR",
-      "status": "Deployed at Connect'24",
-      "text": "An immersive physical-digital hybrid puzzle platform. Participants navigate campus coordinates using real-time GPS telemetry, AR marker reveals, and cipher decryption challenges.",
-      "tech": ["Flutter", "ARCore / ARKit", "Supabase", "Mapbox GL"],
-      "features": [
-        "Geofenced checkpoint unlocks within 5-meter radius accuracy",
-        "Interactive 3D camera overlays for digital token collection",
-        "Cryptographic cipher validation engine preventing spoofing",
-        "Real-time synchronized leaderboard broadcasted to live stage"
-      ],
-      "metrics": "Powered 60+ competing teams with zero GPS drift failure.",
+      "tagline": "Campus treasure hunt",
+      "category": "App",
+      "status": "Member project",
+      "text": "A treasure-hunt app for campus events, with clue-by-clue puzzles and a live leaderboard.",
+      "tech": [],
+      "features": [],
       "link": "https://github.com/sk101-art/md_v1",
       "mockup_type": "treasure"
     }
   ],
   "milestones": [
     {
-      "quarter": "Q4 2023",
-      "title": "Club Foundation & Mindspark Launch",
-      "summary": "Formal club constitution ratified under Department of CSE; inaugurated with 150+ participants."
+      "quarter": "2023",
+      "title": "Club founded · Mindspark'23",
+      "summary": "First flagship with three rounds: WikiWhiz, UI Clash and CodeMaze."
     },
     {
-      "quarter": "Q1 2024",
-      "title": "InnoWave'24 Product Incubator",
-      "summary": "Organized 2-round mobile innovation sprint with seed funding proposals judged by alumni founders."
+      "quarter": "2024",
+      "title": "InnoWave, TechSync & Connect'24",
+      "summary": "Pitching, a cross-club event and a showcase day."
     },
     {
-      "quarter": "Q2 2024",
-      "title": "Multi-Club Quad-Arena TechSync'24",
-      "summary": "Unified 4 campus clubs for an integrated physical and mobile software engineering championship."
+      "quarter": "Dec 2025",
+      "title": "Appsylum'25",
+      "summary": "The Useless App Competition, with 70 participants at the AICTE Idea Lab."
     },
     {
-      "quarter": "Q4 2024",
-      "title": "Open-Source Initiative & Pixel Pursuit",
-      "summary": "Launched reusable mobile UI tokens, micro-motion libraries and published open design assets."
+      "quarter": "Mar 2026",
+      "title": "Game Design'26",
+      "summary": "An expert talk plus a genre-draw game build, with 82 participants."
+    },
+    {
+      "quarter": "May 2026",
+      "title": "Git Out'26",
+      "summary": "A Git escape room into a full-stack hackathon, with 28 participants."
     }
   ]
 }
