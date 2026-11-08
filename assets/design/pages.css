@@ -515,3 +515,16 @@ main { display: block; min-height: 70vh; }
 .lost { position: relative; }
 .lost-field { height: 260px; margin-top: 40px; border-radius: var(--r-lg, 22px); border: 1px dashed var(--line); background: repeating-linear-gradient(90deg, transparent 0 39px, color-mix(in srgb, var(--line) 60%, transparent) 39px 40px), repeating-linear-gradient(0deg, transparent 0 39px, color-mix(in srgb, var(--line) 60%, transparent) 39px 40px); }
 .sw-agent.searching::before { content: ""; position: absolute; left: -46px; top: -46px; width: 92px; height: 92px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 30%, transparent), transparent); pointer-events: none; }
+
+/* the hint under Build: the phone's Settings app controls the website */
+.build-tip { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px 0 0; max-width: 46ch; font-size: .88rem; line-height: 1.45; color: var(--text-2); }
+.build-tip b { color: var(--text); font-weight: 600; }
+.tip-ic { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(160deg, #A3ADBB, #6E7887); color: #fff; box-shadow: 0 4px 10px -5px rgba(24,33,47,.5); }
+.tip-ic svg { width: 16px; height: 16px; }
+.tip-txt { flex: 1 1 240px; }
+.tip-btn { border: 1px solid var(--line); background: var(--glass-strong); border-radius: 999px; padding: 6px 12px; font: 600 .8rem/1 var(--font-body); color: var(--text); }
+.tip-btn:hover { border-color: var(--accent); }
+@media (max-width: 720px) {
+  .hero { grid-template-areas: "eyebrow" "title" "stage" "panel" "tip" "lead" "actions"; }
+  .hero .build-tip { grid-area: tip; margin-top: 12px; max-width: none; }
+}

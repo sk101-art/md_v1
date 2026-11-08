@@ -31,6 +31,11 @@ export function render(site, events) {
           <button type="button" class="btn sm ghost" id="build-reset">Reset</button>
         </div>
       </div>
+      <p class="build-tip" data-sw="text">
+        <span class="tip-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg></span>
+        <span class="tip-txt">The phone runs this website. Build it, then open its <b>Settings</b> app to switch dark mode, animations, lite effects and builder sounds.</span>
+        <button type="button" class="tip-btn" id="open-settings" hidden>Open Settings</button>
+      </p>
     </div>
 
     <div class="stage" data-state="idle" aria-label="Phone build stage">
@@ -138,7 +143,22 @@ export function wire(ctx) {
     onFullscreen: () => full.open(),
     swarm: director
   });
-  builder = new PhoneBuilder({ scope, director, os, onLive: () => liveHover(scope) });
+  builder = new PhoneBuilder({ scope, director, os, onLive: () => { liveHover(scope); tipLive(true); } });
+  // the hint under Build: once the phone is live, it opens the phone's Settings app directly
+  const tipBtn = $("#open-settings"), tipTxt = $(".build-tip .tip-txt");
+  const tipLive = on => {
+    if (!tipBtn) return;
+    tipBtn.hidden = !on;
+    if (tipTxt) tipTxt.innerHTML = on
+      ? "Use the phone's <b>Settings</b> app to control this website: dark mode, animations, lite effects and builder sounds."
+      : "The phone runs this website. Build it, then open its <b>Settings</b> app to switch dark mode, animations, lite effects and builder sounds.";
+  };
+  scope.on(document, "mad:build", e => { if (e.detail.state === "RESETTING" || e.detail.state === "READY") tipLive(false); });
+  tipBtn && scope.on(tipBtn, "click", () => {
+    const ph = $("#phone"), r = ph && ph.getBoundingClientRect();
+    if (r && (r.top < 0 || r.bottom > innerHeight)) window.scrollTo({ top: scrollY + r.top - Math.max(70, (innerHeight - r.height) / 2), behavior: "smooth" });
+    os.launch("settings");
+  });
   if (window.__mad) window.__mad.os = os; // inspectable from the console, like the director
   const fb = $("#build-full");
   fb && scope.on(fb, "click", () => full.open());
