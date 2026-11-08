@@ -41,26 +41,26 @@
     {
       "step": "02",
       "name": "Prototype",
-      "tag": "Figma & Interaction",
-      "desc": "Craft high-fidelity design systems with tactile micro-interactions, dark mode tokens, and fluid component hierarchies."
+      "tag": "Event Plan & Proposal",
+      "desc": "Turn the idea into a plan: the format, rounds, timeline and venue, written up as a proposal for the faculty and the college."
     },
     {
       "step": "03",
       "name": "Collaborate",
-      "tag": "Multi-role Swarms",
-      "desc": "Pair program in agile squads where Flutter engineers, UI designers, and QA testers coordinate in real time."
+      "tag": "Faculty, Students & Campaign",
+      "desc": "Work with faculty coordinators and student volunteers, and run the campaign on Instagram and across campus to bring participants in."
     },
     {
       "step": "04",
       "name": "Build",
-      "tag": "Native & Cross-Platform",
-      "desc": "Engineered with Flutter, Kotlin, Swift, SQLite, Supabase and WebSocket streams, prioritizing 60fps responsiveness."
+      "tag": "Hosting the Event",
+      "desc": "Run the day: set up the venue, run every round, support the participants and judge what they make."
     },
     {
       "step": "05",
       "name": "Ship",
-      "tag": "Continuous Deployment",
-      "desc": "Automated build pipelines, APK distributions, TestFlight releases, and verified campus rollouts."
+      "tag": "Learning Outcomes",
+      "desc": "Close it out: capture what participants learned, share the results and photos, and mark the event complete."
     }
   ],
   "highlights": [

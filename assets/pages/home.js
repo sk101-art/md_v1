@@ -77,10 +77,10 @@ export function render(site, events) {
   <section class="section wrap" aria-labelledby="journey-h">
     <div class="section-head">
       <div>
-        <p class="eyebrow" data-sw="text">The member journey</p>
-        <h2 id="journey-h" data-sw="text">From first idea to shipped app</h2>
+        <p class="eyebrow" data-sw="text">How we run an event</p>
+        <h2 id="journey-h" data-sw="text">From first idea to finished event</h2>
       </div>
-      <p data-sw="text">Five stages every MAD project moves through. Select a stage to see what it involves.</p>
+      <p data-sw="text">Five stages every MAD event moves through. Select a stage to see what it involves.</p>
     </div>
     <div class="journey">
       <div class="journey-steps" role="tablist" aria-label="Journey stages" aria-orientation="vertical">
@@ -114,22 +114,7 @@ export function render(site, events) {
           <p>${esc(h.text)}</p>
         </article>`).join("")}
     </div>
-  </section>` : ""}
-
-  <section class="section wrap" aria-labelledby="cta-h">
-    <div class="cta-band glass" data-sw="box">
-      <div>
-        <img class="cta-mark" src="assets/brand/mad-logo.svg" alt="" width="42" height="64">
-        <p class="eyebrow">${events.length} events since ${esc(site.established)}</p>
-        <h2 id="cta-h">${esc(site.cta_title)}</h2>
-        <p class="lead">${esc(site.cta_text)}</p>
-      </div>
-      <div class="actions">
-        <a class="btn primary" href="contact.html">Join MAD Club ${icons.arrow}</a>
-        <a class="btn" href="${esc(site.instagram)}" target="_blank" rel="noopener">Follow ${esc(site.instagram_handle)}</a>
-      </div>
-    </div>
-  </section>`;
+  </section>` : ""}`;
 }
 
 export function wire(ctx) {
