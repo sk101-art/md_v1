@@ -1,4 +1,4 @@
-import { esc, $, $$, photoSrc, semKey } from "../core/util.js";
+import { esc, $, $$, photoSrc, semKey, motion } from "../core/util.js";
 import { pageHead } from "./common.js";
 import { wireSeg } from "../core/seg.js";
 
@@ -24,7 +24,7 @@ export function render(site, events) {
     </div>
     <div class="mosaic" id="mosaic">
       ${evs.map(e => e.photos.map((p, k) => `
-        <button type="button" class="tile" data-ev="${esc(e.slug)}" data-i="${n++}" data-src="${esc(photoSrc(p))}"
+        <button type="button" class="tile${motion.reduced ? "" : " negative"}" data-ev="${esc(e.slug)}" data-i="${n++}" data-src="${esc(photoSrc(p))}"
           data-cap="${esc(e.name)} · ${k + 1} of ${e.photos.length}" data-href="event.html?e=${encodeURIComponent(e.slug)}"
           ${sel !== "all" && sel !== e.slug ? "hidden" : ""} aria-label="Open ${esc(e.name)} photo ${k + 1}" data-sw="media">
           <img src="${esc(photoSrc(p))}" alt="${esc(e.name)}, photo ${k + 1}" loading="lazy" decoding="async">
@@ -47,6 +47,17 @@ export function wire({ scope, director }) {
   const box = $("#mosaic");
   if (!box) return;
   const tiles = $$(".tile", box);
+  // darkroom: each photo waits as a negative; when a builder finishes building it, it develops
+  if (!motion.reduced) {
+    const dev = t => { if (!t.classList.contains("negative") || t.classList.contains("sw-hold")) return; t.classList.remove("negative"); t.classList.add("developing"); setTimeout(() => t.classList.remove("developing"), 2200); };
+    const mo = new MutationObserver(ms => ms.forEach(m => dev(m.target)));
+    tiles.forEach(t => mo.observe(t, { attributes: true, attributeFilter: ["class"] }));
+    scope.add(() => mo.disconnect());
+    // anything shown without a build (filter changes, motion switched off) develops on sight
+    const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && setTimeout(() => dev(e.target), 600)), { threshold: 0.2 });
+    tiles.forEach(t => io.observe(t));
+    scope.add(() => io.disconnect());
+  }
 
   wireSeg($("#f-ev"), {
     scope,

@@ -478,3 +478,4 @@ dialog::backdrop { background: rgba(24, 33, 47, 0.22); -webkit-backdrop-filter: 
 }
 .motion-chip .mc-x { border: 0; background: none; font-size: 1.3rem; line-height: 1; color: var(--text-2); padding: 4px 8px; }
 @media (max-width: 920px) { .motion-chip { bottom: calc(92px + env(safe-area-inset-bottom)); flex-wrap: wrap; border-radius: var(--r-lg); padding: 12px; } }
+.tabbar a { position: relative; } .tab-dot { position: absolute; top: 6px; right: calc(50% - 16px); width: 8px; height: 8px; border-radius: 50%; background: #E0444F; box-shadow: 0 0 0 2px var(--bg); }

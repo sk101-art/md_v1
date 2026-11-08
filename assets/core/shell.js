@@ -1,6 +1,7 @@
 // Persistent shell: floating glass navigation pill, mobile sheet, appearance toggle,
 // command palette, footer, draft banner and the optional developer HUD.
-import { $, $$, esc, icons, normalizeRoute, semKey, semYear, yearLabel, motion } from "./util.js";
+import { $, $$, esc, icons, normalizeRoute, semKey, semYear, yearLabel, motion, perf } from "./util.js";
+import { sound } from "../motion/sound.js";
 import { draftKeys } from "./content.js";
 
 export const NAV = [
@@ -70,7 +71,7 @@ export function buildShell(site, events, { navigate, director }) {
       </div>
     </header>
     <nav class="menu-sheet glass" id="menu-sheet" aria-label="Menu">${NAV.map(([h, t]) => `<a href="${h}">${t}</a>`).join("")}</nav>
-    <nav class="tabbar glass" aria-label="Quick navigation" data-sw="box" data-sw-g="0"><span class="tab-ind" aria-hidden="true"></span>${TABS.map(([h, t, ic]) => `<a href="${h}">${ic}<span>${t}</span></a>`).join("")}</nav>`);
+    <nav class="tabbar glass" aria-label="Quick navigation" data-sw="box" data-sw-g="0"><span class="tab-ind" aria-hidden="true"></span>${TABS.map(([h, t, ic]) => `<a href="${h}">${ic}<span>${t}</span>${h === "contact.html" && site.recruitment?.open ? `<i class="tab-dot" title="${esc(site.recruitment.headline || "Recruitment is open")}"></i>` : ""}</a>`).join("")}</nav>`);
 
   const years = [...new Set(events.map(e => semYear(e.semester)).filter(Boolean))].sort().reverse();
   document.body.insertAdjacentHTML("beforeend", `
@@ -175,9 +176,12 @@ function wirePalette(site, events, navigate) {
     ...NAV.map(([h, t]) => ({ g: "Page", t, run: () => navigate(h) })),
     ...[...events].sort((a, b) => semKey(b.semester) - semKey(a.semester)).map(e => ({ g: "Event", t: e.name, s: `${e.semester} · ${e.category || "Event"}`, run: () => navigate(`event.html?e=${encodeURIComponent(e.slug)}`) })),
     { g: "Motion", t: "Replay the swarm build", run: () => playMotion() },
+    { g: "Builders", t: "Builder log", s: "Watch who laid out and who approved each part, live", run: () => builderLog(true) },
     { g: "Design", t: "Inspect mode (press I)", s: "Hover anything to see size, type and colour", run: () => window.__mad?.inspector?.toggle(true) },
     { g: "Design", t: "Slow motion: hold Shift", s: "Study any animation at 0.18× speed", run: () => {} },
     { g: "Motion", t: "Turn animations off", run: () => { motion.override = "off"; location.reload(); } },
+    { g: "Motion", t: "Toggle lite effects", s: "Lighter rendering for slower devices", run: () => { perf.choice = perf.lite ? "full" : "lite"; } },
+    { g: "Sound", t: "Toggle builder sounds", s: "A soft tick when a builder clicks (off by default)", run: () => { sound.on = !sound.on; } },
     { g: "Appearance", t: "Toggle light / Graphite appearance", run: () => setTheme(root.dataset.theme === "dark" ? "light" : "dark") },
     { g: "Social", t: `Open Instagram ${site.instagram_handle}`, run: () => window.open(site.instagram, "_blank", "noopener") }
   ];
@@ -209,6 +213,30 @@ function wirePalette(site, events, navigate) {
       q ? q.focus() : open();
     }
   });
+}
+
+// The builder log: every layout and approval, by role, as it happens (opened from Ctrl K)
+let logEl = null;
+export function builderLog(open = !logEl) {
+  if (!open) { logEl && logEl.remove(); logEl = null; return; }
+  if (logEl) return;
+  logEl = document.createElement("aside");
+  logEl.className = "blog glass";
+  logEl.setAttribute("aria-label", "Builder log");
+  logEl.innerHTML = `<header><b>Builder log</b><small>Committees lay out · core approves</small><button type="button" aria-label="Close builder log">×</button></header><ol aria-live="polite"></ol>`;
+  document.body.append(logEl);
+  const list = logEl.querySelector("ol");
+  const fmt = e => { const t = new Date(e.t); return `<li><time>${t.toLocaleTimeString("en-IN", { hour12: false })}</time><b style="--c:${e.color}">${esc(e.who)}</b><span>${esc(e.verb)} ${esc(e.what)}</span></li>`; };
+  const past = (window.__mad?.director?.log || []).slice(-14);
+  list.innerHTML = past.length ? past.map(fmt).join("") : `<li class="empty-log">Nothing built yet. Scroll or open a page and watch.</li>`;
+  const on = ev => {
+    if (!logEl) return document.removeEventListener("mad:log", on);
+    list.querySelector(".empty-log")?.remove();
+    list.insertAdjacentHTML("beforeend", fmt(ev.detail));
+    while (list.children.length > 14) list.firstElementChild.remove();
+  };
+  document.addEventListener("mad:log", on);
+  logEl.querySelector("button").onclick = () => builderLog(false);
 }
 
 // Engineering metrics live here, behind Ctrl+Shift+D, never in the visitor UI.

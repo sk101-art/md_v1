@@ -1,5 +1,6 @@
 import { esc, $, $$, photoSrc, semKey, icons } from "../core/util.js";
 import { coverOf, statusLabel, posterArt } from "./common.js";
+import { passHtml, wirePass, wireStory, gitGraphHtml, wireGitGraph, bowlHtml, wireBowl } from "./event-features.js";
 
 export function render(site, events) {
   const slug = new URLSearchParams(location.search).get("e");
@@ -35,6 +36,7 @@ export function render(site, events) {
       </div>
       <div class="ev-actions" data-sw="block">
         ${reg ? `<a class="btn primary" href="${esc(reg)}">Register for ${esc(ev.name)} ${icons.arrow}</a>` : ""}
+        ${photos.length || (ev.rounds || []).some(r => r.summary) ? `<button type="button" class="btn primary" id="story">Play the story ${icons.arrow}</button>` : ""}
         <a class="btn" href="events.html">All events</a>
         ${photos.length ? `<a class="btn" href="gallery.html?e=${encodeURIComponent(ev.slug)}">Photos</a>` : ""}
         ${ev.instagram_post ? `<a class="btn ghost" href="${esc(ev.instagram_post)}" target="_blank" rel="noopener">Instagram post</a>` : ""}
@@ -46,6 +48,8 @@ export function render(site, events) {
       ${cover ? `<img src="${esc(cover)}" alt="${esc(ev.name)}" id="ev-cover">` : posterArt(ev, "ev-cover")}
     </div>
   </section>
+
+  ${ev.date_confirmed !== false ? passHtml(ev) : ""}
 
   ${(ev.highlights || []).length ? `
   <section class="section wrap">
@@ -61,6 +65,7 @@ export function render(site, events) {
       <div><h4>${esc(r.title)}</h4>${r.summary ? `<p>${esc(r.summary)}</p>` : ""}</div></div>`).join("")}</div>
     ${chips("Genres drawn", ev.genres)}${chips("Judged on", ev.judging)}
   </section>` : ""}
+  ${ev.feature === "git-graph" ? gitGraphHtml(ev) : ""}${ev.feature === "genre-bowl" ? bowlHtml(ev) : ""}
 
   ${(ev.prizes || []).length ? `
   <section class="section wrap">
@@ -95,7 +100,9 @@ export function render(site, events) {
   </dialog>`;
 }
 
-export function wire({ scope }) {
+export function wire({ scope, events }) {
+  const ev = events.find(x => x.slug === new URLSearchParams(location.search).get("e"));
+  if (ev) { wirePass(scope); wireStory(ev, scope); wireGitGraph(scope); wireBowl(ev, scope); }
   const share = $("#share");
   share && scope.on(share, "click", async () => {
     try {

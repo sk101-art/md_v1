@@ -24,6 +24,47 @@ export const motion = {
     return rm.matches;
   }
 };
+// Returning visitors (seen in the last 7 days) skip the intro and get a quick one-pass build
+const WEEK = 7 * 864e5;
+export const visit = {
+  returning: (() => { try { const t = +localStorage.getItem("mad_seen_at"); return !!t && Date.now() - t < WEEK && !new URLSearchParams(location.search).has("intro"); } catch { return false; } })(),
+  mark() { try { localStorage.setItem("mad_seen_at", String(Date.now())); } catch {} }
+};
+
+// Performance tier: "lite" keeps every effect but lighter (fewer particles, no glow filters,
+// solid panels instead of frosted glass). Chosen by the visitor, or automatically when the
+// device is slow (measured frame rate during the first seconds, or very little memory).
+export const perf = {
+  get choice() { try { return localStorage.getItem("mad_perf") || ""; } catch { return ""; } },
+  set choice(v) { try { v ? localStorage.setItem("mad_perf", v) : localStorage.removeItem("mad_perf"); } catch {} this.apply(); },
+  get auto() { try { return localStorage.getItem("mad_perf_auto") === "lite"; } catch { return false; } },
+  get lite() {
+    try { const q = new URLSearchParams(location.search); if (q.has("lite")) return true; if (q.has("full")) return false; } catch {}
+    if (this.choice) return this.choice === "lite";
+    return this.auto || (navigator.deviceMemory && navigator.deviceMemory <= 2);
+  },
+  apply() { document.documentElement.classList.toggle("lite", !!this.lite); },
+  // average frame rate over `ms` while the intro (or first build) animates
+  probe(ms = 2200) {
+    return new Promise(res => {
+      let n = 0, t0 = 0, worst = 0, last = 0;
+      const f = t => {
+        if (!t0) { t0 = last = t; }
+        worst = Math.max(worst, t - last); last = t; n++;
+        if (t - t0 < ms) requestAnimationFrame(f);
+        else res({ fps: (n * 1000) / (t - t0), worst });
+      };
+      requestAnimationFrame(f);
+    });
+  },
+  async measure() {
+    if (this.choice || document.hidden) return;
+    const { fps } = await this.probe();
+    if (fps < 40) { try { localStorage.setItem("mad_perf_auto", "lite"); } catch {} this.apply(); }
+  }
+};
+// particle and trace budgets scale with the tier
+export const budget = n => Math.round(n * (perf.lite ? 0.35 : 1));
 export const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 export const isSmall = () => window.innerWidth < 720;
 

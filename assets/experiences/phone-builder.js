@@ -3,7 +3,7 @@
 // MATERIALIZING -> LOGO_APPROACH -> POWERING_UP -> COMPLETE -> RESETTING
 import { ParticleField } from "../graphics/particle-field.js";
 import { perimeter, fill, rectOfEl, radiusPx } from "../graphics/geometry-sampling.js";
-import { $, $$, motion, isSmall, clamp, wait } from "../core/util.js";
+import { $, $$, motion, isSmall, clamp, wait, perf, budget } from "../core/util.js";
 import { makeSvg, evenEndpoints, powerNetwork, logoBody } from "../graphics/power-fx.js";
 import { pageRect } from "../motion/selection-geometry.js";
 
@@ -79,7 +79,7 @@ export class PhoneBuilder {
     const R = rectOfEl(ph);
     const scale = R.w / 300;
     const small = isSmall();
-    const k = small ? 1.4 : 1; // sparser sampling on small screens
+    const k = (small ? 1.4 : 1) * (perf.lite ? 1.8 : 1); // sparser sampling on small screens / lite
     const T = { chassis: [], containers: [], detail: [], meta: { R, scale } };
     const push = (arr, pts, color, size) => pts.forEach(p => arr.push({ ...p, color, size }));
 
@@ -309,7 +309,7 @@ export class PhoneBuilder {
     const net = powerNetwork(svg, o, ends, {
       r0: Math.max(lw, lh) / 2 + 2, rate, body: logoBody(o, lw, lh),
       lay: 800, flow: 1500, stagger: 55,
-      fine: isSmall() ? 26 : 40, fineBox: { W, H, inset: 8 },
+      fine: budget(isSmall() ? 26 : 40), fineBox: { W, H, inset: 8 },
       onArrive: () => { arrived++; if (arrived === 1) { try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(8); } catch {} } }
     });
     await net.done;

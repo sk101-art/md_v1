@@ -100,7 +100,7 @@ export class Crew {
     await sleep(fast ? 120 : 220);
     // one node every ~150ms, each lighting over ~460ms: overlapping, so it reads as a smooth
     // clockwise sweep — slow enough to follow, never waiting on itself
-    const step = fast ? 80 : 150;
+    const step = fast ? 80 : 125;
     for (let i = 0; i < CREW_SIZE; i++) {
       const a = this.agents[i];
       seated = i + 1;
@@ -130,11 +130,11 @@ export class Crew {
     // a glow flows from the logo along a circuit into each node; each node powers on as it arrives
     const ends = nodes.map((_, i) => { const p = off(i); return { x: C + p.x, y: C + p.y, ang: p.ang }; });
     await powerNetwork(svg, { x: C, y: C }, ends, {
-      r0: 30, body: logoBody({ x: C, y: C }, (70 * 500) / 766, 70), lay: fast ? 300 : 520, flow: fast ? 620 : 1050, stagger: fast ? 14 : 30, branches: false,
+      r0: 30, body: logoBody({ x: C, y: C }, (70 * 500) / 766, 70), lay: fast ? 300 : 460, flow: fast ? 620 : 900, stagger: fast ? 14 : 30, branches: false,
       onArrive: i => { nodes[i].classList.add("powered"); this.agents[i].el.animate([{ transform: this.agents[i].el.style.transform + " scale(1)" }, { transform: this.agents[i].el.style.transform + " scale(1.9)" }, { transform: this.agents[i].el.style.transform + " scale(1)" }], { duration: 360 }); }
     }).done;
     stage.querySelector("b").textContent = "Builders powered";
-    stage.querySelector(".ci-role").textContent = "Design · Build · Motion · Review · Ship";
+    stage.querySelector(".ci-role").textContent = "Committees lay out · Core approves";
     svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, delay: 120, fill: "forwards" });
 
     // ALIVE: the power sets the ring in motion around the logo, starting exactly where each dot
@@ -149,7 +149,7 @@ export class Crew {
     nodes.forEach((n, i) => n.animate([{ opacity: 1, transform: "translate(-50%,-50%) scale(1)" }, { opacity: 0, transform: "translate(-50%,-50%) scale(1.6)" }], { duration: 520, delay: i * 14, fill: "forwards", easing: "ease-out" }));
     this.pause = false;
     this.kick();
-    await sleep(fast ? 420 : 760);
+    await sleep(fast ? 360 : 560);
     this._introCleanup = () => window.removeEventListener("resize", onResize);
   }
 

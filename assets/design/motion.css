@@ -338,3 +338,22 @@ html.booting #nav, html.booting #main, html.booting footer.foot, html.booting .t
 .holo-cv { position: absolute; z-index: 2; pointer-events: none; }
 .sw-agent.holo-node .sw-dotc { animation: none; }
 .sw-agent.holo-node.projecting .sw-dotc { transform: scale(1.35); box-shadow: 0 0 0 2.5px rgba(255, 255, 255, 0.9), 0 0 16px 4px color-mix(in srgb, var(--c) 80%, white 20%); }
+
+/* a core builder's approval stamp: its role tag, in its colour */
+.sw-stamp { position: absolute; left: 0; top: 0; margin: -10px 0 0 -18px; padding: 3px 6px; border-radius: 6px; background: var(--c); color: #fff;
+  font: 700 9px/1 var(--font-mono); letter-spacing: .06em; white-space: nowrap; box-shadow: 0 4px 10px -4px rgba(24,33,47,.45); pointer-events: none; transform-origin: 0 100%; }
+.sw-agent .sw-name { font: 700 9px/1 var(--font-mono); letter-spacing: .06em; padding: 3px 6px 3px; }
+
+/* builder log (Ctrl K) */
+.blog { position: fixed; z-index: 60; left: 16px; bottom: 16px; background: color-mix(in srgb, var(--bg, #F7F8FA) 97%, transparent) !important; box-shadow: 0 20px 50px -20px rgba(24,33,47,.45); width: min(420px, calc(100vw - 32px)); max-height: 46vh; display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; font-size: .8rem; }
+.blog header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.blog header small { color: var(--text-2); flex: 1; font: 500 .66rem/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.blog header button { border: 0; background: none; font-size: 1.2rem; line-height: 1; color: var(--text-2); }
+.blog ol { list-style: none; margin: 0; padding: 6px 0; overflow-y: auto; }
+.blog li { display: grid; grid-template-columns: 60px 64px minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 4px 14px; animation: logIn 260ms ease-out; }
+.blog time { font: 400 .68rem/1 var(--font-mono); color: var(--text-2); }
+.blog li b { font: 700 .62rem/1 var(--font-mono); letter-spacing: .05em; color: #fff; background: var(--c); padding: 3px 5px; border-radius: 4px; justify-self: start; }
+.blog li span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.blog .empty-log { display: block; color: var(--text-2); }
+@keyframes logIn { from { opacity: 0; transform: translateY(4px); } }
+@media (max-width: 720px) { .blog { bottom: 92px; } }

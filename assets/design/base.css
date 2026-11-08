@@ -155,3 +155,15 @@ em.serif, .serif {
 }
 
 [hidden] { display: none !important; }
+
+/* ---- lite effects (slow devices, or chosen): same design, lighter rendering ---- */
+.lite *, .lite *::before, .lite *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.lite .glass, .lite .nav-pill, .lite .tabbar, .lite .menu-sheet, .lite .os-widget, .lite .os-dock, .lite .lk-note { background-color: color-mix(in srgb, var(--bg, #F7F8FA) 94%, transparent) !important; }
+.lite svg g[filter], .lite svg [filter] { filter: none !important; }
+.lite .sw-agent svg, .lite .tile, .lite .card { filter: none; }
+
+/* the page's content is also written into the HTML for link previews, search engines and
+   visitors without JavaScript; with JavaScript the live, swarm-built page replaces it */
+html.js #main > .pre { display: none; }
+.pre-list { display: grid; gap: 14px; padding: 0; list-style: none; }
+.pre-nav { padding: 18px 0; font-weight: 600; }

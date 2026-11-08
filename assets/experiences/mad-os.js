@@ -1,7 +1,8 @@
 // MAD OS: the finished phone is a real little operating system.
 // Boot -> lock screen -> home screen -> the MAD logo lands as an app icon and opens itself.
 // Apps: MAD (events feed + detail), Gallery, Team, About, Join, Settings, plus Instagram/Website links.
-import { $, $$, esc, photoSrc, semKey, motion, icons } from "../core/util.js";
+import { $, $$, esc, photoSrc, semKey, motion, icons, perf } from "../core/util.js";
+import { sound } from "../motion/sound.js";
 import { loadData } from "../core/content.js";
 import { setTheme, playMotion } from "../core/shell.js";
 
@@ -34,12 +35,12 @@ const clock = () => new Date().toLocaleTimeString("en-IN", { hour: "2-digit", mi
 const dateLine = () => new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
 const buzz = ms => { try { navigator.userActivation?.hasBeenActive && navigator.vibrate && navigator.vibrate(ms); } catch {} };
 
-function iconHtml(id, { slot = false } = {}) {
+function iconHtml(id, { slot = false, badge = "" } = {}) {
   const a = APPS[id];
   const tile = a.img
     ? `<span class="ic-tile ic-img${slot ? " ic-slot" : ""}"><img src="${a.img}" alt=""></span>`
     : `<span class="ic-tile" style="background:${a.tint};color:${a.dark ? "#18212F" : "#fff"}">${a.glyph}</span>`;
-  const label = `<span class="ic-label">${esc(a.name)}</span>`;
+  const label = `<span class="ic-label">${esc(a.name)}</span>${badge ? `<span class="ic-badge" aria-label="${esc(badge)}">1</span>` : ""}`;
   if (a.external) return `<a class="ic" data-app="${id}" href="#" target="_blank" rel="noopener" aria-label="${esc(a.name)} (opens in a new tab)">${tile}${label}</a>`;
   if (a.href) return `<a class="ic" data-app="${id}" href="${a.href}" aria-label="Open the ${esc(a.name)}">${tile}${label}</a>`;
   return `<button type="button" class="ic" data-app="${id}" aria-label="Open ${esc(a.name)}">${tile}${label}</button>`;
@@ -60,6 +61,10 @@ export function osMarkup(site, events) {
     <section class="os-lock" aria-label="Lock screen">
       <p class="lk-date">${dateLine()}</p>
       <p class="lk-time">${clock()}</p>
+      ${site.recruitment?.open ? `<div class="lk-note lk-recruit">
+        <span class="lk-ic"><img src="assets/brand/mad-app-icon.svg" alt=""></span>
+        <span><b>${esc(site.recruitment.headline || "Recruitment is open")}</b><small>${esc(site.recruitment.detail || "Open the Join app to apply.")}</small></span>
+      </div>` : ""}
       <div class="lk-note">
         <span class="lk-ic"><img src="assets/brand/mad-app-icon.svg" alt=""></span>
         <span><b>MAD Club</b><small>${events.length} events in the archive since ${esc(site.established)}. Open the app to browse them.</small></span>
@@ -75,7 +80,7 @@ export function osMarkup(site, events) {
       </div>
       <div class="os-grid">${["team", "about", "instagram", "website"].map(id => iconHtml(id)).join("")}</div>
       <div class="os-dots" aria-hidden="true"><i class="on"></i><i></i></div>
-      <div class="os-dock">${["mad", "gallery", "join", "settings"].map(id => iconHtml(id, { slot: id === "mad" })).join("")}</div>
+      <div class="os-dock">${["mad", "gallery", "join", "settings"].map(id => iconHtml(id, { slot: id === "mad", badge: id === "join" && site.recruitment?.open ? "Recruitment is open" : "" })).join("")}</div>
     </section>
     <section class="os-app" aria-live="polite">
       <div class="app-splash" aria-hidden="true"><img src="" alt=""></div>
@@ -405,6 +410,7 @@ export class MadOS {
     }
     if (id === "join") {
       return this.shell("Join MAD", `
+        ${s.recruitment?.open ? `<div class="ap-group ap-recruit"><div class="ap-set"><span><b>${esc(s.recruitment.headline || "Recruitment is open")}</b><small>${esc(s.recruitment.detail || "")}</small></span></div></div>` : ""}
         <div class="ap-hero"><img src="assets/brand/mad-logo.svg" alt=""><p>${esc(s.cta_text || "")}</p></div>
         <a class="ap-cta" href="${esc(s.instagram)}" target="_blank" rel="noopener">DM ${esc(s.instagram_handle)}</a>
         <a class="ap-cta ghost" href="gallery.html">See the gallery</a>
@@ -418,6 +424,10 @@ export class MadOS {
             <input type="checkbox" role="switch" data-act="theme" ${dark ? "checked" : ""}></label>
           <label class="ap-set"><span><b>Animations</b><small>Swarm build and motion across the site</small></span>
             <input type="checkbox" role="switch" data-act="motion" ${motion.reduced ? "" : "checked"}></label>
+          <label class="ap-set"><span><b>Lite effects</b><small>Lighter rendering for slower devices${perf.auto && !perf.choice ? " (turned on automatically)" : ""}</small></span>
+            <input type="checkbox" role="switch" data-act="lite" ${perf.lite ? "checked" : ""}></label>
+          <label class="ap-set"><span><b>Builder sounds</b><small>A soft tick when a builder clicks</small></span>
+            <input type="checkbox" role="switch" data-act="sound" ${sound.on ? "checked" : ""}></label>
           <button type="button" class="ap-set" data-act="replay"><span><b>Replay the site build</b><small>Watch the swarm construct this page again</small></span><i>${icons.arrow}</i></button>
           <button type="button" class="ap-set" data-act="rebuild"><span><b>Rebuild this phone</b><small>Replay the particle build from the start</small></span><i>${icons.arrow}</i></button>
           ${this.onFullscreen ? `<button type="button" class="ap-set" data-act="full"><span><b>Full screen</b><small>Turn your screen into this phone</small></span><i>${icons.arrow}</i></button>` : ""}
@@ -471,6 +481,8 @@ export class MadOS {
       if (el.checked) playMotion();
     }
     if (act === "full") this.onFullscreen && this.onFullscreen();
+    if (act === "lite") { perf.choice = el.checked ? "lite" : "full"; buzz(5); }
+    if (act === "sound") { sound.on = el.checked; }
     if (act === "year") {
       const page = el.closest(".app-page");
       $$("[data-act=year]", page).forEach(b => b.setAttribute("aria-pressed", String(b === el)));

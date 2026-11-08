@@ -5,7 +5,7 @@
 // then the hologram takes on colour and dissolves seamlessly into the real card.
 import { Agent } from "../motion/agents.js";
 import { pageRect, lineRects } from "../motion/selection-geometry.js";
-import { motion, isSmall, $$, clamp } from "../core/util.js";
+import { budget, motion, isSmall, $$, clamp } from "../core/util.js";
 
 const COBALT = [88, 120, 216], SEA = [79, 165, 157];
 // default hologram palette (cobalt); a builder's role may carry its own (the satin violet one)
@@ -224,7 +224,7 @@ class Job {
     if (photo) {
       const box = local(photo.closest(".portrait") || photo);
       perimeterPts(box.w, box.h, 14, 5).forEach(p => add(box.x + p.x, box.y + p.y, "edge"));
-      const e = edgesOf(photo, box.w, box.h, isSmall() ? 1100 : 1800, this.pal.line);
+      const e = edgesOf(photo, box.w, box.h, budget(isSmall() ? 1100 : 1800), this.pal.line);
       e.pts.forEach(p => add(box.x + p.x, box.y + p.y, "img"));
       this.edgeLayer = e.layer; this.edgeBox = box;
     } else {

@@ -292,3 +292,9 @@
 .ap-strip button { flex: none; padding: 0; border: 0; background: none; border-radius: 10px; overflow: hidden; }
 /* the home bar only takes touches on the bar itself, never on content beside it */
 .os-ind { left: 50%; right: auto; width: 168px; transform: translateX(-50%); border-radius: 13px; }
+/* recruitment mode: a badge on Join, a notification on the lock screen */
+.ic { position: relative; }
+.ic-badge { position: absolute; top: -5px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #E0444F; color: #fff; font: 700 10.5px/18px var(--font-body); text-align: center; box-shadow: 0 0 0 2px rgba(255,255,255,.9); animation: badgePop 600ms cubic-bezier(.34,1.6,.64,1) both 400ms; }
+@keyframes badgePop { from { transform: scale(0); } }
+.lk-recruit { margin-bottom: 8px; box-shadow: 0 0 0 1.5px rgba(224, 68, 79, .4), 0 6px 20px -10px rgba(24, 33, 47, .35); }
+.ap-recruit { border-color: rgba(224, 68, 79, .35); }

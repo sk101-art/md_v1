@@ -1,6 +1,6 @@
 // Content router: static-hostable routes with history, focus management,
 // Swarm Rebuild transitions, interrupt safety and per-route lifecycle cleanup.
-import { $, normalizeRoute, motion } from "./util.js";
+import { $, normalizeRoute, motion, visit } from "./util.js";
 import { Scope } from "./lifecycle.js";
 import { markActive } from "./shell.js";
 import { captureShared, playShared } from "../motion/transition-director.js";
@@ -144,7 +144,7 @@ export class Router {
     const arrival = this.first;
     if (!(arrival && intro)) document.documentElement.classList.remove("booting");
     let seen = false;
-    try { seen = sessionStorage.getItem("mad_arrived") === "1"; sessionStorage.setItem("mad_arrived", "1"); } catch {}
+    try { seen = sessionStorage.getItem("mad_arrived") === "1" || visit.returning; sessionStorage.setItem("mad_arrived", "1"); } catch {}
     this.first = false;
 
     if (arrival) {

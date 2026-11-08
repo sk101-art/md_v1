@@ -1,11 +1,12 @@
 // Swarm Director: multi-agent collaborative construction of real UI regions.
 // Recipes: construct (2-pass skeleton -> fill, or 1-pass), rebuild teardown, morph,
 // connect, disperse. Geometry is always measured from the live DOM.
-import { Agent, ROLES, visitor } from "./agents.js";
+import { Agent, ROLES, HELPER, CREW_ROLES, visitor } from "./agents.js";
 import { Crew, CREW_SIZE } from "./crew.js";
 import { pageRect, radiusOf, inViewport, lineRects, dist } from "./selection-geometry.js";
 import { traceContainer, roundedRectPath } from "./container-tracer.js";
 import { motion, wait, clamp, isSmall } from "../core/util.js";
+import { sound } from "./sound.js";
 
 const NS = "http://www.w3.org/2000/svg";
 const PATH_OK = typeof CSS !== "undefined" && CSS.supports && CSS.supports("clip-path", 'path("M0 0H1V1Z")');
@@ -138,12 +139,48 @@ export class SwarmDirector {
     if (!this.enabled) return [];
     const got = this.crew.claim(n, near, pick);
     for (let i = got.length; i < Math.min(n, 1); i++) {
-      const a = new Agent(this.layer, ROLES[i % ROLES.length], 60 + i);
+      const a = new Agent(this.layer, HELPER, 60 + i);
       a.setMode("cursor");
       if (near) a.place(near.x - 30, near.y - 30);
       got.push(a);
     }
     return got;
+  }
+  // a working team: the committee ("board") builders lay out, the core four approve and create
+  _claimTeam(n, near) {
+    const nCore = clamp(Math.round(n / 3), 1, 4);
+    const core = this.crew.claim(nCore, near, { only: a => a.role.tier === "core" });
+    const board = this.crew.claim(Math.max(1, n - core.length), near, { only: a => a.role.tier !== "core" });
+    if (!core.length && !board.length) return { core: this._claim(1, near), board: [] };
+    return { core, board };
+  }
+  // the approving builder stamps the selection with its role before creating the content
+  _stamp(agent, rect) {
+    const s = document.createElement("span");
+    s.className = "sw-stamp";
+    s.style.setProperty("--c", agent.role.hex);
+    s.textContent = `✓ ${agent.role.short || "OK"}`;
+    s.style.transform = `translate(${rect.x + rect.w}px, ${rect.y}px)`;
+    this.layer.append(s);
+    gsap.fromTo(s, { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.22, ease: "back.out(2.2)" });
+    gsap.to(s, { opacity: 0, y: -6, duration: 0.3, delay: 0.55, onComplete: () => s.remove() });
+  }
+  // what the builders are doing, for the builder log (Ctrl K)
+  _log(agent, verb, el) {
+    const what = !el ? "" : (el.getAttribute("aria-label") || el.textContent || el.getAttribute("alt") || "").trim().replace(/\s+/g, " ").slice(0, 34);
+    const tag = el ? (el.tagName === "IMG" ? "image" : el.dataset.sw === "box" ? "container" : el.tagName.toLowerCase()) : "";
+    const entry = { t: Date.now(), who: agent.role.short || agent.role.name, color: agent.role.hex, verb, what: what ? `${tag} “${what}”` : tag };
+    (this.log ||= []).push(entry);
+    if (this.log.length > 80) this.log.shift();
+    document.dispatchEvent(new CustomEvent("mad:log", { detail: entry }));
+  }
+  // returning visitor: the crew is simply there, ringed around the pointer
+  quickStart() {
+    if (!this.enabled) return Promise.resolve();
+    this.crew.ensure();
+    this.crew.agents.forEach((a, i) => { a.el.style.opacity = "1"; a.el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, delay: i * 25, fill: "backwards" }); });
+    this.crew.kick();
+    return Promise.resolve();
   }
   intro(opts) {
     if (!this.enabled) return Promise.resolve();
@@ -165,6 +202,7 @@ export class SwarmDirector {
   }
   _click(agent) {
     agent.press();
+    sound.tick(agent.index || 0);
     const c = document.createElement("i");
     c.className = "sw-click";
     c.style.setProperty("--c", agent.role.color);
@@ -184,14 +222,15 @@ export class SwarmDirector {
   hold(root) {
     if (!this.enabled) return [];
     const els = this.layersIn(root);
-    els.forEach(el => { el.classList.add("sw-hold"); this.held.add(el); });
+    els.forEach(el => { el.classList.add("sw-hold"); el.inert = true; this.held.add(el); });
     // Hard safety: if motion is switched off mid-way, nothing may stay hidden.
     this._safety = this._safety || new Set();
     const t = setTimeout(() => { if (!this.enabled) this.releaseAll(); }, HOLD_SAFETY_MS);
     this._safety.add(t);
     return els;
   }
-  _release(el) { el.classList.remove("sw-hold"); this.held.delete(el); this.inFlight.delete(el); }
+  // unbuilt content is invisible, so it is also untouchable and unfocusable until it is built
+  _release(el) { el.classList.remove("sw-hold"); el.inert = false; this.held.delete(el); this.inFlight.delete(el); }
   releaseAll() { for (const el of [...this.held]) this._release(el); }
 
   revealEl(el, kind, dur = 0.42) {
@@ -293,9 +332,9 @@ export class SwarmDirector {
     const d = b.querySelector(".sw-dim");
     if (d) d.textContent = `${Math.round(r.w)} × ${Math.round(r.h)}`;
   }
-  async _drag(run, agent, rect, opts) {
+  async _drag(run, agent, rect, opts = {}) {
     this._click(agent);
-    const b = this._box({ x: rect.x, y: rect.y, w: 0, h: 0 }, opts);
+    const b = this._box({ x: rect.x, y: rect.y, w: 0, h: 0 }, { color: agent.role.hex, ...opts });
     run.cleanup(() => b.remove());
     const s = { w: 0, h: 0 };
     const dur = clamp(0.2 + (rect.w + rect.h) / 4200, 0.2, 0.42);
@@ -390,6 +429,77 @@ export class SwarmDirector {
     await Promise.all(agents.map(worker));
   }
 
+  /** Lay out, then approve: committee builders select each layer and lay its skeleton; as each one
+   *  is ready a core builder comes over, stamps it approved and creates the real content. */
+  async _layApprove(run, board, core, layers, tick = () => {}) {
+    const ready = [];
+    let layDone = false;
+    const lay = async (agent, L) => {
+      await this._move(run, agent, L.rect.x, L.rect.y, 0.75);
+      if (run.cancelled) return;
+      const b = await this._drag(run, agent, L.rect, { fill: L.kind === "text" || L.kind === "box" ? "clear" : "skeleton", dims: L.rect.w > 120 });
+      if (run.cancelled) return;
+      run.cleanup(() => b.remove());
+      L.skel = this._skeleton(L.el, L.kind);
+      L.skel.forEach(s => gsap.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.14 }));
+      run.cleanup(() => L.skel.forEach(s => s.remove()));
+      L.box = b;
+      this._log(agent, "laid out", L.el);
+      tick();
+      ready.push(L);
+    };
+    const make = async (agent, L) => {
+      await this._move(run, agent, L.rect.x + Math.min(L.rect.w * 0.6, 160), L.rect.y + Math.min(L.rect.h * 0.5, 30), 0.75);
+      if (run.cancelled) return;
+      this._click(agent);
+      this._stamp(agent, L.rect);
+      this._log(agent, "approved", L.el);
+      if (L.box) { L.box.style.setProperty("--select", agent.role.hex); L.box.classList.remove("skeleton"); L.box.classList.add("clear"); }
+      if (L.kind === "text") await this._morphText(run, L);
+      else if (L.kind === "box") {
+        L.skel.forEach(s => s.remove());
+        await traceContainer(L.el, this.layer, { duration: 0.5, run, onResolve: () => this.revealEl(L.el, "box", 0.35) });
+      } else {
+        const rev = this.revealEl(L.el, L.kind, 0.34);
+        L.skel.forEach(s => gsap.to(s, { opacity: 0, duration: 0.25, onComplete: () => s.remove() }));
+        await rev;
+      }
+      tick();
+      if (L.box) await this._fadeOut(run, L.box, 0.12);
+    };
+    const laying = this._schedule(run, board, layers, lay).then(() => { layDone = true; });
+    const approver = async (agent, i) => {
+      await wait(i * 70);
+      while (!run.cancelled) {
+        if (!ready.length) { if (layDone) break; await wait(70); continue; }
+        // take the earliest-laid layer nearest to this builder
+        let k = 0, bd = Infinity;
+        for (let j = 0; j < Math.min(3, ready.length); j++) { const d = dist(agent, ready[j].rect) + j * 120; if (d < bd) { bd = d; k = j; } }
+        const L = ready.splice(k, 1)[0];
+        try { await make(agent, L); } catch (e) { console.warn("[swarm]", e); this._release(L.el); }
+      }
+    };
+    await Promise.all([laying, ...core.map(approver)]);
+  }
+  // builders who finished their part stay with the job: they hover by whatever is being worked on
+  async _standBy(run, agents, done) {
+    let fin = false;
+    done.then(() => (fin = true), () => (fin = true));
+    await Promise.all(agents.map(async (a, i) => {
+      await wait(i * 50);
+      while (!fin && !run.cancelled) {
+        const b = [...this.layer.querySelectorAll(".sw-box")];
+        const box = b[(i + Math.floor(Math.random() * 3)) % Math.max(1, b.length)];
+        if (box) {
+          const r = box.getBoundingClientRect();
+          const c = (i + Math.floor(Math.random() * 4)) % 4;
+          await this._move(run, a, r.left + scrollX + (c % 2 ? r.width : 0), r.top + scrollY + (c > 1 ? r.height : 0) + 6, 1.2);
+        }
+        await wait(220 + Math.random() * 260);
+      }
+    }));
+  }
+
   // helpers gather at the corners of a rect while a lead does the job
   async _assist(run, helpers, rectFn, done) {
     let finished = false;
@@ -420,8 +530,8 @@ export class SwarmDirector {
     const h = document.createElement("div");
     h.className = "sw-hud";
     h.setAttribute("role", "status");
-    h.innerHTML = `<span class="dots">${ROLES.map(r => `<i style="--c:${r.color}"></i>`).join("")}</span>
-      <span class="txt">0 agents · 0/0 layers</span><span class="meter"><b></b></span>
+    h.innerHTML = `<span class="dots">${CREW_ROLES.map(r => `<i style="--c:${r.hex}" title="${r.name}"></i>`).join("")}</span>
+      <span class="txt">0 builders · 0/0 layers</span><span class="meter"><b></b></span>
       <button type="button" class="sw-skip">Skip</button>`;
     document.body.append(h);
     h.querySelector(".sw-skip").addEventListener("click", () => this.skip());
@@ -431,7 +541,7 @@ export class SwarmDirector {
     this.hud.classList.toggle("on", on);
     this.you.classList.toggle("on", on);
     if (!on) { if (this.boost !== 1) { this.boost = 1; this.setRate(); } return; }
-    this.hud.querySelector(".txt").textContent = `${verb ? verb + " · " : ""}${n} agents · ${done}/${total} layers`;
+    this.hud.querySelector(".txt").textContent = `${verb ? verb + " · " : ""}${n} builders · ${done}/${total} layers`;
     this.hud.querySelector(".meter b").style.width = `${total ? (done / total) * 100 : 0}%`;
   }
 
@@ -456,21 +566,25 @@ export class SwarmDirector {
     let done = 0;
     const tick = () => { done++; if (hud) this._hud(true, this.agents.length, done, total, "Building"); };
 
-    if (!this.agents.length) this.agents = this._claim(Math.min(agents, Math.max(4, layers.length)), layers[0] && layers[0].rect);
+    if (!this.agents.length) { const t = this._claimTeam(Math.min(agents, Math.max(4, layers.length)), layers[0] && layers[0].rect); this.agents = [...t.core, ...t.board]; }
+    const core = this.agents.filter(a => a.role.tier === "core"), board = this.agents.filter(a => a.role.tier !== "core");
+    const layers2 = core.length && board.length ? { lay: board, make: core } : { lay: this.agents, make: this.agents };
     if (hud) this._hud(true, this.agents.length, 0, total, "Building");
 
     // placement marks where each layer will land
     const marks = new Map();
-    layers.slice(0, 40).forEach((L, i) => marks.set(L, this._cross(L.rect.x, L.rect.y, ROLES[i % ROLES.length].color)));
+    layers.slice(0, 40).forEach(L => marks.set(L, this._cross(L.rect.x, L.rect.y)));
     run.cleanup(() => marks.forEach(c => c.remove()));
 
     const fill = async (agent, L) => {
-      // select existing skeleton, then the real content resolves inside it
+      // a core builder reviews the laid-out skeleton, approves it, and the real content resolves inside it
       await this._move(run, agent, L.rect.x + Math.min(L.rect.w * 0.35, 120), L.rect.y + Math.min(L.rect.h * 0.5, 40));
       if (run.cancelled) return;
-      const b = this._box(L.rect, { fill: "clear" });
+      const b = this._box(L.rect, { fill: "clear", color: agent.role.hex });
       run.cleanup(() => b.remove());
       this._click(agent);
+      this._stamp(agent, L.rect);
+      this._log(agent, "approved", L.el);
       gsap.fromTo(b, { scale: 1.015, opacity: 0.4 }, { scale: 1, opacity: 1, duration: 0.14, transformOrigin: "50% 50%" });
       if (L.kind === "text") {
         await this._morphText(run, L);
@@ -490,6 +604,7 @@ export class SwarmDirector {
       await this._move(run, agent, L.rect.x, L.rect.y);
       if (run.cancelled) return;
       const b = await this._drag(run, agent, L.rect, { fill: "clear" });
+      this._log(agent, "laid out", L.el);
       if (run.cancelled) return;
       L.skel = this._skeleton(L.el, L.kind);
       L.skel.forEach(s => gsap.fromTo(s, { opacity: 0 }, { opacity: 1, duration: 0.14 }));
@@ -523,12 +638,12 @@ export class SwarmDirector {
     };
 
     try {
-      if (passes === 2) {
-        await this._schedule(run, this.agents, layers, layDown);
-        await this._schedule(run, this.agents, layers, fill);
-      } else {
-        await this._schedule(run, this.agents, layers, single);
-      }
+      // committee builders lay each part out; the core four approve and create it as soon as it is
+      // ready, so laying out and approving overlap like a real team
+      const making = this._layApprove(run, layers2.lay, layers2.make, layers, tick);
+      if (layers2.lay !== layers2.make) making.then(() => {});
+      await making;
+      void passes; void layDown; void fill; void single;
     } finally {
       layers.forEach(L => this._release(L.el));
       run.cancel(); // cleanup any stragglers
@@ -713,7 +828,8 @@ export class SwarmDirector {
   /** Hide these layers now, before they paint. */
   holdEls(els) {
     if (!this.enabled) return;
-    els.forEach(el => { if (el && el.isConnected) { el.classList.add("sw-hold"); this.held.add(el); } });
+    // on-demand builds (the phone) stay tappable: their skeletons show where everything is
+    els.forEach(el => { if (el && el.isConnected) { el.classList.add("sw-hold"); el.dataset.swLive = ""; this.held.add(el); } });
   }
   /** Build them: what is on screen now is built straight away by a team of builders, the rest
    *  as it scrolls into view (or as its screen is shown), exactly like the website's pages. */
@@ -761,7 +877,8 @@ export class SwarmDirector {
     // wait (briefly) until a proper team is free rather than sending one builder alone
     const t0 = performance.now();
     while (this.crew.available < 3 && performance.now() - t0 < 5000 && !run.cancelled) await wait(90);
-    const agents = this._claim(Math.max(1, Math.min(n, this.crew.available || 1)), layers[0] && layers[0].rect);
+    const team = this._claimTeam(Math.max(1, Math.min(n, this.crew.available || 1)), layers[0] && layers[0].rect);
+    const agents = [...team.core, ...team.board];
     const quick = async (agent, L) => {
       await this._move(run, agent, L.rect.x, L.rect.y, 0.7);
       if (run.cancelled) return;
@@ -787,7 +904,8 @@ export class SwarmDirector {
       }
     };
     try {
-      await this._schedule(run, agents, layers, quick);
+      if (team.core.length && team.board.length) await this._layApprove(run, team.board, team.core, layers);
+      else await this._schedule(run, agents, layers, quick);
     } finally {
       layers.forEach(L => this._release(L.el));
       run.cancel();
@@ -808,7 +926,7 @@ export class SwarmDirector {
     this._hud(false);
     this.layer.querySelectorAll(".sw-box,.sw-frag,.sw-cross,.sw-guide,.trace-svg,.trace-head").forEach(n => n.remove());
     // cancelled builds release their layers; put the unbuilt ones back on hold for the sweep
-    setTimeout(() => pending.forEach(el => { if (el.isConnected) { el.classList.add("sw-hold"); this.held.add(el); this.inFlight.delete(el); } }), 30);
+    setTimeout(() => pending.forEach(el => { if (el.isConnected) { el.classList.add("sw-hold"); el.inert = !("swLive" in el.dataset); this.held.add(el); this.inFlight.delete(el); } }), 30);
   }
   skip() {
     this.cancelRuns();

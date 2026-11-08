@@ -281,7 +281,8 @@
           "role": "Senior Assistant Professor, CSE"
         }
       ],
-      "instagram_post": "https://www.instagram.com/p/DVqrUYlEaab/"
+      "instagram_post": "https://www.instagram.com/p/DVqrUYlEaab/",
+      "feature": "genre-bowl"
     },
     {
       "slug": "gitout26",
@@ -324,7 +325,8 @@
           "name": "Dr Lavanya C",
           "role": "Senior Assistant Professor, CSE"
         }
-      ]
+      ],
+      "feature": "git-graph"
     }
   ]
 }

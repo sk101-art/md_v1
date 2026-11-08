@@ -157,5 +157,11 @@
     "faculty_advisor": "Department of Computer Science & Engineering, NHCE",
     "location": "New Horizon College of Engineering, Bellandur Outer Ring Road, Bengaluru - 560103",
     "email": "madclub.nhce@gmail.com"
+  },
+  "recruitment": {
+    "open": false,
+    "headline": "Recruitment is open",
+    "detail": "Applications for the next batch are open. DM us on Instagram to join.",
+    "url": ""
   }
 }

@@ -27,12 +27,13 @@ export function render(site, events) {
       </div>
     </div>
     <div id="grid" class="posters" data-sw-off></div>
+    <div class="archive" id="archive" data-sw-off></div>
   </section>`;
 }
 
 export function wire({ events, scope, director }) {
   const state = { q: "", kind: "all", year: new URLSearchParams(location.search).get("y") || "all" };
-  const grid = $("#grid"), count = $("#count");
+  const grid = $("#grid"), count = $("#count"), archive = $("#archive");
   const sorted = [...events].sort((a, b) => semKey(b.semester) - semKey(a.semester) || String(b.start_at).localeCompare(String(a.start_at)));
 
   const draw = () => {
@@ -43,9 +44,19 @@ export function wire({ events, scope, director }) {
       (state.year === "all" || semYear(e.semester) === state.year) &&
       (!q || `${e.name} ${e.description} ${e.semester} ${e.category || ""}`.toLowerCase().includes(q)));
     count.textContent = `${list.length} of ${events.length} events`;
-    grid.innerHTML = list.length
-      ? list.map(e => posterCard(e)).join("").replaceAll(' data-sw="box"', "")
-      : `<div class="empty" style="grid-column:1/-1">No events match. Try another filter or clear the search.</div>`;
+    // documented events get the full poster; the early ones (names and rounds only) sit in a
+    // compact archive timeline underneath
+    const full = list.filter(e => e.date_confirmed !== false), early = list.filter(e => e.date_confirmed === false);
+    grid.innerHTML = full.length
+      ? full.map(e => posterCard(e)).join("").replaceAll(' data-sw="box"', "")
+      : early.length ? "" : `<div class="empty" style="grid-column:1/-1">No events match. Try another filter or clear the search.</div>`;
+    archive.innerHTML = early.length ? `<h2 class="archive-h">The early years <span>${early.length} event${early.length > 1 ? "s" : ""}, 2023 to 2025</span></h2>
+      <ol class="archive-list">${early.map(e => `<li class="arc" data-sw="block">
+        <span class="arc-sem">${esc(e.semester)}</span>
+        <span class="arc-main"><b>${esc(e.name)}</b><small>${esc(e.description)}</small>
+          ${(e.rounds || []).length ? `<span class="arc-rounds">${e.rounds.map(r => `<i>${esc(r.title)}</i>`).join("")}</span>` : ""}</span>
+        ${(e.photos || []).length ? `<a class="btn sm ghost" href="gallery.html?e=${encodeURIComponent(e.slug)}">${e.photos.length} photos</a>` : ""}
+      </li>`).join("")}</ol>` : "";
     if (motion.reduced) return;
     $$(".poster", grid).forEach((c, i) => {
       const f = first.get(c.dataset.slug);
@@ -67,5 +78,6 @@ export function wire({ events, scope, director }) {
   // Construct the initial poster wall with the swarm (cards are created after hold)
   $$(".poster", grid).forEach(c => c.setAttribute("data-sw", "box"));
   grid.removeAttribute("data-sw-off");
+  archive.removeAttribute("data-sw-off");
   return { construct: true };
 }
