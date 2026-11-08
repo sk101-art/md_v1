@@ -45,11 +45,7 @@ export async function render() {
     </div>
     <div class="people" id="people">${(t.current || []).map(p => person(p, "", { holo: true })).join("")}</div>
   </section>
-  ${(t.earlier || []).length ? `
-  <section class="section wrap" aria-labelledby="alum-h">
-    <div class="section-head"><div><p class="eyebrow" data-sw="text">Earlier leadership</p><h2 id="alum-h" data-sw="text">Founders and alumni</h2></div></div>
-    <div class="people">${t.earlier.map(p => person({ ...p, bio: p.bio || "" }, p.year ? ` · ${esc(p.year)}` : "")).join("")}</div>
-  </section>` : ""}`;
+`;
 }
 
 export function wire({ scope, director }) {
